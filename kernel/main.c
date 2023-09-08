@@ -2,47 +2,38 @@
 
 int main(void)
 {
-	int conexion;
-	int conexionFilesystem;
-	char* ip;
-	char* puerto;
-	char* puertoFilesystem;
-	char* valor;
-
 	t_log* logger;
 	t_config* config;
-
 	logger = iniciar_logger();
-
 	config = iniciar_config();
+	char* valor;
+	int fd_cpu = 0;
+	int fd_filesystem = 0;
+	int fd_memoria = 0;
 
-	ip = config_get_string_value(config, "IP");
-	puerto = config_get_string_value(config, "PUERTO");
 	valor = config_get_string_value(config,"CLAVE");
-	puertoFilesystem = config_get_string_value(config, "PUERTOFILESYSTEM");
 
-	log_info(logger, "Se leyo la IP: %s , el PUERTO: %s , el PUERTOFILESYSTEM: %s y el VALOR: %s\n", ip, puerto, puertoFilesystem, valor);
+	if(!conectar_modulos(logger, config, &fd_cpu, &fd_filesystem, &fd_memoria)){
+		terminar_programa(fd_cpu, fd_filesystem, fd_memoria, logger, config);
+		return EXIT_FAILURE;
+	}
 
-	// Creamos una conexión hacia CPU
-	conexion = crear_conexion(ip, puerto);
-	// Creamos una conexión hacia FILESYSTEM
-	conexionFilesystem = crear_conexion(ip, puertoFilesystem);
+	enviar_mensaje(valor, fd_cpu);
+	enviar_mensaje(valor, fd_filesystem);
+	enviar_mensaje(valor, fd_memoria);
 
-	//Envio de mensajes
-	enviar_mensaje(valor, conexion);
-	enviar_mensaje(valor, conexionFilesystem);
+	paquete(fd_cpu);
+	paquete(fd_filesystem);
+	paquete(fd_memoria);
 
-	//Envio de paquetes
-	paquete(conexion);
-	paquete(conexionFilesystem);
+	terminar_programa(fd_cpu, fd_filesystem, fd_memoria, logger, config);
 
-	terminar_programa(conexion, logger, config);
-	terminar_programa(conexionFilesystem, logger, config);
+	return EXIT_SUCCESS;
 }
 
 t_log* iniciar_logger(void)
 {
-	t_log* nuevo_logger = log_create("tp0.log", "pruebaLogger1", 1, LOG_LEVEL_INFO);
+	t_log* nuevo_logger = log_create("kernel.log", "KERNEL", 1, LOG_LEVEL_INFO);
 
 	if(nuevo_logger == NULL){
 		printf("No se pudo leer el logger\n");
@@ -64,37 +55,7 @@ t_config* iniciar_config(void)
 	return nuevo_config;
 }
 
-void leer_consola(t_log* logger)
-{
-	char* leido;
-
-	leido = readline("> ");
-	while(strcmp(leido, "")){
-		log_info(logger, "Se leyo la linea de consola: %s", leido);
-		leido = readline("> ");
-	}
-
-	free(leido);
-}
-
-void paquete(int conexion)
-{
-	char* leido;
-	t_paquete* paquete = crear_paquete();
-
-	leido = readline("> ");
-	while(strcmp(leido, "")){
-		agregar_a_paquete(paquete, leido, strlen(leido) +1);
-		leido = readline("> ");
-	}
-
-	enviar_paquete(paquete, conexion);
-
-	free(leido);
-	eliminar_paquete(paquete);
-}
-
-void terminar_programa(int conexion, t_log* logger, t_config* config)
+void terminar_programa(int conexion, int conexion2, int conexion3, t_log* logger, t_config* config)
 {
 	if(logger != NULL){
 		log_destroy(logger);
@@ -105,4 +66,25 @@ void terminar_programa(int conexion, t_log* logger, t_config* config)
 	}
 
 	liberar_conexion(conexion);
+	liberar_conexion(conexion2);
+	liberar_conexion(conexion3);
+}
+
+bool conectar_modulos(t_log* logger, t_config* config, int* fd_cpu, int* fd_filesystem, int* fd_memoria){
+
+	char* ip;
+	char* puerto;
+	char* puerto_filesystem;
+	char* puerto_memoria;
+
+	ip = config_get_string_value(config, "IP");
+	puerto = config_get_string_value(config, "PUERTO");
+	puerto_filesystem = config_get_string_value(config, "PUERTO_FILESYSTEM");
+	puerto_memoria = config_get_string_value(config, "PUERTO_MEMORIA");
+
+	*fd_cpu = crear_conexion(logger, ip, puerto);
+	*fd_filesystem = crear_conexion(logger, ip, puerto_filesystem);
+	*fd_memoria = crear_conexion(logger, ip, puerto_memoria);
+
+	return *fd_cpu != 0 && *fd_filesystem != 0 && *fd_memoria != 0;
 }

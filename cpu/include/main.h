@@ -3,8 +3,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <sockets.h>
+#include "../include/sockets.h"
+#include "../include/protocolo.h"
 
-void iterator(char* value);
+t_config* iniciar_config(void);
 
 #endif

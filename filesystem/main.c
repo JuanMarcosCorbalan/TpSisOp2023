@@ -1,19 +1,23 @@
 #include "include/main.h"
 
 int main(void) {
-	logger = log_create("log.log", "FILESYSTEM", 1, LOG_LEVEL_DEBUG);
+	logger = log_create("filesystem.log", "FILESYSTEM", 1, LOG_LEVEL_DEBUG);
 
-	int conexion;
 	t_config* config;
 	char* ip;
 	char* puerto;
-	char* puertoCpu;
-
+	char* puerto_memoria;
+	char* valor;
+	int fd_memoria = 0;
 	config = iniciar_config();
-	puerto = config_get_string_value(config, "PUERTO");
 	ip = config_get_string_value(config, "IP");
-	puertoCpu = config_get_string_value(config, "PUERTOCPU");
-	conexion = crear_conexion(ip, puertoCpu);
+	puerto = config_get_string_value(config, "PUERTO");
+	puerto_memoria = config_get_string_value(config, "PUERTO_MEMORIA");
+	valor = config_get_string_value(config, "VALOR");
+
+	fd_memoria = crear_conexion(logger, ip, puerto_memoria);
+	enviar_mensaje(valor, fd_memoria);
+//	liberar_conexion(fd_memoria);
 
 	int server_fd = iniciar_servidor(puerto);
 	log_info(logger, "FILESYSTEM LISTO...");
@@ -32,8 +36,9 @@ int main(void) {
 			list_iterate(lista, (void*) iterator);
 			break;
 		case -1:
-			log_error(logger, "el cliente se desconecto. Terminando servidor");
-			return EXIT_FAILURE;
+			log_error(logger, "El cliente se desconecto.");
+			cliente_fd = esperar_cliente(server_fd);
+			break;
 		default:
 			log_warning(logger,"Operacion desconocida. No quieras meter la pata");
 			break;
@@ -52,8 +57,4 @@ t_config* iniciar_config(void)
 	}
 
 	return nuevo_config;
-}
-
-void iterator(char* value) {
-	log_info(logger,"%s", value);
 }

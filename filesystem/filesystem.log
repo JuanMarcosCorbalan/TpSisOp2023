@@ -1,0 +1,8 @@
+[INFO] 21:23:35:707 FILESYSTEM/(4176:4176): Conectado correctamente.
+[INFO] 21:23:35:708 FILESYSTEM/(4176:4176): FILESYSTEM LISTO...
+[INFO] 21:24:39:453 FILESYSTEM/(4176:4176): Se conecto un cliente!
+[INFO] 21:24:39:454 FILESYSTEM/(4176:4176): Me llego el mensaje valor
+[INFO] 21:24:54:105 FILESYSTEM/(4176:4176): Me llegaron los siguientes valores:
+
+[INFO] 21:24:54:105 FILESYSTEM/(4176:4176): 123
+[ERROR] 21:24:57:596 FILESYSTEM/(4176:4176): El cliente se desconecto.
