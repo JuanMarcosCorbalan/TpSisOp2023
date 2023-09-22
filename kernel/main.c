@@ -6,29 +6,82 @@ int main(void)
 	t_config* config;
 	logger = iniciar_logger();
 	config = iniciar_config();
-	char* valor;
+//	int socket_servidor;
+//	char* puerto_escucha;
 	int fd_cpu = 0;
 	int fd_filesystem = 0;
 	int fd_memoria = 0;
 
-	valor = config_get_string_value(config,"CLAVE");
+//	puerto_escucha = config_get_string_value(config, "PUERTO_ESCUCHA");
 
 	if(!conectar_modulos(logger, config, &fd_cpu, &fd_filesystem, &fd_memoria)){
 		terminar_programa(fd_cpu, fd_filesystem, fd_memoria, logger, config);
 		return EXIT_FAILURE;
 	}
 
-	enviar_mensaje(valor, fd_cpu);
-	enviar_mensaje(valor, fd_filesystem);
-	enviar_mensaje(valor, fd_memoria);
+	enviar_mensaje("Hola, soy el Kernel!", fd_cpu);
+	enviar_mensaje("Hola, soy el Kernel!", fd_filesystem);
+	enviar_mensaje("Hola, soy el Kernel!", fd_memoria);
 
-	paquete(fd_cpu);
-	paquete(fd_filesystem);
-	paquete(fd_memoria);
+	inicializar_variables();
 
+//	paquete(fd_cpu);
+//	paquete(fd_filesystem);
+//	paquete(fd_memoria);
+
+//	socket_servidor = iniciar_servidor("4455");
+//	while (esperar_clientes(socket_servidor));
+
+	iniciar_consola(logger);
 	terminar_programa(fd_cpu, fd_filesystem, fd_memoria, logger, config);
 
 	return EXIT_SUCCESS;
+}
+
+void iniciar_consola(t_log* logger){
+	char* entrada;
+	bool salir = false;
+	char** argumentos_entrada;
+
+	while(!salir){
+		entrada = readline("> ");
+		add_history(entrada);
+		argumentos_entrada = string_split(entrada, " ");
+
+		if(string_equals_ignore_case(entrada, "SALIR")){
+			salir = true;
+			free(entrada);
+			free(argumentos_entrada);
+			break;
+		}
+
+		if(string_equals_ignore_case(argumentos_entrada[0], "INICIAR_PROCESO")){
+			iniciar_proceso(logger, argumentos_entrada);
+		}
+		if(string_equals_ignore_case(argumentos_entrada[0], "FINALIZAR_PROCESO")){
+//			finalizar_proceso(argumentos_entrada);
+		}
+	}
+}
+
+void iniciar_proceso(t_log* logger, char *args[]) {
+	int prioridad = atoi(args[3]);
+	t_pcb* nuevo_proceso = crear_pcb(args[1], prioridad);
+	queue_push(procesos_en_new, nuevo_proceso);
+	log_info(logger, "Se crea el proceso %d en NEW", nuevo_proceso->pid);
+}
+
+t_pcb* crear_pcb(char* path, int prioridad){
+	t_pcb* pcb = malloc(sizeof(t_pcb));
+
+	pcb->pid = asignador_pid;
+	asignador_pid ++;
+	pcb->prioridad = prioridad;
+	pcb->estado = NEW;
+	pcb->program_counter = 1;
+
+	return pcb;
+
 }
 
 t_log* iniciar_logger(void)
@@ -72,19 +125,31 @@ void terminar_programa(int conexion, int conexion2, int conexion3, t_log* logger
 
 bool conectar_modulos(t_log* logger, t_config* config, int* fd_cpu, int* fd_filesystem, int* fd_memoria){
 
-	char* ip;
-	char* puerto;
-	char* puerto_filesystem;
+	char* ip_memoria;
 	char* puerto_memoria;
+	char* ip_filesystem;
+	char* puerto_filesystem;
+	char* ip_cpu;
+	char* puerto_cpu_dispatch;
 
-	ip = config_get_string_value(config, "IP");
-	puerto = config_get_string_value(config, "PUERTO");
-	puerto_filesystem = config_get_string_value(config, "PUERTO_FILESYSTEM");
+	ip_memoria = config_get_string_value(config, "IP_MEMORIA");
 	puerto_memoria = config_get_string_value(config, "PUERTO_MEMORIA");
+	ip_filesystem = config_get_string_value(config, "IP_FILESYSTEM");
+	puerto_filesystem = config_get_string_value(config, "PUERTO_FILESYSTEM");
+	ip_cpu = config_get_string_value(config, "IP_CPU");
+	puerto_cpu_dispatch = config_get_string_value(config, "PUERTO_CPU_DISPATCH");
 
-	*fd_cpu = crear_conexion(logger, ip, puerto);
-	*fd_filesystem = crear_conexion(logger, ip, puerto_filesystem);
-	*fd_memoria = crear_conexion(logger, ip, puerto_memoria);
+	*fd_cpu = crear_conexion(logger, ip_cpu, puerto_cpu_dispatch);
+	*fd_filesystem = crear_conexion(logger, ip_filesystem, puerto_filesystem);
+	*fd_memoria = crear_conexion(logger, ip_memoria, puerto_memoria);
 
 	return *fd_cpu != 0 && *fd_filesystem != 0 && *fd_memoria != 0;
+}
+
+void inicializar_variables() {
+	asignador_pid = 1;
+	procesos_en_new = queue_create();
+	procesos_en_ready = list_create();
+	procesos_en_blocked = list_create();
+	procesos_en_exit = list_create();
 }
