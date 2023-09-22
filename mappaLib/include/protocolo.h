@@ -13,7 +13,9 @@ extern t_log* logger;
 typedef enum
 {
 	MENSAJE,
-	PAQUETE
+	PAQUETE,
+	PCB,
+	INTERRUPCION
 }op_code;
 
 typedef struct
