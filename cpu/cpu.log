@@ -1,8 +1,0 @@
-[INFO] 21:22:09:432 CPU/(4173:4173): Conectado correctamente.
-[INFO] 21:22:09:432 CPU/(4173:4173): CPU LISTO...
-[INFO] 21:24:39:453 CPU/(4173:4173): Se conecto un cliente!
-[INFO] 21:24:39:454 CPU/(4173:4173): Me llego el mensaje valor
-[INFO] 21:24:47:689 CPU/(4173:4173): Me llegaron los siguientes valores:
-
-[INFO] 21:24:47:689 CPU/(4173:4173): 123
-[ERROR] 21:24:57:596 CPU/(4173:4173): El cliente se desconecto.

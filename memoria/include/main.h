@@ -9,10 +9,6 @@
 #include "../include/protocolo.h"
 #include "../include/utils.h"
 
-#define MAX_LINE_LENGTH 100
-
 t_config* iniciar_config(void);
-t_list* generar_instrucciones(char* path);
-codigo_instruccion instruccion_to_enum(char* instruccion);
 
 #endif

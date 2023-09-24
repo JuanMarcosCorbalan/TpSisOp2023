@@ -15,55 +15,6 @@ int main() {
     return 0;
 }
 
-codigo_instruccion instruccion_to_enum(char* instruccion){
-	if(strcmp(instruccion, "SET") == 0){
-		return SET;
-	} else if(strcmp(instruccion, "SUM") == 0){
-		return SUM;
-	} else if(strcmp(instruccion, "SUB") == 0){
-		return SUB;
-	}  else if(strcmp(instruccion, "EXIT") == 0){
-		return EXIT;
-	}
-
-	return EXIT_FAILURE;
-}
-
-t_list* generar_instrucciones(char* path) {
-	t_list* instrucciones = list_create();
-	char linea[MAX_LINE_LENGTH];
-	char ** token_instruccion;
-	int cant_parametros;
-	FILE* archivo = fopen(path, "r");
-
-	while(fgets(linea, MAX_LINE_LENGTH, archivo)){
-		t_instruccion* instruccion = malloc(sizeof(t_instruccion));
-		//Eliminar el ultimo \n
-		size_t longitud = strcspn(linea, "\n");
-		linea[longitud] = '\0';
-
-		token_instruccion = string_split(linea, " ");
-		for(int i=0; token_instruccion[i] != NULL; i++){
-			cant_parametros=i;
-		}
-
-		instruccion->codigo = instruccion_to_enum(token_instruccion[0]);
-		if(cant_parametros == 0){
-			instruccion->param1 = NULL;//" "??
-			instruccion->param2 = NULL;
-		} else if(cant_parametros == 1){
-			instruccion->param1 = token_instruccion[1];
-			instruccion->param2 = NULL;
-		} else if(cant_parametros == 2){
-			instruccion->param1 = token_instruccion[1];
-			instruccion->param2 = token_instruccion[2];;
-		}
-		list_add(instrucciones, instruccion);
-		//TODO Faltan los free??
-	}
-	return instrucciones;
-}
-
 t_config* iniciar_config(void)
 {
 	t_config* nuevo_config = config_create("./memoria.config");
