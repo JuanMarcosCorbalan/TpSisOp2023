@@ -11,7 +11,10 @@ int main(void)
 	int fd_cpu = 0;
 	int fd_filesystem = 0;
 	int fd_memoria = 0;
+	int* grado_multiprogramacion = &config_get_int_value(config, "GRADO_MULTIPROGRAMACION_INI");
 
+	sem_init(cont_multiprogramacion, 0, grado_multiprogramacion);
+	sem_init(bin_proceso_new, 0, 0);
 //	puerto_escucha = config_get_string_value(config, "PUERTO_ESCUCHA");
 
 	if(!conectar_modulos(logger, config, &fd_cpu, &fd_filesystem, &fd_memoria)){
@@ -32,16 +35,19 @@ int main(void)
 //	socket_servidor = iniciar_servidor("4455");
 //	while (esperar_clientes(socket_servidor));
 
-	iniciar_consola(logger);
+	iniciar_consola(logger, config);
 	terminar_programa(fd_cpu, fd_filesystem, fd_memoria, logger, config);
 
 	return EXIT_SUCCESS;
 }
 
-void iniciar_consola(t_log* logger){
+void iniciar_consola(t_log* logger, t_config* config){
 	char* entrada;
 	bool salir = false;
 	char** argumentos_entrada;
+
+	pthread_create(hilo_largo_plazo, NULL, (void*) planificador_largo_plazo, NULL);
+	pthread_detach(hilo_largo_plazo);
 
 	while(!salir){
 		entrada = readline("> ");
@@ -61,6 +67,7 @@ void iniciar_consola(t_log* logger){
 		if(string_equals_ignore_case(argumentos_entrada[0], "FINALIZAR_PROCESO")){
 //			finalizar_proceso(argumentos_entrada);
 		}
+
 	}
 }
 
@@ -69,6 +76,7 @@ void iniciar_proceso(t_log* logger, char *args[]) {
 	t_pcb* nuevo_proceso = crear_pcb(args[1], prioridad);
 	queue_push(procesos_en_new, nuevo_proceso);
 	log_info(logger, "Se crea el proceso %d en NEW", nuevo_proceso->pid);
+	sem_post(bin_proceso_new);
 }
 
 t_pcb* crear_pcb(char* path, int prioridad){
@@ -82,6 +90,19 @@ t_pcb* crear_pcb(char* path, int prioridad){
 
 	return pcb;
 
+}
+
+void planificador_largo_plazo(){
+	sem_wait(bin_proceso_new);
+	sem_wait(cont_multiprogramacion);
+	t_pcb* proceso = queue_pop(procesos_en_new);
+	pasar_a_ready(proceso);
+}
+
+void pasar_a_ready(t_pcb* proceso){
+	//TODO enviar el pcb a memoria (serializacion?)
+	list_add(procesos_en_ready, proceso);
+	proceso->estado = READY;
 }
 
 t_log* iniciar_logger(void)
