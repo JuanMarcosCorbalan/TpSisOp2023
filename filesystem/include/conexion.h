@@ -6,9 +6,11 @@
 #include <pthread.h>
 #include <commons/config.h>
 #include <commons/log.h>
+#include <commons/string.h>
 #include "../../mappaLib/include/sockets.h"
 #include "../../mappaLib/include/protocolo.h"
+#include "../../mappaLib/include/utils.h"
 
-int esperar_clientes(int server_socket);
+int experar_clientes(int server_socket);
 
 #endif

@@ -19,7 +19,7 @@ int main(void) {
 
 	int server_fd = iniciar_servidor(puerto_escucha);
 	log_info(logger, "FILESYSTEM LISTO...");
-	while(esperar_clientes(server_fd));
+	while(experar_clientes(server_fd));
 
 	return EXIT_SUCCESS;
 }

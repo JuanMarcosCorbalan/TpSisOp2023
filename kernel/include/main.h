@@ -9,10 +9,10 @@
 #include <commons/string.h>
 #include <commons/collections/list.h>
 #include <commons/collections/queue.h>
-#include "../include/sockets.h"
-#include "../include/protocolo.h"
-#include "../include/conexion.h"
-#include "../include/utils.h"
+#include "../../mappaLib/include/sockets.h"
+#include "../../mappaLib/include/protocolo.h"
+#include "../../mappaLib/include/conexion.h"
+#include "../../mappaLib/include/utils.h"
 
 t_queue* procesos_en_new;
 t_list* procesos_en_ready;

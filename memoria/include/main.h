@@ -4,10 +4,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <commons/string.h>
+#include <commons/log.h>
 #include "conexion.h"
-#include "../include/sockets.h"
-#include "../include/protocolo.h"
-#include "../include/utils.h"
+#include "../../mappaLib/include/sockets.h"
+#include "../../mappaLib/include/protocolo.h"
+#include "../../mappaLib/include/utils.h"
 
 t_config* iniciar_config(void);
 

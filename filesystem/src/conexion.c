@@ -34,7 +34,7 @@ static void procesar_cliente(void* void_args){
 	return;
 }
 
-int esperar_clientes(int server_socket){
+int experar_clientes(int server_socket){
 
 	int cliente_socket = esperar_cliente(server_socket);
 

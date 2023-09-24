@@ -4,9 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include "../include/sockets.h"
-#include "../include/protocolo.h"
-#include "../include/utils.h"
+#include "../../mappaLib/include/sockets.h"
+#include "../../mappaLib/include/protocolo.h"
+#include "../../mappaLib/include/utils.h"
 
 typedef struct {
 	char* ip_memoria;

@@ -1,4 +1,4 @@
-#include "sockets.h"
+#include "../include/sockets.h"
 
 int iniciar_servidor(char* puerto)
 {
