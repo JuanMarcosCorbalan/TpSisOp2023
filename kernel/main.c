@@ -72,14 +72,21 @@ void iniciar_consola(t_log* logger, t_config* config){
 }
 
 void iniciar_proceso(t_log* logger, char *args[]) {
+	char* path = args[1];
+	int size = atoi(args[2]);
 	int prioridad = atoi(args[3]);
-	t_pcb* nuevo_proceso = crear_pcb(args[1], prioridad);
-	queue_push(procesos_en_new, nuevo_proceso);
-	log_info(logger, "Se crea el proceso %d en NEW", nuevo_proceso->pid);
+	t_pcb* pcb = crear_pcb(prioridad);
+	/* t_proceso* nuevo_proceso = malloc(sizeof(t_proceso)); //por algun motivo no reconoce el tipo
+	nuevo_proceso->pcb = pcb
+	nuevo_proceso->path = path;
+	nuevo_proceso->size = size; */
+
+	queue_push(procesos_en_new, pcb /*tendria que ser nuevo_proceso*/);
+	log_info(logger, "Se crea el proceso %d en NEW", pcb->pid);
 	sem_post(bin_proceso_new);
 }
 
-t_pcb* crear_pcb(char* path, int prioridad){
+t_pcb* crear_pcb(int prioridad){
 	t_pcb* pcb = malloc(sizeof(t_pcb));
 
 	pcb->pid = asignador_pid;
@@ -100,7 +107,7 @@ void planificador_largo_plazo(){
 }
 
 void pasar_a_ready(t_pcb* proceso){
-	//TODO enviar el pcb a memoria (serializacion?)
+	//TODO enviar el path, size y pid a memoria
 	list_add(procesos_en_ready, proceso);
 	proceso->estado = READY;
 }
