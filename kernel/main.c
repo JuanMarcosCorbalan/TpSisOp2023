@@ -41,7 +41,7 @@ int main(void)
 	return EXIT_SUCCESS;
 }
 
-void iniciar_consola(t_log* logger, t_config* config){
+void iniciar_consola(t_log* logger, t_config* config, int fd_memoria){
 	char* entrada;
 	bool salir = false;
 	char** argumentos_entrada;
@@ -62,7 +62,7 @@ void iniciar_consola(t_log* logger, t_config* config){
 		}
 
 		if(string_equals_ignore_case(argumentos_entrada[0], "INICIAR_PROCESO")){
-			iniciar_proceso(logger, argumentos_entrada);
+			iniciar_proceso(logger, argumentos_entrada, fd_memoria);
 		}
 		if(string_equals_ignore_case(argumentos_entrada[0], "FINALIZAR_PROCESO")){
 //			finalizar_proceso(argumentos_entrada);
@@ -71,18 +71,22 @@ void iniciar_consola(t_log* logger, t_config* config){
 	}
 }
 
-void iniciar_proceso(t_log* logger, char *args[]) {
+void iniciar_proceso(t_log* logger, char *args[], int fd_memoria) {
 	char* path = args[1];
 	int size = atoi(args[2]);
 	int prioridad = atoi(args[3]);
-	t_pcb* pcb = crear_pcb(prioridad);
-	/* t_proceso* nuevo_proceso = malloc(sizeof(t_proceso)); //por algun motivo no reconoce el tipo
-	nuevo_proceso->pcb = pcb
-	nuevo_proceso->path = path;
-	nuevo_proceso->size = size; */
+	t_pcb* nuevo_proceso = crear_pcb(prioridad);
 
-	queue_push(procesos_en_new, pcb /*tendria que ser nuevo_proceso*/);
-	log_info(logger, "Se crea el proceso %d en NEW", pcb->pid);
+	t_paquete* datos_proceso = crear_paquete();
+	agregar_a_paquete(datos_proceso, path, sizeof(path) / sizeof(path[0]));
+	agregar_a_paquete(datos_proceso, size, sizeof(int));
+	agregar_a_paquete(datos_proceso, nuevo_proceso->pid, sizeof(int));
+
+	enviar_paquete(datos_proceso, fd_memoria);
+	eliminar_paquete(datos_proceso);
+
+	queue_push(procesos_en_new, nuevo_proceso);
+	log_info(logger, "Se crea el proceso %d en NEW", nuevo_proceso->pid);
 	sem_post(bin_proceso_new);
 }
 
