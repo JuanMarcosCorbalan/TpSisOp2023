@@ -77,13 +77,7 @@ void iniciar_proceso(t_log* logger, char *args[], int fd_memoria) {
 	int prioridad = atoi(args[3]);
 	t_pcb* nuevo_proceso = crear_pcb(prioridad);
 
-	t_paquete* datos_proceso = crear_paquete();
-	agregar_a_paquete(datos_proceso, path, sizeof(path) / sizeof(path[0]));
-	agregar_a_paquete(datos_proceso, size, sizeof(int));
-	agregar_a_paquete(datos_proceso, nuevo_proceso->pid, sizeof(int));
-
-	enviar_paquete(datos_proceso, fd_memoria);
-	eliminar_paquete(datos_proceso);
+	send_datos_proceso(path, size, nuevo_proceso->pid, fd_memoria);
 
 	queue_push(procesos_en_new, nuevo_proceso);
 	log_info(logger, "Se crea el proceso %d en NEW", nuevo_proceso->pid);

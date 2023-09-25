@@ -15,7 +15,8 @@ typedef enum
 	MENSAJE,
 	PAQUETE,
 	PCB,
-	INTERRUPCION
+	INTERRUPCION,
+	DATOS_PROCESO_NEW
 }op_code;
 
 typedef struct
@@ -30,6 +31,13 @@ typedef struct
 	t_buffer* buffer;
 } t_paquete;
 
+typedef struct
+{
+	int pid;
+	char* path;
+	int size;
+}t_datos_proceso;
+
 void* serializar_paquete(t_paquete* paquete, int bytes);
 t_paquete* crear_paquete(void);
 void enviar_paquete(t_paquete* paquete, int socket_cliente);
@@ -38,6 +46,8 @@ void paquete(int conexion);
 void leer_consola(t_log* logger);
 void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio);
 void eliminar_paquete(t_paquete* paquete);
+
+void send_datos_proceso(char* path, int size_proceso, int pid, int socket_cliente);
 
 void enviar_mensaje(char* mensaje, int socket_cliente);
 void recibir_mensaje(int socket_cliente);
