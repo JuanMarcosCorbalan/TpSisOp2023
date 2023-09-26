@@ -98,14 +98,15 @@ t_pcb* crear_pcb(int prioridad){
 }
 
 void planificador_largo_plazo(){
-	sem_wait(bin_proceso_new);
-	sem_wait(cont_multiprogramacion);
-	t_pcb* proceso = queue_pop(procesos_en_new);
-	pasar_a_ready(proceso);
+	while(true){
+		sem_wait(bin_proceso_new);
+		sem_wait(cont_multiprogramacion);
+		t_pcb* proceso = queue_pop(procesos_en_new);
+		pasar_a_ready(proceso);
+	}
 }
 
 void pasar_a_ready(t_pcb* proceso){
-	//TODO enviar el path, size y pid a memoria
 	list_add(procesos_en_ready, proceso);
 	proceso->estado = READY;
 }
