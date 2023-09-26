@@ -36,12 +36,6 @@ typedef struct {
 
 } t_pcb;
 
-typedef struct{
-	t_pcb* pcb;
-	char* path;
-	int size;
-} t_proceso;
-
 typedef enum {
 	SET,
 	SUM,
@@ -55,6 +49,14 @@ typedef struct {
 	char* param2;
 } t_instruccion;
 
+typedef struct
+{
+	int pid;
+	char* path;
+	int size;
+}t_datos_proceso;
+
+t_list* datos_procesos;
 void imprimirPrueba();
 
 #endif

@@ -7,6 +7,7 @@
 #include<commons/log.h>
 #include<commons/config.h>
 #include<readline/readline.h>
+#include "utils.h"
 
 extern t_log* logger;
 
@@ -31,12 +32,6 @@ typedef struct
 	t_buffer* buffer;
 } t_paquete;
 
-typedef struct
-{
-	int pid;
-	char* path;
-	int size;
-}t_datos_proceso;
 
 void* serializar_paquete(t_paquete* paquete, int bytes);
 t_paquete* crear_paquete(void);
