@@ -34,6 +34,7 @@ typedef struct {
 	t_archivos_abiertos archivos_abiertos;
 	estado estado;
 
+	double tiempo_inicial_ejecucion;
 } t_pcb;
 
 typedef enum {
