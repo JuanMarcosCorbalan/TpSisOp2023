@@ -2,7 +2,6 @@
 
 int main() {
 	logger = log_create("memoria.log", "MEMORIA", true, LOG_LEVEL_INFO);
-
 	t_config* config;
 	config = iniciar_config();
 	char* puerto_escucha;
@@ -75,3 +74,10 @@ t_config* iniciar_config(void)
 
 	return nuevo_config;
 }
+
+//void liberar_proceso(int server_fd)
+//{
+// 	t_datos_proceso* proceso_a_finalizar;
+//	recv_datos_proceso(server_fd);
+//
+//}

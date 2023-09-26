@@ -8,7 +8,8 @@ int main(void)
 	config = iniciar_config();
 //	int socket_servidor;
 //	char* puerto_escucha;
-	int fd_cpu = 0;
+	int fd_cpu_dispatch = 0;
+	int fd_cpu_interrupt = 0;
 	int fd_filesystem = 0;
 	int fd_memoria = 0;
 	int* grado_multiprogramacion = &config_get_int_value(config, "GRADO_MULTIPROGRAMACION_INI");
@@ -17,12 +18,13 @@ int main(void)
 	sem_init(bin_proceso_new, 0, 0);
 //	puerto_escucha = config_get_string_value(config, "PUERTO_ESCUCHA");
 
-	if(!conectar_modulos(logger, config, &fd_cpu, &fd_filesystem, &fd_memoria)){
-		terminar_programa(fd_cpu, fd_filesystem, fd_memoria, logger, config);
+	if(!conectar_modulos(logger, config, &fd_cpu_dispatch, &fd_cpu_interrupt, &fd_filesystem, &fd_memoria)){
+		terminar_programa(fd_cpu_dispatch, fd_cpu_interrupt, fd_filesystem, fd_memoria, logger, config);
 		return EXIT_FAILURE;
 	}
 
-	enviar_mensaje("Hola, soy el Kernel!", fd_cpu);
+	enviar_mensaje("Hola, soy el Kernel!", fd_cpu_dispatch);
+	enviar_mensaje("Hola, soy el Kernel!", fd_cpu_interrupt);
 	enviar_mensaje("Hola, soy el Kernel!", fd_filesystem);
 	enviar_mensaje("Hola, soy el Kernel!", fd_memoria);
 
@@ -36,7 +38,7 @@ int main(void)
 //	while (esperar_clientes(socket_servidor));
 
 	iniciar_consola(logger, config);
-	terminar_programa(fd_cpu, fd_filesystem, fd_memoria, logger, config);
+	terminar_programa(fd_cpu_dispatch, fd_cpu_interrupt, fd_filesystem, fd_memoria, logger, config);
 
 	return EXIT_SUCCESS;
 }
@@ -82,6 +84,21 @@ void iniciar_proceso(t_log* logger, char *args[], int fd_memoria) {
 	queue_push(procesos_en_new, nuevo_proceso);
 	log_info(logger, "Se crea el proceso %d en NEW", nuevo_proceso->pid);
 	sem_post(bin_proceso_new);
+}
+
+void finalizar_proceso(t_pcb* proceso_a_finalizar,char *args[], int fd_memoria){
+	char* path = args[1];
+	int size = atoi(args[2]);
+	if(proceso_a_finalizar->estado == EXEC){
+		// kernel envia señal de interrupcion a traves de interrupt a cpu y este tiene que devolverle
+		// a kernel el contexto de ejecucion antes de liberar memoria
+
+	}
+	// kernel tiene que pedirle a memoria que libere el espacio que ocupa el pcb
+	// le va a pasar mediante un paquete a memoria el pid, el path y el size.
+
+	send_datos_proceso(path,size,proceso_a_finalizar->pid,fd_memoria);
+
 }
 
 t_pcb* crear_pcb(int prioridad){
@@ -150,7 +167,7 @@ void terminar_programa(int conexion, int conexion2, int conexion3, t_log* logger
 	liberar_conexion(conexion3);
 }
 
-bool conectar_modulos(t_log* logger, t_config* config, int* fd_cpu, int* fd_filesystem, int* fd_memoria){
+bool conectar_modulos(t_log* logger, t_config* config, int* fd_cpu_dispatch, int* fd_cpu_interrupt, int* fd_filesystem, int* fd_memoria){
 
 	char* ip_memoria;
 	char* puerto_memoria;
@@ -158,6 +175,7 @@ bool conectar_modulos(t_log* logger, t_config* config, int* fd_cpu, int* fd_file
 	char* puerto_filesystem;
 	char* ip_cpu;
 	char* puerto_cpu_dispatch;
+	char* puerto_cpu_interrupt;
 
 	ip_memoria = config_get_string_value(config, "IP_MEMORIA");
 	puerto_memoria = config_get_string_value(config, "PUERTO_MEMORIA");
@@ -165,8 +183,10 @@ bool conectar_modulos(t_log* logger, t_config* config, int* fd_cpu, int* fd_file
 	puerto_filesystem = config_get_string_value(config, "PUERTO_FILESYSTEM");
 	ip_cpu = config_get_string_value(config, "IP_CPU");
 	puerto_cpu_dispatch = config_get_string_value(config, "PUERTO_CPU_DISPATCH");
+	puerto_cpu_interrupt = config_get_string_value(config, "PUERTO_CPU_INTERRUPT");
 
-	*fd_cpu = crear_conexion(logger, ip_cpu, puerto_cpu_dispatch);
+	*fd_cpu_dispatch = crear_conexion(logger, ip_cpu, puerto_cpu_dispatch);
+	*fd_cpu_interrupt = crear_conexion(logger, ip_cpu, puerto_cpu_interrupt);
 	*fd_filesystem = crear_conexion(logger, ip_filesystem, puerto_filesystem);
 	*fd_memoria = crear_conexion(logger, ip_memoria, puerto_memoria);
 
