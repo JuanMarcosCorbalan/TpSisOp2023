@@ -126,6 +126,7 @@ void planificador_largo_plazo(){
 void pasar_a_ready(t_pcb* proceso){
 	list_add(procesos_en_ready, proceso);
 	proceso->estado = READY;
+	// TODO falta enviar a memoria que ya esta ready
 }
 
 t_log* iniciar_logger(void)
