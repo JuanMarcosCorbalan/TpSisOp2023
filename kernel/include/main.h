@@ -23,7 +23,7 @@ t_list* procesos_en_exit;
 pthread_t* hilo_largo_plazo;
 
 int asignador_pid;
-
+int asignador_iid;
 sem_t* cont_multiprogramacion;
 sem_t* bin_proceso_new;
 
