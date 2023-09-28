@@ -10,6 +10,8 @@
 
 #include <utils.h>
 #include <pthread.h>
+#include "configuracionKernel.h"
+#include "comunicaciones_kernel.h"
 
 typedef struct{
 	int tiempo;

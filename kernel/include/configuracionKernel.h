@@ -42,5 +42,4 @@ extern t_kernel_config lecturaConfig;
 t_kernel_config leerKernelConfig(t_config* config);
 
 
-
 #endif /* CONFIGURACIONKERNEL_H_ */

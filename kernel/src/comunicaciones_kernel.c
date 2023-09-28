@@ -13,7 +13,6 @@ t_msj_kernel_cpu esperar_cpu(){
 	return respuesta;
 }
 
-
 char** recibir_parametros_de_instruccion(){
 	size_t cantidadDeParametros;
 	recv(socket_cpu,&cantidadDeParametros,sizeof(size_t),MSG_WAITALL);
@@ -31,7 +30,9 @@ char** recibir_parametros_de_instruccion(){
 
 	}
 
-	return parametros; // falta free
+	return parametros;
 
 }
+
+
 

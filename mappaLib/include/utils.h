@@ -4,6 +4,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <signal.h>
+#include <math.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <string.h>
+#include <commons/string.h>
+#include <commons/log.h>
+#include <commons/config.h>
+#include <commons/collections/queue.h>
+#include <semaphore.h>
+#include <inttypes.h>
+#include <stdbool.h>
+#include <pthread.h>
 
 typedef enum {
 	NEW,
@@ -49,6 +63,30 @@ typedef struct {
 	char* param1;
 	char* param2;
 } t_instruccion;
+
+typedef enum{
+
+	// los que usa solo CPU
+	PCB_A_EJECUTAR,
+
+	SET,
+	MOV_IN,
+	MOV_OUT,
+
+	// las que usa CPU y MEMORIA
+	F_OPEN,
+	F_CLOSE,
+	F_SEEK,
+	F_TRUNCATE,
+	F_READ,
+	F_WRITE,
+	WAIT,
+	SIGNAL,
+
+	// las que usa solo MEMORIA
+
+} t_msj_kernel_cpu;
+
 
 void imprimirPrueba();
 

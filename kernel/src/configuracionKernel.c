@@ -16,10 +16,17 @@ t_kernel_config lecturaConfig;
 t_log* logger;
 t_log* my_logger;
 
+// LISTAS Y COLAS
+
+t_list* ready_list;
 
 // VARIABLES COMPARTIDAS - GLOBALES
 
 t_pcb* proximoAEjecutar = NULL;
+
+// SEMAFOROS
+
+pthread_mutex_t mutex_ready_list;
 
 // SOCKETS
 

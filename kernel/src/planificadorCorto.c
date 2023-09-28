@@ -8,6 +8,8 @@ void planificadorCorto(){
 
 	while(1){
 
+
+		//sem_wait(&sem_cant_ready); //entra solo si hay algun proceso en ready, es una espera no activa
 		pcb = obtenerProximoAEjecutar();
 
 		//COMIENZA LA EJECUCION
@@ -15,12 +17,12 @@ void planificadorCorto(){
 		char** sin_parametros = string_array_new();
 		enviar_pcb(socket_cpu, pcb, PCB_A_EJECUTAR, sin_parametros);
 		string_array_destroy(sin_parametros);
-		//liberar_pcb(pcb); TODO
+		liberar_pcb(pcb); // TODO
 
 		t_msj_kernel_cpu respuesta = esperar_cpu();
 
 		parametros = recibir_parametros_de_instruccion();
-		pcb_recibido = recibir_pcb(socket_cpu); // TODO
+		pcb_recibido = recibir_pcb(socket_cpu); // FIJARSE XQ NO TOMA LA FUNCION
 
 		switch(respuesta){
 			//case F_OPEN:
@@ -46,7 +48,7 @@ t_pcb* obtenerProximoAEjecutar(){
 	}
 	else if(!strcmp(lecturaConfig.ALGORITMO_PLANIFICACION, "FIFO")) {
 
-		//pcb = list_pop_con_mutex(ready_list, &mutex_ready_list);
+		pcb = list_pop_con_mutex(ready_list, &mutex_ready_list);
 		pcb->tiempo_inicial_ejecucion = time(NULL);
 		log_info(logger, "PID: %d - Estado Anterior: READY - Estado Actual: EXEC", pcb->pid); //log obligatorio
 		return pcb;
