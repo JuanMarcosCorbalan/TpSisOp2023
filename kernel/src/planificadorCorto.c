@@ -19,7 +19,7 @@ void planificadorCorto(){
 
 		t_msj_kernel_cpu respuesta = esperar_cpu();
 
-		parametros = recibir_parametros_de_instruccion(); // TODO
+		parametros = recibir_parametros_de_instruccion();
 		pcb_recibido = recibir_pcb(socket_cpu); // TODO
 
 		switch(respuesta){
@@ -29,10 +29,10 @@ void planificadorCorto(){
 			//case F_CLOSE:
 			//break;
 		}
-	}
-	//dadasdasdda
 
-	/////aggddgagsaf
+		string_array_destroy(parametros);
+	}
+
 }
 
 t_pcb* obtenerProximoAEjecutar(){
