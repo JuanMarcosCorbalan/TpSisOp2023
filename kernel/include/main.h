@@ -23,6 +23,8 @@ t_list* procesos_en_exit;
 pthread_t* hilo_largo_plazo;
 pthread_t* hilo_corto_plazo;
 
+pthread_mutex_t* mutex_ready_list;
+
 int asignador_pid;
 int asignador_iid;
 sem_t* cont_multiprogramacion;
@@ -41,5 +43,7 @@ void inicializar_variables();
 void iniciar_consola(t_log* logger, t_config* config, int fd_memoria);
 void pasar_a_ready(t_pcb* proceso);
 void planificador_largo_plazo();
+void* planificador_corto_plazo(void);
+t_pcb* obtenerProximoAEjecutar();
 
 #endif

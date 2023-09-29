@@ -5,11 +5,12 @@
 	int fd_cpu = 0;
 	int fd_filesystem = 0;
 	int fd_memoria = 0;
+	t_config* config;
 
 int main(void)
 {
 	t_log* logger;
-	t_config* config;
+
 	logger = iniciar_logger();
 	config = iniciar_config();
 //	int socket_servidor;
@@ -175,19 +176,20 @@ void* planificador_corto_plazo(void){
 t_pcb* obtenerProximoAEjecutar(){
 
 	t_pcb* pcb;
+	char* algoritmo_planificacion = config_get_string_value(config, "ALGORITMO_PLANIFICACION");
 
-	if(!strcmp(lecturaConfig.ALGORITMO_PLANIFICACION, "FIFO")) {
+	if(!strcmp(algoritmo_planificacion, "FIFO")) {
 
-		pcb = list_pop_con_mutex(procesos_en_ready, &mutex_ready_list);
+		pcb = list_pop_con_mutex(procesos_en_ready, mutex_ready_list);
 		log_info(logger, "PID: %d - Estado Anterior: READY - Estado Actual: EXEC", pcb->pid); //log obligatorio
 		return pcb;
 	}
-	else if(!strcmp(lecturaConfig.ALGORITMO_PLANIFICACION, "RR")){
+	else if(!strcmp(algoritmo_planificacion, "RR")){
 
 		log_info(logger, "PID: %d - Estado Anterior: READY - Estado Actual: EXEC", pcb->pid); //log obligatorio
 		return pcb;
 	}
-	else if(!strcmp(lecturaConfig.ALGORITMO_PLANIFICACION, "PRIORIDADES")){
+	else if(!strcmp(algoritmo_planificacion, "PRIORIDADES")){
 
 		log_info(logger, "PID: %d - Estado Anterior: READY - Estado Actual: EXEC", pcb->pid); //log obligatorio
 		return pcb;
