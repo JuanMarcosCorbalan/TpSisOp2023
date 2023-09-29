@@ -86,19 +86,25 @@ void iniciar_proceso(t_log* logger, char *args[], int fd_memoria) {
 	sem_post(bin_proceso_new);
 }
 
-void finalizar_proceso(t_pcb* proceso_a_finalizar,char *args[], int fd_memoria){
+void finalizar_proceso(t_log* logger, t_pcb* proceso_a_finalizar,char *args[], int fd_memoria, int fd_cpu_interrupt){
 	char* path = args[1];
 	int size = atoi(args[2]);
+	char* motivo = "DESCONOCIDO";
 	if(proceso_a_finalizar->estado == EXEC){
 		// kernel envia señal de interrupcion a traves de interrupt a cpu y este tiene que devolverle
 		// a kernel el contexto de ejecucion antes de liberar memoria
 
+		t_interrupt* nueva_interrupcion = crear_interrupcion(END_PROCESO);
+		send_interrupt(nueva_interrupcion,fd_cpu_interrupt);
+		motivo = "INVALID_ALGO";
+	} else {
+		motivo = "SUCCESS";
 	}
 	// kernel tiene que pedirle a memoria que libere el espacio que ocupa el pcb
 	// le va a pasar mediante un paquete a memoria el pid, el path y el size.
 
 	send_datos_proceso(path,size,proceso_a_finalizar->pid,fd_memoria);
-
+	log_info(logger, "Finaliza el proceso %d - Motivo: <%s>", proceso_a_finalizar->pid, motivo);
 }
 
 t_pcb* crear_pcb(int prioridad){
@@ -111,6 +117,17 @@ t_pcb* crear_pcb(int prioridad){
 	pcb->program_counter = 1;
 
 	return pcb;
+
+}
+t_interrupt* crear_interrupcion(interrupt_code motivo){
+	t_interrupt* interrupcion = malloc(sizeof(t_interrupt));
+
+	interrupcion->interrupt_id = asignador_iid;
+	asignador_iid ++;
+	interrupcion->motivo = motivo;
+	interrupcion->flag=1;
+
+	return interrupcion;
 
 }
 
@@ -192,7 +209,7 @@ bool conectar_modulos(t_log* logger, t_config* config, int* fd_cpu_dispatch, int
 	*fd_filesystem = crear_conexion(logger, ip_filesystem, puerto_filesystem);
 	*fd_memoria = crear_conexion(logger, ip_memoria, puerto_memoria);
 
-	return *fd_cpu_interrupt !=0 && *fd_cpu_dispatch != 0 && *fd_filesystem != 0 && *fd_memoria != 0;
+	return *fd_cpu_dispatch != 0 && *fd_cpu_interrupt != 0 && *fd_filesystem != 0 && *fd_memoria != 0;
 }
 
 void inicializar_variables() {

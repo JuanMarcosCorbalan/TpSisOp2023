@@ -26,9 +26,9 @@ t_config* iniciar_config(void)
 	return nuevo_config;
 }
 
-//void liberar_proceso(int server_fd)
-//{
+void liberar_proceso(int server_fd)
+{
 // 	t_datos_proceso* proceso_a_finalizar;
-//	recv_datos_proceso(server_fd);
-//
-//}
+	recv_datos_proceso(server_fd);
+
+}

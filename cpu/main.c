@@ -48,10 +48,16 @@ void* ejecutar_pcb(void *arg) {
 	}
 }
 
-void* ejecutar_interrupcion(void *arg) {
+void* ejecutar_interrupcion(t_pcb* pcb, void *arg) {
+	t_interrupt* interrupcion;
 	int interrupt_server_fd = iniciar_servidor(config_cpu.puerto_escucha_interrupt);
 	log_info(logger, "INTERRUPT CPU LISTO.");
 	int cliente_fd = esperar_cliente(interrupt_server_fd);
+
+	interrupcion = recv_interrupcion(cliente_fd);
+	if(interrupcion->motivo == FIN_PROCESO) {
+		ejecutar_exit(pcb);
+	}
 
 }
 

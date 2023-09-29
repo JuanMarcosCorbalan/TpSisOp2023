@@ -224,6 +224,30 @@ t_instruccion* recv_proxima_instruccion(int fd){
 
 // DATOS_PROCESO_NEW
 
+void send_interrupt(t_interrupt interrupcion, int fd){
+	t_paquete* datos_interrupcion = crear_paquete(INTERRUPCION);
+	t_interrupt* interrupcion_a_enviar;
+
+	interrupcion_a_enviar->motivo = interrupcion->motivo;
+	interrupcion_a_enviar->interrupt_id = interrupcion->interrupt_id;
+	interrupcion_a_enviar->flag = interrupcion->flag;
+
+	agregar_a_paquete(datos_interrupcion, interrupcion_a_enviar, sizeof(interrupcion_a_enviar));
+
+
+	enviar_paquete(datos_interrupcion, fd);
+	eliminar_paquete(datos_interrupcion);
+}
+t_interrupt* recv_interrupcion(int fd){
+	t_list* paquete = recibir_paquete(fd);
+	t_interrupt* interrupcion;
+//	interrupcion->motivo = list_get(paquete, 0);
+//	interrupcion->interrupt_id = list_get(paquete, 1);
+//	interrupcion->flag = list_get(paquete, 2);
+	list_destroy(paquete);
+	return interrupcion;
+}
+
 void send_datos_proceso(char* path, int size_proceso, int pid, int fd){
 	t_paquete* datos_proceso = crear_paquete(DATOS_PROCESO_NEW);
 
