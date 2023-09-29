@@ -94,7 +94,7 @@ void finalizar_proceso(t_log* logger, t_pcb* proceso_a_finalizar,char *args[], i
 		// kernel envia señal de interrupcion a traves de interrupt a cpu y este tiene que devolverle
 		// a kernel el contexto de ejecucion antes de liberar memoria
 
-		t_interrupcion* nueva_interrupcion = crear_interrupcion(DESALOJO);
+		t_interrupt* nueva_interrupcion = crear_interrupcion(END_PROCESO);
 		send_interrupt(nueva_interrupcion,fd_cpu_interrupt);
 		motivo = "INVALID_ALGO";
 	} else {
@@ -122,7 +122,7 @@ t_pcb* crear_pcb(int prioridad){
 t_interrupt* crear_interrupcion(interrupt_code motivo){
 	t_interrupt* interrupcion = malloc(sizeof(t_interrupt));
 
-	interrupcion->id = asignador_iid;
+	interrupcion->interrupt_id = asignador_iid;
 	asignador_iid ++;
 	interrupcion->motivo = motivo;
 	interrupcion->flag=1;
