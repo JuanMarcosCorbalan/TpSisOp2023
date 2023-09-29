@@ -67,7 +67,7 @@ void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio);
 void eliminar_paquete(t_paquete* paquete);
 void send_datos_proceso(char* path, int size_proceso, int pid, int fd);
 t_datos_proceso* recv_datos_proceso(int fd);
-void send_interrupt(t_interrupt interrupcion, int fd);
+void send_interrupcion(t_interrupt* interrupcion, int fd);
 t_interrupt* recv_interrupcion(int fd);
 void enviar_mensaje(char* mensaje, int socket_cliente);
 void recibir_mensaje(int socket_cliente);

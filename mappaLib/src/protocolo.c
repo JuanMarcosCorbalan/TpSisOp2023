@@ -224,7 +224,7 @@ t_instruccion* recv_proxima_instruccion(int fd){
 
 // DATOS_PROCESO_NEW
 
-void send_interrupt(t_interrupt interrupcion, int fd){
+void send_interrupcion(t_interrupt* interrupcion, int fd){
 	t_paquete* datos_interrupcion = crear_paquete(INTERRUPCION);
 	t_interrupt* interrupcion_a_enviar;
 

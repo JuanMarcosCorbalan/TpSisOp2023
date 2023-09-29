@@ -95,7 +95,7 @@ void finalizar_proceso(t_log* logger, t_pcb* proceso_a_finalizar,char *args[], i
 		// a kernel el contexto de ejecucion antes de liberar memoria
 
 		t_interrupt* nueva_interrupcion = crear_interrupcion(END_PROCESO);
-		send_interrupt(nueva_interrupcion,fd_cpu_interrupt);
+		send_interrupcion(nueva_interrupcion,fd_cpu_interrupt);
 		motivo = "INVALID_ALGO";
 	} else {
 		motivo = "SUCCESS";

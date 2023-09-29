@@ -14,7 +14,7 @@ int main(void) {
 	pthread_t* hilo_interrupt = malloc(sizeof(pthread_t));
 
 	pthread_create(hilo_dispatch, NULL, &ejecutar_pcb, NULL);
-	pthread_create(hilo_interrupt, NULL, &ejecutar_interrupcion, NULL);
+	pthread_create(hilo_interrupt, NULL, (void*) ejecutar_interrupcion, NULL);
 
 	pthread_join(*hilo_dispatch, NULL);
 	pthread_join(*hilo_interrupt, NULL);
@@ -55,7 +55,7 @@ void* ejecutar_interrupcion(t_pcb* pcb, void *arg) {
 	int cliente_fd = esperar_cliente(interrupt_server_fd);
 
 	interrupcion = recv_interrupcion(cliente_fd);
-	if(interrupcion->motivo == FIN_PROCESO) {
+	if(interrupcion->motivo == END_PROCESO) {
 		ejecutar_exit(pcb);
 	}
 
