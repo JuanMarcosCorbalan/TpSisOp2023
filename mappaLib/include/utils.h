@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <commons/collections/list.h>
 
 typedef enum {
 	NEW,
@@ -56,7 +57,7 @@ typedef struct
 	int size;
 }t_datos_proceso;
 
-t_list* datos_procesos;
+//t_list* datos_procesos;
 void imprimirPrueba();
 
 #endif

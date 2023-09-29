@@ -12,7 +12,7 @@ int main(void)
 	int fd_cpu_interrupt = 0;
 	int fd_filesystem = 0;
 	int fd_memoria = 0;
-	int* grado_multiprogramacion = &config_get_int_value(config, "GRADO_MULTIPROGRAMACION_INI");
+	int grado_multiprogramacion = atoi(config_get_string_value(config, "GRADO_MULTIPROGRAMACION_INI"));
 
 	sem_init(cont_multiprogramacion, 0, grado_multiprogramacion);
 	sem_init(bin_proceso_new, 0, 0);
@@ -37,7 +37,7 @@ int main(void)
 //	socket_servidor = iniciar_servidor("4455");
 //	while (esperar_clientes(socket_servidor));
 
-	iniciar_consola(logger, config);
+	iniciar_consola(logger, config, fd_memoria);
 	terminar_programa(fd_cpu_dispatch, fd_cpu_interrupt, fd_filesystem, fd_memoria, logger, config);
 
 	return EXIT_SUCCESS;
@@ -49,7 +49,7 @@ void iniciar_consola(t_log* logger, t_config* config, int fd_memoria){
 	char** argumentos_entrada;
 
 	pthread_create(hilo_largo_plazo, NULL, (void*) planificador_largo_plazo, NULL);
-	pthread_detach(hilo_largo_plazo);
+	pthread_detach(*hilo_largo_plazo);
 
 	while(!salir){
 		entrada = readline("> ");
@@ -153,7 +153,7 @@ t_config* iniciar_config(void)
 	return nuevo_config;
 }
 
-void terminar_programa(int conexion, int conexion2, int conexion3, t_log* logger, t_config* config)
+void terminar_programa(int conexion, int conexion2, int conexion3, int conexion4, t_log* logger, t_config* config)
 {
 	if(logger != NULL){
 		log_destroy(logger);
@@ -166,6 +166,7 @@ void terminar_programa(int conexion, int conexion2, int conexion3, t_log* logger
 	liberar_conexion(conexion);
 	liberar_conexion(conexion2);
 	liberar_conexion(conexion3);
+	liberar_conexion(conexion4);
 }
 
 bool conectar_modulos(t_log* logger, t_config* config, int* fd_cpu_dispatch, int* fd_cpu_interrupt, int* fd_filesystem, int* fd_memoria){
@@ -191,7 +192,7 @@ bool conectar_modulos(t_log* logger, t_config* config, int* fd_cpu_dispatch, int
 	*fd_filesystem = crear_conexion(logger, ip_filesystem, puerto_filesystem);
 	*fd_memoria = crear_conexion(logger, ip_memoria, puerto_memoria);
 
-	return *fd_cpu != 0 && *fd_filesystem != 0 && *fd_memoria != 0;
+	return *fd_cpu_interrupt !=0 && *fd_cpu_dispatch != 0 && *fd_filesystem != 0 && *fd_memoria != 0;
 }
 
 void inicializar_variables() {

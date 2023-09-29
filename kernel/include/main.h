@@ -29,13 +29,15 @@ sem_t* bin_proceso_new;
 
 t_log* iniciar_logger(void);
 t_config* iniciar_config(void);
-bool conectar_modulos(t_log* logger, t_config* config, int* fd_cpu, int* fd_filesystem, int* fd_memoria);
-void terminar_programa(int conexion, int conexion2, int conexion3, t_log* logger, t_config* config);
+bool conectar_modulos(t_log* logger, t_config* config, int* fd_cpu_dispatch, int* fd_cpu_interrupt, int* fd_filesystem, int* fd_memoria);
+void terminar_programa(int conexion, int conexion2, int conexion3, int conexion4, t_log* logger, t_config* config);
 
-void iniciar_proceso(t_log* logger, char *args[]);
-t_pcb* crear_pcb(char* path, int prioridad);
+void iniciar_proceso(t_log* logger, char *args[], int fd_memoria);
+t_pcb* crear_pcb(int prioridad);
 
 void inicializar_variables();
-void iniciar_consola(t_log* logger);
+void iniciar_consola(t_log* logger, t_config* config, int fd_memoria);
+void pasar_a_ready(t_pcb* proceso);
+void planificador_largo_plazo();
 
 #endif

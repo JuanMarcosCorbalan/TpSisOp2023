@@ -222,23 +222,26 @@ t_instruccion* recv_proxima_instruccion(int fd){
 	return instruccion_recibida;
 }
 
+// DATOS_PROCESO_NEW
+
 void send_datos_proceso(char* path, int size_proceso, int pid, int fd){
 	t_paquete* datos_proceso = crear_paquete(DATOS_PROCESO_NEW);
 
-	agregar_a_paquete(datos_proceso, path, sizeof(path) / sizeof(path[0]));
-	agregar_a_paquete(datos_proceso, size_proceso, sizeof(int));
-	agregar_a_paquete(datos_proceso, pid, sizeof(int));
+	t_datos_proceso* proceso = malloc(sizeof(t_datos_proceso));
+	proceso->path = path;
+	proceso->pid = pid;
+	proceso->size = size_proceso;
+
+	agregar_a_paquete(datos_proceso, proceso, sizeof(proceso));
 
 	enviar_paquete(datos_proceso, fd);
+	free(proceso);
 	eliminar_paquete(datos_proceso);
 }
 
 t_datos_proceso* recv_datos_proceso(int fd){
 	t_list* paquete = recibir_paquete(fd);
-	t_datos_proceso* datos;
-	datos->path = list_get(paquete, 0);
-	datos->size = list_get(paquete, 1);
-	datos->pid = list_get(paquete, 2);
+	t_datos_proceso* datos = list_get(paquete, 0);
 	list_destroy(paquete);
 	return datos;
 }

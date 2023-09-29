@@ -9,6 +9,7 @@
 #include<readline/readline.h>
 #include "utils.h"
 
+extern t_list* datos_procesos;
 extern t_log* logger;
 
 typedef enum
