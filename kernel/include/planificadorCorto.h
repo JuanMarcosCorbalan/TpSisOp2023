@@ -5,18 +5,19 @@
  *      Author: utnso
  */
 
-#ifndef PLANIFICADORCORTO-H
-#define PLANIFICADORCORTO-H
+#ifndef PLANIFICADORCORTO_H_
+#define PLANIFICADORCORTO_H_
 
-#include <utils.h>
 #include <pthread.h>
 #include "configuracionKernel.h"
 #include "comunicaciones_kernel.h"
+#include "../../mappaLib/include/utils.h"
+#include "../../mappaLib/include/protocolo.h"
 
-typedef struct{
-	int tiempo;
-	t_pcb* pcb;
-};
+//typedef struct{
+//	int tiempo;
+//	t_pcb* pcb;
+//} ;
 
 void planificadorCorto();
 t_pcb* obtenerProximoAEjecutar();

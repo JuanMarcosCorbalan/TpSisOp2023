@@ -13,7 +13,7 @@ t_kernel_config lecturaConfig;
 
 // LOGGERS
 
-t_log* logger;
+//t_log* logger;
 t_log* my_logger;
 
 // LISTAS Y COLAS
@@ -22,11 +22,11 @@ t_list* ready_list;
 
 // VARIABLES COMPARTIDAS - GLOBALES
 
-t_pcb* proximoAEjecutar = NULL;
+//t_pcb* proximoAEjecutar = NULL;
 
 // SEMAFOROS
 
-pthread_mutex_t mutex_ready_list;
+//pthread_mutex_t mutex_ready_list;
 
 // SOCKETS
 
@@ -49,8 +49,8 @@ t_kernel_config leerKernelConfig(t_config* config){
 	lecturaConfig.PUERTO_CPU_DISPATCH = strdup(config_get_string_value(config, "PUERTO_CPU_DISPATCH"));
 	lecturaConfig.PUERTO_CPU_INTERRUPT = strdup(config_get_string_value(config, "PUERTO_CPU_INTERRUPT"));
 	lecturaConfig.ALGORITMO_PLANIFICACION = strdup(config_get_string_value(config, "ALGORITMO_PLANIFICACION"));
-	lecturaConfig.QUANTUM = strdup(config_get_double_value(config, "QUANTUM"));
-	lecturaConfig.GRADO_MULTIPROGRAMACION_INI = strdup(config_get_int_value(config, "GRADO_MULTIPROGRAMACION_INI"));
+	lecturaConfig.QUANTUM = strdup(config_get_string_value(config, "QUANTUM"));
+	lecturaConfig.GRADO_MULTIPROGRAMACION_INI = strdup(config_get_string_value(config, "GRADO_MULTIPROGRAMACION_INI"));
 
 	char* recursos = strdup(config_get_string_value(config, "RECURSOS")); //"[elem1, elem2, ...]"
 	char* recursos_sin_espacio = string_replace(recursos, " " , ""); //"[elem1,elem2,...]"
@@ -61,7 +61,7 @@ t_kernel_config leerKernelConfig(t_config* config){
 	char* instancias_recursos = strdup(config_get_string_value(config, "INSTANCIAS_RECURSOS"));
 	char* instancias_recursos_sin_espacio = string_replace(instancias_recursos, " " , "");
 	free(instancias_recursos);
-	lecturaConfig.INSTANCIAS_RECURSOS = string_get_string_as_array(instancias_recursos_sin_espacio);
+//	lecturaConfig.INSTANCIAS_RECURSOS = string_get_string_as_array(instancias_recursos_sin_espacio);
 	free(instancias_recursos_sin_espacio);
 
 	return lecturaConfig;

@@ -8,10 +8,10 @@
 #ifndef CONFIGURACIONKERNEL_H_
 #define CONFIGURACIONKERNEL_H_
 
-#include <utils.h>
 #include <commons/config.h>
 #include <pthread.h>
 #include <commons/collections/queue.h>
+#include "../../mappaLib/include/utils.h"
 
 // STRUCTS
 
@@ -25,13 +25,16 @@ typedef struct kernel_config{
 	char* PUERTO_CPU_DISPATCH;
 	char* PUERTO_CPU_INTERRUPT;
 	char* ALGORITMO_PLANIFICACION;
-	double QUANTUM;
+	char* QUANTUM;
 	char** RECURSOS;
 	char* INSTANCIAS_RECURSOS;
-	int GRADO_MULTIPROGRAMACION_INI;
+	char* GRADO_MULTIPROGRAMACION_INI;
 
 } t_kernel_config;
 
+t_pcb* proximoAEjecutar = NULL;
+pthread_mutex_t mutex_ready_list;
+t_log* logger;
 
 // CONFIG
 
