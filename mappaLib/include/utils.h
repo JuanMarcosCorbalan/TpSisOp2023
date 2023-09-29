@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <commons/collections/list.h>
+#include <commons/collections/queue.h>
 
 typedef enum {
 	NEW,
@@ -59,5 +60,6 @@ typedef struct
 
 //t_list* datos_procesos;
 void imprimirPrueba();
+void* list_pop_con_mutex(t_list* lista, pthread_mutex_t* mutex);
 
 #endif
