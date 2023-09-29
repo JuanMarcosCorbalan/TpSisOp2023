@@ -170,10 +170,14 @@ void iterator(char* value) {
 
 void send_interrupt(t_interrupt interrupcion, int fd){
 	t_paquete* datos_interrupcion = crear_paquete(INTERRUPCION);
+	t_interrupt* interrupcion_a_enviar;
 
-	agregar_a_paquete(datos_interrupcion, interrupcion->motivo, sizeof(interrupcion->motivo));
-	agregar_a_paquete(datos_interrupcion, interrupcion->interrupt_id, sizeof(int));
-	agregar_a_paquete(datos_interrupcion, interrupcion->flag, sizeof(int));
+	interrupcion_a_enviar->motivo = interrupcion->motivo;
+	interrupcion_a_enviar->interrupt_id = interrupcion->interrupt_id;
+	interrupcion_a_enviar->flag = interrupcion->flag;
+
+	agregar_a_paquete(datos_interrupcion, interrupcion_a_enviar, sizeof(interrupcion_a_enviar));
+
 
 	enviar_paquete(datos_interrupcion, fd);
 	eliminar_paquete(datos_interrupcion);
@@ -181,9 +185,9 @@ void send_interrupt(t_interrupt interrupcion, int fd){
 t_interrupt* recv_interrupcion(int fd){
 	t_list* paquete = recibir_paquete(fd);
 	t_interrupt* interrupcion;
-	interrupcion->motivo = list_get(paquete, 0);
-	interrupcion->interrupt_id = list_get(paquete, 1);
-	interrupcion->flag = list_get(paquete, 2);
+//	interrupcion->motivo = list_get(paquete, 0);
+//	interrupcion->interrupt_id = list_get(paquete, 1);
+//	interrupcion->flag = list_get(paquete, 2);
 	list_destroy(paquete);
 	return interrupcion;
 }
