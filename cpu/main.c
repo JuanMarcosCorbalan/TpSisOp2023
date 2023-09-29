@@ -1,8 +1,9 @@
 #include "include/main.h"
 
+int fd_memoria = 0;
+
 int main(void) {
 	logger = log_create("cpu.log", "CPU", 1, LOG_LEVEL_DEBUG);
-	int fd_memoria = 0;
 	leer_config();
 
 	fd_memoria = crear_conexion(logger, config_cpu.ip_memoria, config_cpu.puerto_memoria);
@@ -34,6 +35,7 @@ void* ejecutar_pcb(void *arg) {
 			recibir_mensaje(dispatch_cliente_fd);
 			break;
 		case PCB:
+			//TODO Recibir pcb para luego usar el fetch.
 			break;
 		case -1:
 			log_error(logger, "El cliente se desconecto.");
@@ -52,7 +54,18 @@ void* ejecutar_interrupcion(void *arg) {
 	int cliente_fd = esperar_cliente(interrupt_server_fd);
 }
 
+void fetch(t_pcb* pcb){
+	t_instruccion* proxima_instruccion = solicitar_instruccion(pcb->pid, pcb->program_counter);
+	pcb->program_counter += 1;
+	decode(proxima_instruccion, pcb);
+}
 
+t_instruccion* solicitar_instruccion(int pid, int program_counter){
+	t_instruccion* instruccion_recibida = NULL;
+	send_solicitar_instruccion(fd_memoria, pid, program_counter);
+	instruccion_recibida = recv_proxima_instruccion(fd_memoria);
+	return instruccion_recibida;
+}
 
 void decode(t_instruccion* instruccion, t_pcb* pcb){
 	codigo_instruccion cod_instruccion = instruccion->codigo;
