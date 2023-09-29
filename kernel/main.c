@@ -206,7 +206,7 @@ bool conectar_modulos(t_log* logger, t_config* config, int* fd_cpu_dispatch, int
 	*fd_filesystem = crear_conexion(logger, ip_filesystem, puerto_filesystem);
 	*fd_memoria = crear_conexion(logger, ip_memoria, puerto_memoria);
 
-	return *fd_cpu_dispatch != 0 && *fd_cpu_dispatch != 0 && *fd_filesystem != 0 && *fd_memoria != 0;
+	return *fd_cpu_dispatch != 0 && *fd_cpu_interrupt != 0 && *fd_filesystem != 0 && *fd_memoria != 0;
 }
 
 void inicializar_variables() {
