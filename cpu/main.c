@@ -52,6 +52,7 @@ void* ejecutar_interrupcion(void *arg) {
 	int interrupt_server_fd = iniciar_servidor(config_cpu.puerto_escucha_interrupt);
 	log_info(logger, "INTERRUPT CPU LISTO.");
 	int cliente_fd = esperar_cliente(interrupt_server_fd);
+
 }
 
 void fetch(t_pcb* pcb){

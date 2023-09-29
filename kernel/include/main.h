@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <semaphore.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <commons/string.h>
@@ -22,6 +23,9 @@ t_list* procesos_en_exit;
 pthread_t* hilo_largo_plazo;
 
 int asignador_pid;
+
+sem_t* cont_multiprogramacion;
+sem_t* bin_proceso_new;
 
 t_log* iniciar_logger(void);
 t_config* iniciar_config(void);

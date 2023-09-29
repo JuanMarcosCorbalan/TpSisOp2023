@@ -8,18 +8,23 @@ int main(void)
 	config = iniciar_config();
 //	int socket_servidor;
 //	char* puerto_escucha;
-	int fd_cpu = 0;
+	int fd_cpu_dispatch = 0;
+	int fd_cpu_interrupt = 0;
 	int fd_filesystem = 0;
 	int fd_memoria = 0;
+	int* grado_multiprogramacion = &config_get_int_value(config, "GRADO_MULTIPROGRAMACION_INI");
 
+	sem_init(cont_multiprogramacion, 0, grado_multiprogramacion);
+	sem_init(bin_proceso_new, 0, 0);
 //	puerto_escucha = config_get_string_value(config, "PUERTO_ESCUCHA");
 
-	if(!conectar_modulos(logger, config, &fd_cpu, &fd_filesystem, &fd_memoria)){
-		terminar_programa(fd_cpu, fd_filesystem, fd_memoria, logger, config);
+	if(!conectar_modulos(logger, config, &fd_cpu_dispatch, &fd_cpu_interrupt, &fd_filesystem, &fd_memoria)){
+		terminar_programa(fd_cpu_dispatch, fd_cpu_interrupt, fd_filesystem, fd_memoria, logger, config);
 		return EXIT_FAILURE;
 	}
 
-	enviar_mensaje("Hola, soy el Kernel!", fd_cpu);
+	enviar_mensaje("Hola, soy el Kernel!", fd_cpu_dispatch);
+	enviar_mensaje("Hola, soy el Kernel!", fd_cpu_interrupt);
 	enviar_mensaje("Hola, soy el Kernel!", fd_filesystem);
 	enviar_mensaje("Hola, soy el Kernel!", fd_memoria);
 
@@ -32,16 +37,19 @@ int main(void)
 //	socket_servidor = iniciar_servidor("4455");
 //	while (esperar_clientes(socket_servidor));
 
-	iniciar_consola(logger);
-	terminar_programa(fd_cpu, fd_filesystem, fd_memoria, logger, config);
+	iniciar_consola(logger, config);
+	terminar_programa(fd_cpu_dispatch, fd_cpu_interrupt, fd_filesystem, fd_memoria, logger, config);
 
 	return EXIT_SUCCESS;
 }
 
-void iniciar_consola(t_log* logger){
+void iniciar_consola(t_log* logger, t_config* config, int fd_memoria){
 	char* entrada;
 	bool salir = false;
 	char** argumentos_entrada;
+
+	pthread_create(hilo_largo_plazo, NULL, (void*) planificador_largo_plazo, NULL);
+	pthread_detach(hilo_largo_plazo);
 
 	while(!salir){
 		entrada = readline("> ");
@@ -56,22 +64,44 @@ void iniciar_consola(t_log* logger){
 		}
 
 		if(string_equals_ignore_case(argumentos_entrada[0], "INICIAR_PROCESO")){
-			iniciar_proceso(logger, argumentos_entrada);
+			iniciar_proceso(logger, argumentos_entrada, fd_memoria);
 		}
 		if(string_equals_ignore_case(argumentos_entrada[0], "FINALIZAR_PROCESO")){
 //			finalizar_proceso(argumentos_entrada);
 		}
+
 	}
 }
 
-void iniciar_proceso(t_log* logger, char *args[]) {
+void iniciar_proceso(t_log* logger, char *args[], int fd_memoria) {
+	char* path = args[1];
+	int size = atoi(args[2]);
 	int prioridad = atoi(args[3]);
-	t_pcb* nuevo_proceso = crear_pcb(args[1], prioridad);
+	t_pcb* nuevo_proceso = crear_pcb(prioridad);
+
+	send_datos_proceso(path, size, nuevo_proceso->pid, fd_memoria);
+
 	queue_push(procesos_en_new, nuevo_proceso);
 	log_info(logger, "Se crea el proceso %d en NEW", nuevo_proceso->pid);
+	sem_post(bin_proceso_new);
 }
 
-t_pcb* crear_pcb(char* path, int prioridad){
+void finalizar_proceso(t_pcb* proceso_a_finalizar,char *args[], int fd_memoria){
+	char* path = args[1];
+	int size = atoi(args[2]);
+	if(proceso_a_finalizar->estado == EXEC){
+		// kernel envia señal de interrupcion a traves de interrupt a cpu y este tiene que devolverle
+		// a kernel el contexto de ejecucion antes de liberar memoria
+
+	}
+	// kernel tiene que pedirle a memoria que libere el espacio que ocupa el pcb
+	// le va a pasar mediante un paquete a memoria el pid, el path y el size.
+
+	send_datos_proceso(path,size,proceso_a_finalizar->pid,fd_memoria);
+
+}
+
+t_pcb* crear_pcb(int prioridad){
 	t_pcb* pcb = malloc(sizeof(t_pcb));
 
 	pcb->pid = asignador_pid;
@@ -82,6 +112,21 @@ t_pcb* crear_pcb(char* path, int prioridad){
 
 	return pcb;
 
+}
+
+void planificador_largo_plazo(){
+	while(true){
+		sem_wait(bin_proceso_new);
+		sem_wait(cont_multiprogramacion);
+		t_pcb* proceso = queue_pop(procesos_en_new);
+		pasar_a_ready(proceso);
+	}
+}
+
+void pasar_a_ready(t_pcb* proceso){
+	list_add(procesos_en_ready, proceso);
+	proceso->estado = READY;
+	// TODO falta enviar a memoria que ya esta ready
 }
 
 t_log* iniciar_logger(void)
@@ -123,7 +168,7 @@ void terminar_programa(int conexion, int conexion2, int conexion3, t_log* logger
 	liberar_conexion(conexion3);
 }
 
-bool conectar_modulos(t_log* logger, t_config* config, int* fd_cpu, int* fd_filesystem, int* fd_memoria){
+bool conectar_modulos(t_log* logger, t_config* config, int* fd_cpu_dispatch, int* fd_cpu_interrupt, int* fd_filesystem, int* fd_memoria){
 
 	char* ip_memoria;
 	char* puerto_memoria;
@@ -131,6 +176,7 @@ bool conectar_modulos(t_log* logger, t_config* config, int* fd_cpu, int* fd_file
 	char* puerto_filesystem;
 	char* ip_cpu;
 	char* puerto_cpu_dispatch;
+	char* puerto_cpu_interrupt;
 
 	ip_memoria = config_get_string_value(config, "IP_MEMORIA");
 	puerto_memoria = config_get_string_value(config, "PUERTO_MEMORIA");
@@ -138,8 +184,10 @@ bool conectar_modulos(t_log* logger, t_config* config, int* fd_cpu, int* fd_file
 	puerto_filesystem = config_get_string_value(config, "PUERTO_FILESYSTEM");
 	ip_cpu = config_get_string_value(config, "IP_CPU");
 	puerto_cpu_dispatch = config_get_string_value(config, "PUERTO_CPU_DISPATCH");
+	puerto_cpu_interrupt = config_get_string_value(config, "PUERTO_CPU_INTERRUPT");
 
-	*fd_cpu = crear_conexion(logger, ip_cpu, puerto_cpu_dispatch);
+	*fd_cpu_dispatch = crear_conexion(logger, ip_cpu, puerto_cpu_dispatch);
+	*fd_cpu_interrupt = crear_conexion(logger, ip_cpu, puerto_cpu_interrupt);
 	*fd_filesystem = crear_conexion(logger, ip_filesystem, puerto_filesystem);
 	*fd_memoria = crear_conexion(logger, ip_memoria, puerto_memoria);
 

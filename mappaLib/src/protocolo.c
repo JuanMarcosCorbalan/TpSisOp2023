@@ -222,3 +222,23 @@ t_instruccion* recv_proxima_instruccion(int fd){
 	return instruccion_recibida;
 }
 
+void send_datos_proceso(char* path, int size_proceso, int pid, int fd){
+	t_paquete* datos_proceso = crear_paquete(DATOS_PROCESO_NEW);
+
+	agregar_a_paquete(datos_proceso, path, sizeof(path) / sizeof(path[0]));
+	agregar_a_paquete(datos_proceso, size_proceso, sizeof(int));
+	agregar_a_paquete(datos_proceso, pid, sizeof(int));
+
+	enviar_paquete(datos_proceso, fd);
+	eliminar_paquete(datos_proceso);
+}
+
+t_datos_proceso* recv_datos_proceso(int fd){
+	t_list* paquete = recibir_paquete(fd);
+	t_datos_proceso* datos;
+	datos->path = list_get(paquete, 0);
+	datos->size = list_get(paquete, 1);
+	datos->pid = list_get(paquete, 2);
+	list_destroy(paquete);
+	return datos;
+}

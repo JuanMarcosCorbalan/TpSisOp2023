@@ -49,6 +49,14 @@ typedef struct {
 	char* param2;
 } t_instruccion;
 
+typedef struct
+{
+	int pid;
+	char* path;
+	int size;
+}t_datos_proceso;
+
+t_list* datos_procesos;
 void imprimirPrueba();
 
 #endif

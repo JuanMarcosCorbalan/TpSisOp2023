@@ -19,6 +19,7 @@ typedef enum
 	INTERRUPCION,
 	SOLICITAR_INSTRUCCION,
 	PROXIMA_INSTRUCCION,
+	DATOS_PROCESO_NEW,
 }op_code;
 
 typedef struct
@@ -48,6 +49,9 @@ t_list* recibir_paquete(int socket_cliente);
 void leer_consola(t_log* logger);
 void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio);
 void eliminar_paquete(t_paquete* paquete);
+
+void send_datos_proceso(char* path, int size_proceso, int pid, int fd);
+t_datos_proceso* recv_datos_proceso(int fd);
 
 void enviar_mensaje(char* mensaje, int socket_cliente);
 void recibir_mensaje(int socket_cliente);

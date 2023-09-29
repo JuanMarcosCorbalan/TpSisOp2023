@@ -9,6 +9,7 @@ static void procesar_cliente(void* void_args){
 	int cliente_fd = args -> fd_cliente;
 	free(args);
 
+	datos_procesos = list_create();
 	t_list* lista;
 	while(cliente_fd != -1){
 		int cod_op = recibir_operacion(cliente_fd);
@@ -21,6 +22,11 @@ static void procesar_cliente(void* void_args){
 				lista = recibir_paquete(cliente_fd);
 				log_info(logger, "Me llegaron los siguientes valores:\n");
 				list_iterate(lista, (void*) iterator);
+				break;
+			case DATOS_PROCESO_NEW:
+				t_datos_proceso* datos = recv_datos_proceso(cliente_fd);
+				log_info(logger, "Recibi el nuevo proceso %d ubicado en %s", datos->pid, datos->path);
+				list_add(datos_procesos, datos);
 				break;
 			case -1:
 				log_error(logger, "El cliente se desconecto.");
