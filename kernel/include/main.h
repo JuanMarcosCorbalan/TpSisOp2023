@@ -33,7 +33,10 @@ bool conectar_modulos(t_log* logger, t_config* config, int* fd_cpu, int* fd_file
 void terminar_programa(int conexion, int conexion2, int conexion3, t_log* logger, t_config* config);
 
 void iniciar_proceso(t_log* logger, char *args[]);
+void finalizar_proceso(t_log* logger, t_pcb* proceso_a_finalizar,char *args[], int fd_memoria, int fd_cpu_interrupt);
+
 t_pcb* crear_pcb(char* path, int prioridad);
+t_interrupt* crear_interrupcion(interrupt_code motivo);
 
 void inicializar_variables();
 void iniciar_consola(t_log* logger);
