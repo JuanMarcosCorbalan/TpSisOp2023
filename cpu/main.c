@@ -37,6 +37,12 @@ void* ejecutar_pcb(void *arg) {
 		case PCB:
 			//TODO Recibir pcb para luego usar el fetch.
 			break;
+		case EJECUTAR_PCB:
+			t_pcb* pcb = recv_ejecutar_pcb(dispatch_server_fd);
+			//TODO checkear interrupciones
+			fetch(pcb);
+			send_pcb_actualizado(dispatch_server_fd, pcb);
+			break;
 		case -1:
 			log_error(logger, "El cliente se desconecto.");
 			dispatch_cliente_fd = esperar_cliente(dispatch_server_fd);

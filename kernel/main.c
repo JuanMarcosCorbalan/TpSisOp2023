@@ -1,5 +1,11 @@
 #include "include/main.h"
 
+	int fd_cpu_dispatch = 0;
+	int fd_cpu_interrupt = 0;
+	int fd_cpu = 0;
+	int fd_filesystem = 0;
+	int fd_memoria = 0;
+
 int main(void)
 {
 	t_log* logger;
@@ -8,10 +14,6 @@ int main(void)
 	config = iniciar_config();
 //	int socket_servidor;
 //	char* puerto_escucha;
-	int fd_cpu_dispatch = 0;
-	int fd_cpu_interrupt = 0;
-	int fd_filesystem = 0;
-	int fd_memoria = 0;
 	int grado_multiprogramacion = atoi(config_get_string_value(config, "GRADO_MULTIPROGRAMACION_INI"));
 
 	sem_init(cont_multiprogramacion, 0, grado_multiprogramacion);
@@ -36,6 +38,9 @@ int main(void)
 
 //	socket_servidor = iniciar_servidor("4455");
 //	while (esperar_clientes(socket_servidor));
+
+	pthread_create(hilo_corto_plazo, NULL, (void*) planificador_corto_plazo, NULL);
+	pthread_detach(*hilo_corto_plazo);
 
 	iniciar_consola(logger, config, fd_memoria);
 	terminar_programa(fd_cpu_dispatch, fd_cpu_interrupt, fd_filesystem, fd_memoria, logger, config);
@@ -144,6 +149,54 @@ void pasar_a_ready(t_pcb* proceso){
 	list_add(procesos_en_ready, proceso);
 	proceso->estado = READY;
 	// TODO falta enviar a memoria que ya esta ready
+}
+
+void* planificador_corto_plazo(void){
+	t_pcb* pcb;
+	while(1){
+		//semaforo
+		pcb = obtenerProximoAEjecutar();
+		pcb->estado = EXEC;
+		send_ejecutar_pcb(fd_cpu, pcb);
+
+		pcb = recv_pcb_actualizado(fd_cpu);
+
+		switch(pcb->estado){
+			case(EXIT_ESTADO):
+				list_add(procesos_en_exit, pcb);
+				break;
+			case(BLOCKED):
+				list_add(procesos_en_blocked, pcb);
+				break;
+		}
+	}
+}
+
+t_pcb* obtenerProximoAEjecutar(){
+
+	t_pcb* pcb;
+
+	if(!strcmp(lecturaConfig.ALGORITMO_PLANIFICACION, "FIFO")) {
+
+		pcb = list_pop_con_mutex(procesos_en_ready, &mutex_ready_list);
+		log_info(logger, "PID: %d - Estado Anterior: READY - Estado Actual: EXEC", pcb->pid); //log obligatorio
+		return pcb;
+	}
+	else if(!strcmp(lecturaConfig.ALGORITMO_PLANIFICACION, "RR")){
+
+		log_info(logger, "PID: %d - Estado Anterior: READY - Estado Actual: EXEC", pcb->pid); //log obligatorio
+		return pcb;
+	}
+	else if(!strcmp(lecturaConfig.ALGORITMO_PLANIFICACION, "PRIORIDADES")){
+
+		log_info(logger, "PID: %d - Estado Anterior: READY - Estado Actual: EXEC", pcb->pid); //log obligatorio
+		return pcb;
+	}
+	else{
+		log_error(logger, "Error en la lectura del algoritmo de planificacion");
+		exit(EXIT_FAILURE);
+	}
+
 }
 
 t_log* iniciar_logger(void)

@@ -21,6 +21,7 @@ t_list* procesos_en_blocked;
 t_list* procesos_en_exit;
 
 pthread_t* hilo_largo_plazo;
+pthread_t* hilo_corto_plazo;
 
 int asignador_pid;
 int asignador_iid;

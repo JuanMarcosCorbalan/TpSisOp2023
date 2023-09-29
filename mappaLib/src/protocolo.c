@@ -269,3 +269,38 @@ t_datos_proceso* recv_datos_proceso(int fd){
 	list_destroy(paquete);
 	return datos;
 }
+
+// EJECUTAR_PCB
+void send_ejecutar_pcb(int fd, t_pcb* pcb){
+	t_paquete* paquete = crear_paquete(EJECUTAR_PCB);
+	agregar_a_paquete(paquete, &pcb, sizeof(t_pcb));
+	enviar_paquete(paquete, fd);
+	eliminar_paquete(paquete);
+}
+
+t_pcb* recv_ejecutar_pcb(int fd){
+	t_list* paquete = recibir_paquete(fd);
+	t_pcb* pcb = list_get(paquete, 0);
+
+	list_destroy(paquete);
+
+	return pcb;
+}
+
+// PCB_ACTUALIZADO
+
+void send_pcb_actualizado(int fd, t_pcb* pcb){
+	t_paquete* paquete = crear_paquete(PCB_ACTUALIZADO);
+	agregar_a_paquete(paquete, &pcb, sizeof(t_pcb));
+	enviar_paquete(paquete, fd);
+	eliminar_paquete(paquete);
+}
+
+t_pcb* recv_pcb_actualizado(int fd){
+	t_list* paquete = recibir_paquete(fd);
+	t_pcb* pcb = list_get(paquete, 0);
+
+	list_destroy(paquete);
+
+	return pcb;
+}
