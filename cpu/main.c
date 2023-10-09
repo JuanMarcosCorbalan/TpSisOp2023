@@ -1,6 +1,7 @@
 #include "include/main.h"
 
 int fd_memoria = 0;
+int dispatch_cliente_fd = 0;
 
 int main(void) {
 	logger = log_create("cpu.log", "CPU", 1, LOG_LEVEL_DEBUG);
@@ -93,6 +94,9 @@ void decode(t_instruccion* instruccion, t_pcb* pcb){
 	case SUB:
 		ejecutar_sub(pcb, instruccion->param1, instruccion->param2);
 		break;
+	case WAIT:
+		ejecutar_wait(pcb, instruccion->param1);
+		break;
 	case EXIT:
 		ejecutar_exit(pcb);
 		break;
@@ -139,6 +143,14 @@ void ejecutar_sub(t_pcb* pcb, char* param1, char* param2){
 		} else if(strcmp(param1, "DX") == 0){
 			pcb->registros_generales_cpu.dx = parametroARestar1 - parametroARestar2;
 	}
+}
+
+void ejecutar_wait(t_pcb* pcb, char* param1){
+	char* recurso = malloc(strlen(param1) + 1);
+	strcpy(recurso, param1);
+	send_pcb_actualizado(dispatch_cliente_fd, pcb);
+	send_recurso_wait(dispatch_cliente_fd, recurso);
+	free(recurso);
 }
 
 void ejecutar_exit(t_pcb* pcb){

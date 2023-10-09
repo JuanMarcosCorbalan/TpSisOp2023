@@ -22,7 +22,8 @@ typedef enum
 	PROXIMA_INSTRUCCION,
 	DATOS_PROCESO_NEW,
 	EJECUTAR_PCB,
-	PCB_ACTUALIZADO
+	PCB_ACTUALIZADO,
+	RECURSO_WAIT
 }op_code;
 
 typedef enum
@@ -96,5 +97,9 @@ t_pcb* recv_ejecutar_pcb(int fd);
 // PCB_ACTUALIZADO
 void send_pcb_actualizado(int fd, t_pcb* pcb);
 t_pcb* recv_pcb_actualizado(int fd);
+
+// RECURSO_WAIT
+void send_recurso_wait(int dispatch_cliente_fd, char* recurso);
+char* recv_recurso_wait(int dispatch_cliente_fd);
 
 #endif

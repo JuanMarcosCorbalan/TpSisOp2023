@@ -27,6 +27,7 @@ void leer_config();
 void ejecutar_set(t_pcb* pcb, char* param1, char* param2);
 void ejecutar_sum(t_pcb* pcb, char* param1, char* param2);
 void ejecutar_sub(t_pcb* pcb, char* param1, char* param2);
+void ejecutar_wait(t_pcb* pcb, char* param1);
 void ejecutar_exit(t_pcb* pcb);
 
 #endif

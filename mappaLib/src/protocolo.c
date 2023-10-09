@@ -304,3 +304,21 @@ t_pcb* recv_pcb_actualizado(int fd){
 
 	return pcb;
 }
+
+//SEND_RECURSO_WAIT
+
+void send_recurso_wait(int dispatch_cliente_fd, char* recurso){
+	t_paquete* paquete = crear_paquete(RECURSO_WAIT);
+	agregar_a_paquete(paquete, &recurso, sizeof(t_pcb));
+	enviar_paquete(paquete, dispatch_cliente_fd);
+	eliminar_paquete(paquete);
+}
+
+char* recv_recurso_wait(int dispatch_cliente_fd){
+	t_list* paquete = recibir_paquete(dispatch_cliente_fd);
+	char* recurso = list_get(paquete, 0);
+
+	list_destroy(paquete);
+
+	return recurso;
+}

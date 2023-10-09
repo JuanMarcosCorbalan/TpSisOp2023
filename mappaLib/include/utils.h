@@ -42,6 +42,9 @@ typedef enum {
 	SET,
 	SUM,
 	SUB,
+	SLEEP,
+	WAIT,
+	SIGNAL,
 	EXIT,
 } codigo_instruccion;
 
