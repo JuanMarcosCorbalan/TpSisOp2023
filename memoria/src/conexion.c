@@ -20,6 +20,10 @@ static void procesar_cliente(void* void_args){
 				log_info(logger, "Me llegaron los siguientes valores:\n");
 				list_iterate(lista, (void*) iterator);
 				break;
+			case DATOS_PROCESO_NEW:
+				t_datos_proceso* datos_proceso = recv_datos_proceso(cliente_fd);
+				iniciar_proceso_memoria(datos_proceso->path, datos_proceso->size, datos_proceso->pid);
+				break;
 			case SOLICITAR_INSTRUCCION:
 				procesar_pedido_instruccion(cliente_fd);
 				break;
@@ -52,9 +56,17 @@ int experar_clientes(int server_socket){
 }
 
 void iniciar_proceso_memoria(char* path, int size, int pid){
+	char* prefijoRutaProceso = "/home/utnso/tp-2023-2c-Sisop-Five/mappa-pruebas/";
+	char* extensionProceso = ".txt";
+	char* rutaCompleta = string_new();
+
+	string_append(&rutaCompleta, prefijoRutaProceso);
+	string_append(&rutaCompleta, path);
+	string_append(&rutaCompleta, extensionProceso);
+
 	t_proceso_instrucciones* proceso_instr = malloc(sizeof(t_proceso_instrucciones));
 	proceso_instr->pid = pid;
-	proceso_instr->instrucciones = generar_instrucciones(path);
+	proceso_instr->instrucciones = generar_instrucciones(rutaCompleta);
 
 	list_add(proceso_instrucciones, proceso_instr);
 	free(proceso_instr);
