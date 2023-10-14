@@ -222,7 +222,7 @@ t_instruccion* recv_proxima_instruccion(int fd){
 	return instruccion_recibida;
 }
 
-// DATOS_PROCESO_NEW
+//
 
 void send_interrupcion(t_interrupt* interrupcion, int fd){
 	t_paquete* datos_interrupcion = crear_paquete(INTERRUPCION);
@@ -248,25 +248,33 @@ t_interrupt* recv_interrupcion(int fd){
 	return interrupcion;
 }
 
+// DATOS_PROCESO_NEW
 void send_datos_proceso(char* path, int size_proceso, int pid, int fd){
 	t_paquete* datos_proceso = crear_paquete(DATOS_PROCESO_NEW);
 
-	t_datos_proceso* proceso = malloc(sizeof(t_datos_proceso));
-	proceso->path = path;
-	proceso->pid = pid;
-	proceso->size = size_proceso;
-
-	agregar_a_paquete(datos_proceso, proceso, sizeof(proceso));
+	agregar_a_paquete(datos_proceso, path, strlen(path) + 1);
+	agregar_a_paquete(datos_proceso, &size_proceso, sizeof(int));
+	agregar_a_paquete(datos_proceso, &pid, sizeof(int));
 
 	enviar_paquete(datos_proceso, fd);
-	free(proceso);
 	eliminar_paquete(datos_proceso);
 }
 
 t_datos_proceso* recv_datos_proceso(int fd){
 	t_list* paquete = recibir_paquete(fd);
-	t_datos_proceso* datos = list_get(paquete, 0);
-	list_destroy(paquete);
+	t_datos_proceso* datos = malloc(sizeof(t_datos_proceso));
+	char* path = list_get(paquete, 0);
+	datos->path = malloc(strlen(path));
+	strcpy(datos->path, path);
+	free(path);
+
+	int* size = list_get(paquete, 1);
+	datos->size = *size;
+	free(size);
+
+	int* pid = list_get(paquete, 2);
+	datos->pid = *pid;
+	free(pid);
 	return datos;
 }
 
