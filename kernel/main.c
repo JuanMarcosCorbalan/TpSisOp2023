@@ -201,6 +201,8 @@ t_pcb* obtenerProximoAEjecutar(){
 
 }
 
+
+
 t_log* iniciar_logger(void)
 {
 	t_log* nuevo_logger = log_create("kernel.log", "KERNEL", 1, LOG_LEVEL_INFO);
