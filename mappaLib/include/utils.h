@@ -61,5 +61,6 @@ typedef struct
 //t_list* datos_procesos;
 void imprimirPrueba();
 void* list_pop_con_mutex(t_list* lista, pthread_mutex_t* mutex);
+void list_push_con_mutex(t_list* lista, void* elemento, pthread_mutex_t* mutex);
 
 #endif

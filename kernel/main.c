@@ -172,6 +172,28 @@ void* planificador_corto_plazo(void){
 		}
 	}
 }
+void* planificador_corto_plazo_RR(t_temporal* quantum){ // despues me fijo como lo integro al planificador que ya existe
+	t_pcb* pcb;
+	while(1){
+		//semaforo
+		pcb = obtenerProximoAEjecutar();
+		pcb->estado = EXEC;
+		send_ejecutar_pcb(fd_cpu, pcb);
+		// una vez que se envia la pcb empieza a contabilizar el tiempo de quantum
+		quantum = temoral_create();
+
+		pcb = recv_pcb_actualizado(fd_cpu);
+		temporal_stop(quantum); // freno el quantum
+		switch(pcb->estado){
+			case(EXIT_ESTADO):
+				list_add(procesos_en_exit, pcb);
+				break;
+			case(BLOCKED):
+				list_add(procesos_en_blocked, pcb);
+				break;
+		}
+	}
+}
 
 t_pcb* obtenerProximoAEjecutar(){
 
@@ -185,6 +207,11 @@ t_pcb* obtenerProximoAEjecutar(){
 		return pcb;
 	}
 	else if(!strcmp(algoritmo_planificacion, "RR")){
+		// si el quantum, se excedio, cambio el proceso y este lo mando a la cola de ready, si no sigue
+		if(quantum->elapsed_ms >= 2){
+			list_push_con_mutex(procesos_en_ready, pcb,mutex_ready_list);
+			pcb = list_pop_con_mutex(procesos_en_ready, mutex_ready_list);
+		};
 
 		log_info(logger, "PID: %d - Estado Anterior: READY - Estado Actual: EXEC", pcb->pid); //log obligatorio
 		return pcb;
@@ -200,8 +227,6 @@ t_pcb* obtenerProximoAEjecutar(){
 	}
 
 }
-
-
 
 t_log* iniciar_logger(void)
 {

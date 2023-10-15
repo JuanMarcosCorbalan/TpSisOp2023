@@ -8,6 +8,7 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <commons/string.h>
+#include <commons/temporal.h>
 #include <commons/collections/list.h>
 #include <commons/collections/queue.h>
 #include "../../mappaLib/include/sockets.h"
@@ -19,6 +20,9 @@ t_queue* procesos_en_new;
 t_list* procesos_en_ready;
 t_list* procesos_en_blocked;
 t_list* procesos_en_exit;
+
+t_temporal* quantum;
+
 
 pthread_t* hilo_largo_plazo;
 pthread_t* hilo_corto_plazo;
