@@ -180,7 +180,7 @@ void* planificador_corto_plazo_RR(t_temporal* quantum){ // despues me fijo como 
 		pcb->estado = EXEC;
 		send_ejecutar_pcb(fd_cpu, pcb);
 		// una vez que se envia la pcb empieza a contabilizar el tiempo de quantum
-		quantum = temoral_create();
+		quantum = temporal_create();
 
 		pcb = recv_pcb_actualizado(fd_cpu);
 		temporal_stop(quantum); // freno el quantum
