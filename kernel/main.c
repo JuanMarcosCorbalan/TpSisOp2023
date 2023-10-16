@@ -16,7 +16,7 @@ int main(void)
 //	int socket_servidor;
 //	char* puerto_escucha;
 	int grado_multiprogramacion = atoi(config_get_string_value(config, "GRADO_MULTIPROGRAMACION_INI"));
-
+    int quantum_maximo = atoi(config_get_string_value(config, "QUANTUM"));
 	sem_init(cont_multiprogramacion, 0, grado_multiprogramacion);
 	sem_init(bin_proceso_new, 0, 0);
 //	puerto_escucha = config_get_string_value(config, "PUERTO_ESCUCHA");
@@ -195,7 +195,7 @@ void* planificador_corto_plazo_RR(t_temporal* quantum){ // despues me fijo como 
 	}
 }
 
-t_pcb* obtenerProximoAEjecutar(){
+t_pcb* obtenerProximoAEjecutar(int quantum_maximo){
 
 	t_pcb* pcb;
 	char* algoritmo_planificacion = config_get_string_value(config, "ALGORITMO_PLANIFICACION");
@@ -208,12 +208,16 @@ t_pcb* obtenerProximoAEjecutar(){
 	}
 	else if(!strcmp(algoritmo_planificacion, "RR")){
 		// si el quantum, se excedio, cambio el proceso y este lo mando a la cola de ready, si no sigue
-		if(quantum->elapsed_ms >= 2){
+		if(quantum->elapsed_ms >= quantum_maximo){
+			log_info(logger, "PID: %d - Desalojado por fin de Quantum", pcb->pid); //log obligatorio
 			list_push_con_mutex(procesos_en_ready, pcb,mutex_ready_list);
 			pcb = list_pop_con_mutex(procesos_en_ready, mutex_ready_list);
+			log_info(logger, "PID: %d - Estado Anterior: READY - Estado Actual: EXEC", pcb->pid); //log obligatorio
+			return pcb;
 		};
 
-		log_info(logger, "PID: %d - Estado Anterior: READY - Estado Actual: EXEC", pcb->pid); //log obligatorio
+		log_info(logger, "PID: %d - Estado Anterior: EXEC - Estado Actual: EXEC", pcb->pid); //log obligatorio
+		// tiene que avisar si no hay cambio de estado?
 		return pcb;
 	}
 	else if(!strcmp(algoritmo_planificacion, "PRIORIDADES")){
