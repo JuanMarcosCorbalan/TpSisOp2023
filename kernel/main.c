@@ -7,6 +7,8 @@
 	int fd_memoria = 0;
 	t_config* config;
 
+	bool PLANIFICACION_ACTIVA = false;
+
 int main(void)
 {
 	t_log* logger;
@@ -15,11 +17,6 @@ int main(void)
 	config = iniciar_config();
 //	int socket_servidor;
 //	char* puerto_escucha;
-	int grado_multiprogramacion = atoi(config_get_string_value(config, "GRADO_MULTIPROGRAMACION_INI"));
-
-	sem_init(cont_multiprogramacion, 0, grado_multiprogramacion);
-	sem_init(bin_proceso_new, 0, 0);
-//	puerto_escucha = config_get_string_value(config, "PUERTO_ESCUCHA");
 
 	if(!conectar_modulos(logger, config, &fd_cpu_dispatch, &fd_cpu_interrupt, &fd_filesystem, &fd_memoria)){
 		terminar_programa(fd_cpu_dispatch, fd_cpu_interrupt, fd_filesystem, fd_memoria, logger, config);
@@ -27,7 +24,7 @@ int main(void)
 	}
 
 	enviar_mensaje("Hola, soy el Kernel!", fd_cpu_dispatch);
-	enviar_mensaje("Hola, soy el Kernel!", fd_cpu_interrupt);
+//	enviar_mensaje("Hola, soy el Kernel!", fd_cpu_interrupt);
 	enviar_mensaje("Hola, soy el Kernel!", fd_filesystem);
 	enviar_mensaje("Hola, soy el Kernel!", fd_memoria);
 
@@ -40,8 +37,8 @@ int main(void)
 //	socket_servidor = iniciar_servidor("4455");
 //	while (esperar_clientes(socket_servidor));
 
-	pthread_create(hilo_corto_plazo, NULL, (void*) planificador_corto_plazo, NULL);
-	pthread_detach(*hilo_corto_plazo);
+//	pthread_create(hilo_corto_plazo, NULL, (void*) planificador_corto_plazo, NULL);
+//	pthread_detach(*hilo_corto_plazo);
 
 	iniciar_consola(logger, config, fd_memoria);
 	terminar_programa(fd_cpu_dispatch, fd_cpu_interrupt, fd_filesystem, fd_memoria, logger, config);
@@ -54,8 +51,8 @@ void iniciar_consola(t_log* logger, t_config* config, int fd_memoria){
 	bool salir = false;
 	char** argumentos_entrada;
 
-	pthread_create(hilo_largo_plazo, NULL, (void*) planificador_largo_plazo, NULL);
-	pthread_detach(*hilo_largo_plazo);
+//	pthread_create(hilo_largo_plazo, NULL, (void*) planificador_largo_plazo, NULL);
+//	pthread_detach(*hilo_largo_plazo);
 
 	while(!salir){
 		entrada = readline("> ");
@@ -71,12 +68,26 @@ void iniciar_consola(t_log* logger, t_config* config, int fd_memoria){
 
 		if(string_equals_ignore_case(argumentos_entrada[0], "INICIAR_PROCESO")){
 			iniciar_proceso(logger, argumentos_entrada, fd_memoria);
+//			iniciar_planificacion();
 		}
 		if(string_equals_ignore_case(argumentos_entrada[0], "FINALIZAR_PROCESO")){
 //			finalizar_proceso(argumentos_entrada);
 		}
-
+		if(string_equals_ignore_case(argumentos_entrada[0], "INICIAR_PLANIFICACION")){
+			iniciar_planificacion();
+		}
+		if(string_equals_ignore_case(argumentos_entrada[0], "DETENER_PLANIFICACION")){
+//			detener_planificacion();
+		}
 	}
+}
+
+void iniciar_planificacion() {
+	//Semaforo???
+	PLANIFICACION_ACTIVA = true;
+	planificador_largo_plazo();
+	planificador_corto_plazo();
+//	log_info(logger, "Se inicia la planificacion");
 }
 
 void iniciar_proceso(t_log* logger, char *args[], int fd_memoria) {
@@ -89,7 +100,7 @@ void iniciar_proceso(t_log* logger, char *args[], int fd_memoria) {
 
 	queue_push(procesos_en_new, nuevo_proceso);
 	log_info(logger, "Se crea el proceso %d en NEW", nuevo_proceso->pid);
-	sem_post(bin_proceso_new);
+	sem_post(&sem_procesos_new);
 }
 
 void finalizar_proceso(t_log* logger, t_pcb* proceso_a_finalizar,char *args[], int fd_memoria, int fd_cpu_interrupt){
@@ -122,6 +133,11 @@ t_pcb* crear_pcb(int prioridad){
 	pcb->estado = NEW;
 	pcb->program_counter = 1;
 
+	pcb->registros_generales_cpu.ax = 0;
+	pcb->registros_generales_cpu.bx = 0;
+	pcb->registros_generales_cpu.cx = 0;
+	pcb->registros_generales_cpu.dx = 0;
+
 	return pcb;
 
 }
@@ -138,64 +154,105 @@ t_interrupt* crear_interrupcion(interrupt_code motivo){
 }
 
 void planificador_largo_plazo(){
-	while(true){
-		sem_wait(bin_proceso_new);
-		sem_wait(cont_multiprogramacion);
-		t_pcb* proceso = queue_pop(procesos_en_new);
-		pasar_a_ready(proceso);
+	pthread_t hilo_ready;
+	pthread_t hilo_exit;
+	pthread_create(&hilo_ready, NULL, (void*) planificar_procesos_ready, NULL);
+	pthread_create(&hilo_exit, NULL, (void*) planificar_procesos_exit, NULL);
+	pthread_detach(hilo_ready);
+	pthread_detach(hilo_exit);
+}
+
+void planificar_procesos_exit(){
+	while(PLANIFICACION_ACTIVA){
+		sem_wait(&sem_procesos_exit);
+		int cod_op = recibir_operacion(fd_cpu_dispatch);
+
+		switch(cod_op){
+		case PCB:
+			t_pcb* pcb_actualizado = recv_pcb(fd_cpu_dispatch);
+			cod_op = recibir_operacion(fd_cpu_dispatch);//PRUEBA
+		}
 	}
 }
 
-void pasar_a_ready(t_pcb* proceso){
-	list_add(procesos_en_ready, proceso);
-	proceso->estado = READY;
-	// TODO falta enviar a memoria que ya esta ready
+void planificar_procesos_ready() {
+	while(PLANIFICACION_ACTIVA){
+		sem_wait(&sem_procesos_new);
+		t_pcb* pcb = queue_pop_con_mutex(procesos_en_new, &mutex_cola_new);
+		sem_wait(&sem_multiprogramacion);
+		pasar_a_ready(pcb);
+		sem_post(&sem_procesos_ready);
+	}
 }
 
-void* planificador_corto_plazo(void){
-	t_pcb* pcb;
-	while(1){
-		//semaforo
-		pcb = obtenerProximoAEjecutar();
+void pasar_a_ready(t_pcb* pcb){
+	pthread_mutex_lock(&mutex_ready_list);
+	pcb->estado = READY;
+	list_add(procesos_en_ready, pcb);
+	pthread_mutex_unlock(&mutex_ready_list);
+	// TODO falta enviar a memoria que ya esta ready
+	//Falta el log
+}
+
+void planificador_corto_plazo(){
+	pthread_t hilo_exec;
+	pthread_create(&hilo_exec, NULL, (void*) planificar_proceso_exec, NULL);
+	pthread_detach(hilo_exec);
+}
+
+void planificar_proceso_exec(){
+	while(PLANIFICACION_ACTIVA){
+		t_pcb* pcb_recibido = malloc(sizeof(t_pcb));
+		sem_wait(&sem_procesos_ready);
+		sem_wait(&sem_proceso_exec);
+
+		t_pcb* pcb = obtenerProximoAEjecutar();
 		pcb->estado = EXEC;
-		send_ejecutar_pcb(fd_cpu, pcb);
+		//Falta el log	inicializar_semaforos_globales();
 
-		pcb = recv_pcb_actualizado(fd_cpu);
+		queue_push_con_mutex(procesos_en_exec, pcb, &mutex_cola_exec);
+		send_pcb(pcb, fd_cpu_dispatch);
+		sem_post(&sem_procesos_exit);
+//		pcb_recibido = recv_pcb(fd_cpu_dispatch);
+////
+//		PLANIFICACION_ACTIVA = true;
 
-		switch(pcb->estado){
-			case(EXIT_ESTADO):
-				list_add(procesos_en_exit, pcb);
-				break;
-			case(BLOCKED):
-				list_add(procesos_en_blocked, pcb);
-				break;
-		}
+//		pcb = recv_pcb_actualizado(fd_cpu);
+//
+//		switch(pcb->estado){
+//			case(EXIT_ESTADO):
+//				list_add(procesos_en_exit, pcb);
+//				break;
+//			case(BLOCKED):
+//				list_add(procesos_en_blocked, pcb);
+//				break;
+//		}
 	}
 }
 
 t_pcb* obtenerProximoAEjecutar(){
 
-	t_pcb* pcb;
+//	t_pcb* pcb;
 	char* algoritmo_planificacion = config_get_string_value(config, "ALGORITMO_PLANIFICACION");
 
 	if(!strcmp(algoritmo_planificacion, "FIFO")) {
 
-		pcb = list_pop_con_mutex(procesos_en_ready, mutex_ready_list);
-		log_info(logger, "PID: %d - Estado Anterior: READY - Estado Actual: EXEC", pcb->pid); //log obligatorio
+		t_pcb* pcb = list_pop_con_mutex(procesos_en_ready, &mutex_ready_list);
+//		log_info(logger, "PID: %d - Estado Anterior: READY - Estado Actual: EXEC", pcb->pid); //log obligatorio
 		return pcb;
 	}
-	else if(!strcmp(algoritmo_planificacion, "RR")){
-
-		log_info(logger, "PID: %d - Estado Anterior: READY - Estado Actual: EXEC", pcb->pid); //log obligatorio
-		return pcb;
-	}
-	else if(!strcmp(algoritmo_planificacion, "PRIORIDADES")){
-
-		log_info(logger, "PID: %d - Estado Anterior: READY - Estado Actual: EXEC", pcb->pid); //log obligatorio
-		return pcb;
-	}
+//	else if(!strcmp(algoritmo_planificacion, "RR")){
+//
+////		log_info(logger, "PID: %d - Estado Anterior: READY - Estado Actual: EXEC", pcb->pid); //log obligatorio
+////		return pcb;
+//	}
+//	else if(!strcmp(algoritmo_planificacion, "PRIORIDADES")){
+//
+////		log_info(logger, "PID: %d - Estado Anterior: READY - Estado Actual: EXEC", pcb->pid); //log obligatorio
+////		return pcb;
+//	}
 	else{
-		log_error(logger, "Error en la lectura del algoritmo de planificacion");
+//		log_error(logger, "Error en la lectura del algoritmo de planificacion");
 		exit(EXIT_FAILURE);
 	}
 
@@ -268,9 +325,21 @@ bool conectar_modulos(t_log* logger, t_config* config, int* fd_cpu_dispatch, int
 }
 
 void inicializar_variables() {
+	int grado_multiprogramacion = atoi(config_get_string_value(config, "GRADO_MULTIPROGRAMACION_INI"));
 	asignador_pid = 1;
 	procesos_en_new = queue_create();
+	procesos_en_exec = queue_create();
 	procesos_en_ready = list_create();
 	procesos_en_blocked = list_create();
 	procesos_en_exit = list_create();
+
+	pthread_mutex_init(&mutex_cola_new, NULL);
+	pthread_mutex_init(&mutex_ready_list, NULL);
+	pthread_mutex_init(&mutex_cola_exec, NULL);
+
+	sem_init(&sem_multiprogramacion, 0, grado_multiprogramacion);
+	sem_init(&sem_procesos_new, 0, 0);
+	sem_init(&sem_procesos_ready, 0, 0);
+	sem_init(&sem_proceso_exec, 0, 1);
+	sem_init(&sem_procesos_exit, 0, 0);
 }

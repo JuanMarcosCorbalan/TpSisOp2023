@@ -7,6 +7,7 @@
 #include <commons/collections/list.h>
 #include <commons/collections/queue.h>
 #include <pthread.h>
+#include <semaphore.h>
 
 typedef enum {
 	NEW,
@@ -33,9 +34,9 @@ typedef struct {
 	int pid;
 	int program_counter;
 	int prioridad;
-	t_registros_generales_cpu registros_generales_cpu;
-	t_archivos_abiertos archivos_abiertos;
 	estado estado;
+	t_registros_generales_cpu registros_generales_cpu;
+//	t_archivos_abiertos archivos_abiertos;
 
 } t_pcb;
 

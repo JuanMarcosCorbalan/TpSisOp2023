@@ -90,6 +90,10 @@ t_solicitud_instruccion* recv_solicitar_instruccion(int fd);
 void send_proxima_instruccion(int fd, t_instruccion* instruccion);
 t_instruccion* recv_proxima_instruccion(int fd);
 
+// PCB
+void send_pcb(t_pcb* pcb, int socket);
+t_pcb* recv_pcb(int socket);
+
 // EJECUTAR_PCB
 void send_ejecutar_pcb(int fd, t_pcb* pcb);
 t_pcb* recv_ejecutar_pcb(int fd);

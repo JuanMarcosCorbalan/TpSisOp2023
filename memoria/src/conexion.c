@@ -25,7 +25,9 @@ static void procesar_cliente(void* void_args){
 				iniciar_proceso_memoria(datos_proceso->path, datos_proceso->size, datos_proceso->pid);
 				break;
 			case SOLICITAR_INSTRUCCION:
-				procesar_pedido_instruccion(cliente_fd);
+				t_proceso_instrucciones* pruebita = list_get(proceso_instrucciones, 0);
+				t_instruccion* pruebita2 = list_get(pruebita->instrucciones, 0);
+				procesar_pedido_instruccion(cliente_fd, proceso_instrucciones);
 				break;
 			case -1:
 				log_error(logger, "El cliente se desconecto.");
@@ -64,22 +66,30 @@ void iniciar_proceso_memoria(char* path, int size, int pid){
 	string_append(&rutaCompleta, path);
 	string_append(&rutaCompleta, extensionProceso);
 
-	t_proceso_instrucciones* proceso_instr = malloc(sizeof(t_proceso_instrucciones));
+//	t_proceso_instrucciones* proceso_instr = malloc(sizeof(t_proceso_instrucciones));
+    t_proceso_instrucciones* proceso_instr = malloc(sizeof(t_proceso_instrucciones));
+	proceso_instr->instrucciones = list_create();
+
 	proceso_instr->pid = pid;
 	proceso_instr->instrucciones = generar_instrucciones(rutaCompleta);
 
 	list_add(proceso_instrucciones, proceso_instr);
-	free(proceso_instr);
+	t_proceso_instrucciones* pruebita = list_get(proceso_instrucciones, 0);
+	t_instruccion* pruebita2 = list_get(pruebita->instrucciones, 0);
+//	free(proceso_instr);
 }
 
-void procesar_pedido_instruccion(int socket_cpu){
+void procesar_pedido_instruccion(int socket_cpu, t_list* proceso_instrucciones){
 	t_solicitud_instruccion* solicitud_instruccion = recv_solicitar_instruccion(socket_cpu);
-	t_instruccion* instruccion_a_enviar = buscar_instruccion(solicitud_instruccion->pid, solicitud_instruccion->program_counter);
+	t_proceso_instrucciones* pruebita = list_get(proceso_instrucciones, 0);
+	t_instruccion* pruebita2 = list_get(pruebita->instrucciones, 0);
+
+	t_instruccion* instruccion_a_enviar = buscar_instruccion(solicitud_instruccion->pid, solicitud_instruccion->program_counter - 1, proceso_instrucciones);
 	//TODO Falta meter el RETARDO_RESPUESTA en algun lado.
 	send_proxima_instruccion(socket_cpu, instruccion_a_enviar);
 }
 
-t_instruccion* buscar_instruccion(int pid, int program_counter){
+t_instruccion* buscar_instruccion(int pid, int program_counter, t_list* proceso_instrucciones){
 	int i = 0;
 	t_proceso_instrucciones* proceso_instr = list_get(proceso_instrucciones, i);
 
@@ -111,16 +121,17 @@ t_list* generar_instrucciones(char* path) {
 
 		instruccion->codigo = instruccion_to_enum(token_instruccion[0]);
 		if(cant_parametros == 0){
-			instruccion->param1 = NULL;//" "??
-			instruccion->param2 = NULL;
+			instruccion->param1 = "";
+			instruccion->param2 = "";
 		} else if(cant_parametros == 1){
 			instruccion->param1 = token_instruccion[1];
-			instruccion->param2 = NULL;
+			instruccion->param2 = "";
 		} else if(cant_parametros == 2){
 			instruccion->param1 = token_instruccion[1];
 			instruccion->param2 = token_instruccion[2];;
 		}
 		list_add(instrucciones, instruccion);
+		t_instruccion* pruebita = list_get(instrucciones, 0);
 		//TODO Faltan los free??
 	}
 	return instrucciones;

@@ -17,14 +17,6 @@ void* serializar_paquete(t_paquete* paquete, int bytes)
 	return magic;
 }
 
-//t_paquete* crear_paquete(void)
-//{
-//	t_paquete* paquete = malloc(sizeof(t_paquete));
-//	paquete->codigo_operacion = PAQUETE;
-//	crear_buffer(paquete);
-//	return paquete;
-//}
-
 t_paquete* crear_paquete(op_code codigo_operacion)
 {
 	t_paquete* paquete = malloc(sizeof(t_paquete));
@@ -64,23 +56,6 @@ t_list* recibir_paquete(int socket_cliente)
 	free(buffer);
 	return valores;
 }
-
-//void paquete(int conexion)
-//{
-//	char* leido;
-//	t_paquete* paquete = crear_paquete();
-//
-//	leido = readline("> ");
-//	while(strcmp(leido, "")){
-//		agregar_a_paquete(paquete, leido, strlen(leido) +1);
-//		leido = readline("> ");
-//	}
-//
-//	enviar_paquete(paquete, conexion);
-//
-//	free(leido);
-//	eliminar_paquete(paquete);
-//}
 
 void leer_consola(t_log* logger)
 {
@@ -179,27 +154,26 @@ void iterator(char* value) {
 
 void send_solicitar_instruccion(int fd, int pid, int program_counter){
 	t_paquete* paquete = crear_paquete(SOLICITAR_INSTRUCCION);
+
 	agregar_a_paquete(paquete, &pid, sizeof(int));
 	agregar_a_paquete(paquete, &program_counter, sizeof(int));
 	enviar_paquete(paquete, fd);
-	// TODO Faltan frees??
 	eliminar_paquete(paquete);
 }
 
 t_solicitud_instruccion* recv_solicitar_instruccion(int fd){
 	t_list* paquete = recibir_paquete(fd);
-	int* pid;
-	int* program_counter;
-	t_solicitud_instruccion* solicitud_instruccion_recibida = NULL;
+	t_solicitud_instruccion* solicitud_instruccion_recibida = malloc(sizeof(t_solicitud_instruccion));
 
-	pid = list_get(paquete, 0);
-	program_counter = list_get(paquete, 1);
-
+	int* pid = list_get(paquete, 0);
 	solicitud_instruccion_recibida->pid = *pid;
+	free(pid);
+
+	int* program_counter = list_get(paquete, 1);
 	solicitud_instruccion_recibida->program_counter = *program_counter;
+	free(program_counter);
 
 	list_destroy(paquete);
-
 	return solicitud_instruccion_recibida;
 }
 
@@ -207,26 +181,42 @@ t_solicitud_instruccion* recv_solicitar_instruccion(int fd){
 
 void send_proxima_instruccion(int fd, t_instruccion* instruccion){
 	t_paquete* paquete = crear_paquete(PROXIMA_INSTRUCCION);
-	agregar_a_paquete(paquete, &instruccion, sizeof(t_instruccion));
+
+	agregar_a_paquete(paquete, &(instruccion->codigo), sizeof(codigo_instruccion));
+	agregar_a_paquete(paquete, instruccion->param1, strlen(instruccion->param1) + 1);
+	agregar_a_paquete(paquete, instruccion->param2, strlen(instruccion->param2) + 1);
+
 	enviar_paquete(paquete, fd);
-	// TODO Faltan frees??
 	eliminar_paquete(paquete);
 }
 
 t_instruccion* recv_proxima_instruccion(int fd){
 	t_list* paquete = recibir_paquete(fd);
-	t_instruccion* instruccion_recibida = list_get(paquete, 0);
+	t_instruccion* instruccion_recibida = malloc(sizeof(t_instruccion));
+
+	codigo_instruccion* codigo_instruccion = list_get(paquete, 0);
+	instruccion_recibida->codigo = *codigo_instruccion;
+	free(codigo_instruccion);
+
+	char* parametro1 = list_get(paquete, 1);
+	instruccion_recibida->param1 = malloc(strlen(parametro1));
+	strcpy(instruccion_recibida->param1, parametro1);
+	free(parametro1);
+
+	char* parametro2 = list_get(paquete, 2);
+	instruccion_recibida->param2 = malloc(strlen(parametro2));
+	strcpy(instruccion_recibida->param2, parametro2);
+	free(parametro2);
 
 	list_destroy(paquete);
-
 	return instruccion_recibida;
 }
 
-//
+/////////////////
 
 void send_interrupcion(t_interrupt* interrupcion, int fd){
 	t_paquete* datos_interrupcion = crear_paquete(INTERRUPCION);
-	t_interrupt* interrupcion_a_enviar;
+	t_interrupt* interrupcion_a_enviar = malloc(sizeof(t_interrupt));
 
 	interrupcion_a_enviar->motivo = interrupcion->motivo;
 	interrupcion_a_enviar->interrupt_id = interrupcion->interrupt_id;
@@ -240,7 +230,7 @@ void send_interrupcion(t_interrupt* interrupcion, int fd){
 }
 t_interrupt* recv_interrupcion(int fd){
 	t_list* paquete = recibir_paquete(fd);
-	t_interrupt* interrupcion;
+	t_interrupt* interrupcion = malloc(sizeof(t_interrupt));
 //	interrupcion->motivo = list_get(paquete, 0);
 //	interrupcion->interrupt_id = list_get(paquete, 1);
 //	interrupcion->flag = list_get(paquete, 2);
@@ -292,6 +282,64 @@ t_pcb* recv_ejecutar_pcb(int fd){
 
 	list_destroy(paquete);
 
+	return pcb;
+}
+
+// PCB
+void send_pcb(t_pcb* pcb, int socket){
+	t_paquete* paquete = crear_paquete(PCB);
+
+	agregar_a_paquete(paquete, &(pcb->pid), sizeof(int));
+	agregar_a_paquete(paquete, &(pcb->program_counter), sizeof(int));
+	agregar_a_paquete(paquete, &(pcb->prioridad), sizeof(int));
+	agregar_a_paquete(paquete, &(pcb->estado), sizeof(estado));
+
+	agregar_a_paquete(paquete, &(pcb->registros_generales_cpu.ax), sizeof(uint32_t));
+	agregar_a_paquete(paquete, &(pcb->registros_generales_cpu.bx), sizeof(uint32_t));
+	agregar_a_paquete(paquete, &(pcb->registros_generales_cpu.cx), sizeof(uint32_t));
+	agregar_a_paquete(paquete, &(pcb->registros_generales_cpu.dx), sizeof(uint32_t));
+
+	enviar_paquete(paquete, socket);
+	eliminar_paquete(paquete);
+}
+
+t_pcb* recv_pcb(int socket){
+	t_list* paquete = recibir_paquete(socket);
+	t_pcb* pcb = malloc(sizeof(t_pcb));
+
+	int* pid = list_get(paquete, 0);
+	pcb->pid = *pid;
+	free(pid);
+
+	int* program_counter = list_get(paquete, 1);
+	pcb->program_counter = *program_counter;
+	free(program_counter);
+
+	int* prioridad = list_get(paquete, 2);
+	pcb->prioridad = *prioridad;
+	free(prioridad);
+
+	estado* estado = list_get(paquete, 3);
+	pcb->estado = *estado;
+	free(estado);
+
+	uint32_t* ax = list_get(paquete, 4);
+	pcb->registros_generales_cpu.ax = *ax;
+	free(ax);
+
+	uint32_t* bx = list_get(paquete, 5);
+	pcb->registros_generales_cpu.bx = *bx;
+	free(bx);
+
+	uint32_t* cx = list_get(paquete, 6);
+	pcb->registros_generales_cpu.cx = *cx;
+	free(cx);
+
+	uint32_t* dx = list_get(paquete, 7);
+	pcb->registros_generales_cpu.dx = *dx;
+	free(dx);
+
+	list_destroy(paquete);
 	return pcb;
 }
 
