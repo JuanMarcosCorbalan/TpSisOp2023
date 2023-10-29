@@ -29,7 +29,7 @@ int main(void) {
 void* ejecutar_pcb(void *arg) {
 	int dispatch_server_fd = iniciar_servidor(config_cpu.puerto_escucha_dispatch);
 	log_info(logger, "DISPATCH CPU LISTO.");
-	dispatch_cliente_fd = esperar_cliente(dispatch_server_fd);
+	dispatch_cliente_fd = esperar_cliente(logger, dispatch_server_fd);
 
 	while (true) {
 		sem_wait(&sem_nuevo_proceso);
@@ -57,7 +57,7 @@ void* ejecutar_pcb(void *arg) {
 			break;
 		case -1:
 			log_error(logger, "El cliente se desconecto.");
-			dispatch_cliente_fd = esperar_cliente(dispatch_server_fd);
+			dispatch_cliente_fd = esperar_cliente(logger, dispatch_server_fd);
 			break;
 		default:
 			log_warning(logger,"Operacion desconocida. No quieras meter la pata");
@@ -218,7 +218,7 @@ void ejecutar_wait(t_pcb* pcb, char* param1){
 
 void ejecutar_exit(t_pcb* pcb){
 	flag_hay_interrupcion = true;
-	pcb->estado = EXIT_ESTADO;
+	pcb->estado = SUCCESS;//EXIT_ESTADO
 	send_pcb(pcb, dispatch_cliente_fd);
 }
 

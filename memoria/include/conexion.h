@@ -15,6 +15,7 @@
 
 typedef struct {
     int fd_cliente;
+    t_log* logger;
 } t_procesar_cliente_args;
 
 
@@ -23,7 +24,7 @@ typedef struct {
 	t_list* instrucciones;
 } t_proceso_instrucciones;
 
-int experar_clientes(int server_socket);
+int experar_clientes(t_log* logger, int server_socket);
 t_list* generar_instrucciones(char* path);
 codigo_instruccion instruccion_to_enum(char* instruccion);
 void iniciar_proceso_memoria(char* path, int size, int pid);

@@ -5,6 +5,7 @@ t_list* proceso_instrucciones;
 static void procesar_cliente(void* void_args){
 	t_procesar_cliente_args* args = (t_procesar_cliente_args*) void_args;
 	int cliente_fd = args -> fd_cliente;
+	t_log* logger = args ->logger;
 	free(args);
 
 	t_list* lista;
@@ -41,14 +42,15 @@ static void procesar_cliente(void* void_args){
 	return;
 }
 
-int experar_clientes(int server_socket){
+int experar_clientes(t_log* logger, int server_socket){
 	proceso_instrucciones = list_create();
-	int cliente_socket = esperar_cliente(server_socket);
+	int cliente_socket = esperar_cliente(logger, server_socket);
 
 	if(cliente_socket != -1){
 		pthread_t hilo;
 		t_procesar_cliente_args* args = malloc(sizeof(t_procesar_cliente_args));
 		args -> fd_cliente = cliente_socket;
+		args ->logger = logger;
 		pthread_create(&hilo, NULL, (void*) procesar_cliente, (void*) args);
 		pthread_detach(hilo);
 		return 1;

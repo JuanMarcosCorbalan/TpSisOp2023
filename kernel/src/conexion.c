@@ -2,11 +2,13 @@
 
 typedef struct {
     int fd_cliente;
+    t_log* logger;
 } t_procesar_cliente_args;
 
 static void procesar_cliente(void* void_args){
 	t_procesar_cliente_args* args = (t_procesar_cliente_args*) void_args;
 	int cliente_fd = args -> fd_cliente;
+	t_log* logger = args->logger;
 	free(args);
 
 //	datos_procesos = list_create();
@@ -40,14 +42,15 @@ static void procesar_cliente(void* void_args){
 	return;
 }
 
-int esperar_clientes(int server_socket){
+int esperar_clientes(t_log* logger, int server_socket){
 
-	int cliente_socket = esperar_cliente(server_socket);
+	int cliente_socket = esperar_cliente(logger, server_socket);
 
 	if(cliente_socket != -1){
 		pthread_t hilo;
 		t_procesar_cliente_args* args = malloc(sizeof(t_procesar_cliente_args));
 		args -> fd_cliente = cliente_socket;
+		args -> logger = logger;
 		pthread_create(&hilo, NULL, (void*) procesar_cliente, (void*) args);
 		pthread_detach(hilo);
 		return 1;

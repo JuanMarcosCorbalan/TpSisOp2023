@@ -11,12 +11,8 @@
 
 int main(void)
 {
-	t_log* logger;
-
 	logger = iniciar_logger();
 	config = iniciar_config();
-//	int socket_servidor;
-//	char* puerto_escucha;
 
 	if(!conectar_modulos(logger, config, &fd_cpu_dispatch, &fd_cpu_interrupt, &fd_filesystem, &fd_memoria)){
 		terminar_programa(fd_cpu_dispatch, fd_cpu_interrupt, fd_filesystem, fd_memoria, logger, config);
@@ -24,21 +20,11 @@ int main(void)
 	}
 
 	enviar_mensaje("Hola, soy el Kernel!", fd_cpu_dispatch);
-//	enviar_mensaje("Hola, soy el Kernel!", fd_cpu_interrupt);
+	enviar_mensaje("Hola, soy el Kernel!", fd_cpu_interrupt);
 	enviar_mensaje("Hola, soy el Kernel!", fd_filesystem);
 	enviar_mensaje("Hola, soy el Kernel!", fd_memoria);
 
 	inicializar_variables();
-
-//	paquete(fd_cpu);
-//	paquete(fd_filesystem);
-//	paquete(fd_memoria);
-
-//	socket_servidor = iniciar_servidor("4455");
-//	while (esperar_clientes(socket_servidor));
-
-//	pthread_create(hilo_corto_plazo, NULL, (void*) planificador_corto_plazo, NULL);
-//	pthread_detach(*hilo_corto_plazo);
 
 	iniciar_consola(logger, config, fd_memoria);
 	terminar_programa(fd_cpu_dispatch, fd_cpu_interrupt, fd_filesystem, fd_memoria, logger, config);
@@ -87,7 +73,7 @@ void iniciar_planificacion() {
 	PLANIFICACION_ACTIVA = true;
 	planificador_largo_plazo();
 	planificador_corto_plazo();
-//	log_info(logger, "Se inicia la planificacion");
+	log_info(logger, "INICIO DE PLANIFICACION");
 }
 
 void iniciar_proceso(t_log* logger, char *args[], int fd_memoria) {
@@ -170,7 +156,13 @@ void planificar_procesos_exit(){
 		switch(cod_op){
 		case PCB:
 			t_pcb* pcb_actualizado = recv_pcb(fd_cpu_dispatch);
-			cod_op = recibir_operacion(fd_cpu_dispatch);//PRUEBA
+			char* motivo = motivo_to_string(pcb_actualizado->estado);
+			log_info(logger, "Finaliza el proceso %d - Motivo: %s", pcb_actualizado->pid, motivo);
+			//TODO Terminar proceso en memoria
+			//TODO Destruir PCB
+			sem_post(&sem_multiprogramacion);
+			sem_post(&sem_proceso_exec);
+		break;
 		}
 	}
 }
@@ -189,9 +181,8 @@ void pasar_a_ready(t_pcb* pcb){
 	pthread_mutex_lock(&mutex_ready_list);
 	pcb->estado = READY;
 	list_add(procesos_en_ready, pcb);
+	log_cola_ready();
 	pthread_mutex_unlock(&mutex_ready_list);
-	// TODO falta enviar a memoria que ya esta ready
-	//Falta el log
 }
 
 void planificador_corto_plazo(){
@@ -213,21 +204,25 @@ void planificar_proceso_exec(){
 		queue_push_con_mutex(procesos_en_exec, pcb, &mutex_cola_exec);
 		send_pcb(pcb, fd_cpu_dispatch);
 		sem_post(&sem_procesos_exit);
-//		pcb_recibido = recv_pcb(fd_cpu_dispatch);
-////
-//		PLANIFICACION_ACTIVA = true;
-
-//		pcb = recv_pcb_actualizado(fd_cpu);
-//
-//		switch(pcb->estado){
-//			case(EXIT_ESTADO):
-//				list_add(procesos_en_exit, pcb);
-//				break;
-//			case(BLOCKED):
-//				list_add(procesos_en_blocked, pcb);
-//				break;
-//		}
 	}
+}
+
+void log_cola_ready(){
+	t_list* lista_logger = obtener_lista_pid(procesos_en_ready);
+	char* lista = list_to_string(lista_logger);
+	log_info(logger, "Cola Ready %s: [%s]", config_get_string_value(config, "ALGORITMO_PLANIFICACION"), lista);
+	list_destroy(lista_logger);
+	free(lista);
+}
+
+t_list* obtener_lista_pid(t_list* lista){
+	t_list* lista_de_pid = list_create();
+	for (int i = 0; i < list_size(lista); i++){
+		t_pcb* pcb = list_get(lista, i);
+		list_add(lista_de_pid, &(pcb->pid));
+	}
+
+	return lista_de_pid;
 }
 
 t_pcb* obtenerProximoAEjecutar(){

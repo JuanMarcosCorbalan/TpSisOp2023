@@ -7,7 +7,6 @@ int main(void) {
 	char* ip;
 	char* puerto_escucha;
 	char* puerto_memoria;
-	char* valor;
 	int fd_memoria = 0;
 	config = iniciar_config();
 	ip = config_get_string_value(config, "IP");
@@ -19,7 +18,7 @@ int main(void) {
 
 	int server_fd = iniciar_servidor(puerto_escucha);
 	log_info(logger, "FILESYSTEM LISTO...");
-	while(experar_clientes(server_fd));
+	while(experar_clientes(logger, server_fd));
 
 	return EXIT_SUCCESS;
 }

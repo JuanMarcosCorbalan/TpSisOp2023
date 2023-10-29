@@ -56,5 +56,7 @@ void planificador_corto_plazo();
 void planificar_proceso_exec();
 t_pcb* obtenerProximoAEjecutar();
 void planificar_procesos_exit();
+void log_cola_ready();
+t_list* obtener_lista_pid(t_list* lista);
 
 #endif
