@@ -37,6 +37,25 @@ char* motivo_to_string(estado estado_exit){
 	}
 }
 
+char* estado_to_string(estado estado){
+	switch(estado){
+		case NEW:
+			return "NEW";
+			break;
+		case READY:
+			return "READY";
+			break;
+		case EXEC:
+			return "EXEC";
+			break;
+		case BLOCKED:
+			return "BLOCKED";
+			break;
+		default:
+			return "DESCONOCIDO";
+		}
+}
+
 // LISTAS DE ESTADOS
 
 void* list_pop_con_mutex(t_list* lista, pthread_mutex_t* mutex){

@@ -71,6 +71,7 @@ typedef struct
 void imprimirPrueba();
 char* list_to_string(t_list *list);
 char* motivo_to_string(estado estado_exit);
+char* estado_to_string(estado estado);
 void* list_pop_con_mutex(t_list* lista, pthread_mutex_t* mutex);
 void list_push_con_mutex(t_list* lista, void* elemento, pthread_mutex_t* mutex);
 void* queue_pop_con_mutex(t_queue* queue, pthread_mutex_t* mutex);

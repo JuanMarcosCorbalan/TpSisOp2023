@@ -179,7 +179,7 @@ void planificar_procesos_ready() {
 
 void pasar_a_ready(t_pcb* pcb){
 	pthread_mutex_lock(&mutex_ready_list);
-	pcb->estado = READY;
+	cambiar_estado(pcb, READY);
 	list_add(procesos_en_ready, pcb);
 	log_cola_ready();
 	pthread_mutex_unlock(&mutex_ready_list);
@@ -198,7 +198,7 @@ void planificar_proceso_exec(){
 		sem_wait(&sem_proceso_exec);
 
 		t_pcb* pcb = obtenerProximoAEjecutar();
-		pcb->estado = EXEC;
+		cambiar_estado(pcb, EXEC);
 		//Falta el log	inicializar_semaforos_globales();
 
 		queue_push_con_mutex(procesos_en_exec, pcb, &mutex_cola_exec);
@@ -251,6 +251,15 @@ t_pcb* obtenerProximoAEjecutar(){
 		exit(EXIT_FAILURE);
 	}
 
+}
+
+void cambiar_estado(t_pcb* pcb, estado estado){
+	char* nuevo_estado = strdup(estado_to_string(estado));
+	char* estado_anterior = strdup(estado_to_string(pcb->estado));
+	pcb->estado = estado;
+	log_info(logger, "PID: %d - Estado Anterior: %s - Estado Actual: %s", pcb->pid, estado_anterior, estado);
+	free(nuevo_estado);
+	free(estado_anterior);
 }
 
 t_log* iniciar_logger(void)
