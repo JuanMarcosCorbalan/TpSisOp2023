@@ -58,5 +58,7 @@ t_pcb* obtenerProximoAEjecutar();
 void planificar_procesos_exit();
 void log_cola_ready();
 t_list* obtener_lista_pid(t_list* lista);
+bool comparar_por_prioridad(void *pcb1, void *pcb2);
+void cambiar_estado(t_pcb* pcb, estado estado);
 
 #endif

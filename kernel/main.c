@@ -226,14 +226,11 @@ t_list* obtener_lista_pid(t_list* lista){
 }
 
 t_pcb* obtenerProximoAEjecutar(){
-
-//	t_pcb* pcb;
+	t_pcb* pcb;
 	char* algoritmo_planificacion = config_get_string_value(config, "ALGORITMO_PLANIFICACION");
 
 	if(!strcmp(algoritmo_planificacion, "FIFO")) {
-
-		t_pcb* pcb = list_pop_con_mutex(procesos_en_ready, &mutex_ready_list);
-//		log_info(logger, "PID: %d - Estado Anterior: READY - Estado Actual: EXEC", pcb->pid); //log obligatorio
+		pcb = list_pop_con_mutex(procesos_en_ready, &mutex_ready_list);
 		return pcb;
 	}
 //	else if(!strcmp(algoritmo_planificacion, "RR")){
@@ -241,23 +238,27 @@ t_pcb* obtenerProximoAEjecutar(){
 ////		log_info(logger, "PID: %d - Estado Anterior: READY - Estado Actual: EXEC", pcb->pid); //log obligatorio
 ////		return pcb;
 //	}
-//	else if(!strcmp(algoritmo_planificacion, "PRIORIDADES")){
-//
-////		log_info(logger, "PID: %d - Estado Anterior: READY - Estado Actual: EXEC", pcb->pid); //log obligatorio
-////		return pcb;
-//	}
-	else{
-//		log_error(logger, "Error en la lectura del algoritmo de planificacion");
-		exit(EXIT_FAILURE);
+	else if(!strcmp(algoritmo_planificacion, "PRIORIDADES")){
+		list_sort(procesos_en_ready, comparar_por_prioridad);
+		pcb = list_pop_con_mutex(procesos_en_ready, &mutex_ready_list);
+		return pcb;
 	}
 
+	return NULL;
+}
+
+bool comparar_por_prioridad(void *pcb1, void *pcb2){
+	t_pcb* p1 = (t_pcb *)pcb1;
+	t_pcb* p2 = (t_pcb *)pcb2;
+
+	return p1->prioridad < p2->prioridad;
 }
 
 void cambiar_estado(t_pcb* pcb, estado estado){
-	char* nuevo_estado = strdup(estado_to_string(estado));
-	char* estado_anterior = strdup(estado_to_string(pcb->estado));
+	char* nuevo_estado = estado_to_string(estado);
+	char* estado_anterior = estado_to_string(pcb->estado);
 	pcb->estado = estado;
-	log_info(logger, "PID: %d - Estado Anterior: %s - Estado Actual: %s", pcb->pid, estado_anterior, estado);
+	log_info(logger, "PID: %d - Estado Anterior: %s - Estado Actual: %s", pcb->pid, estado_anterior, nuevo_estado);
 	free(nuevo_estado);
 	free(estado_anterior);
 }
