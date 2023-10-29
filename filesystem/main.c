@@ -1,5 +1,7 @@
 #include "include/main.h"
 
+t_log* logger;
+
 int main(void) {
 	logger = log_create("filesystem.log", "FILESYSTEM", 1, LOG_LEVEL_DEBUG);
 

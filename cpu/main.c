@@ -3,6 +3,7 @@
 int fd_memoria = 0;
 int dispatch_cliente_fd = 0;
 bool flag_hay_interrupcion = false;
+t_log* logger;
 t_pcb* pcb;
 
 int main(void) {
@@ -40,7 +41,7 @@ void* ejecutar_pcb(void *arg) {
 
 		switch (cod_op) {
 		case MENSAJE:
-			recibir_mensaje(dispatch_cliente_fd);
+			recibir_mensaje(logger, dispatch_cliente_fd);
 			sem_post(&sem_nuevo_proceso);
 			break;
 		case PCB:

@@ -9,9 +9,6 @@
 #include<readline/readline.h>
 #include "utils.h"
 
-extern t_list* datos_procesos;
-extern t_log* logger;
-
 typedef enum
 {
 	MENSAJE,
@@ -73,7 +70,7 @@ t_datos_proceso* recv_datos_proceso(int fd);
 void send_interrupcion(t_interrupt* interrupcion, int fd);
 t_interrupt* recv_interrupcion(int fd);
 void enviar_mensaje(char* mensaje, int socket_cliente);
-void recibir_mensaje(int socket_cliente);
+void recibir_mensaje(t_log* logger, int socket_cliente);
 
 int recibir_operacion(int socket_cliente);
 

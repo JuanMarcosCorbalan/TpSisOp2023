@@ -1,7 +1,5 @@
 #include "../include/protocolo.h"
 
-t_log* logger;
-
 void* serializar_paquete(t_paquete* paquete, int bytes)
 {
 	void * magic = malloc(bytes);
@@ -107,7 +105,7 @@ void enviar_mensaje(char* mensaje, int socket_cliente)
 	eliminar_paquete(paquete);
 }
 
-void recibir_mensaje(int socket_cliente)
+void recibir_mensaje(t_log* logger, int socket_cliente)
 {
 	int size;
 	char* buffer = recibir_buffer(&size, socket_cliente);
@@ -146,9 +144,9 @@ void* recibir_buffer(int* size, int socket_cliente)
 	return buffer;
 }
 
-void iterator(char* value) {
-	log_info(logger,"%s", value);
-}
+//void iterator(char* value) {
+//	log_info(logger,"%s", value);
+//}
 
 // SOLICITAR_INSTRUCCION
 

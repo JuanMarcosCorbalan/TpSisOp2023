@@ -5,6 +5,7 @@
 	int fd_cpu = 0;
 	int fd_filesystem = 0;
 	int fd_memoria = 0;
+	t_log* logger;
 	t_config* config;
 
 	bool PLANIFICACION_ACTIVA = false;
@@ -255,8 +256,8 @@ bool comparar_por_prioridad(void *pcb1, void *pcb2){
 }
 
 void cambiar_estado(t_pcb* pcb, estado estado){
-	char* nuevo_estado = estado_to_string(estado);
-	char* estado_anterior = estado_to_string(pcb->estado);
+	char* nuevo_estado = strdup(estado_to_string(estado));
+	char* estado_anterior = strdup(estado_to_string(pcb->estado));
 	pcb->estado = estado;
 	log_info(logger, "PID: %d - Estado Anterior: %s - Estado Actual: %s", pcb->pid, estado_anterior, nuevo_estado);
 	free(nuevo_estado);

@@ -16,7 +16,7 @@ static void procesar_cliente(void* void_args){
 
 		switch (cod_op) {
 			case MENSAJE:
-				recibir_mensaje(cliente_fd);
+				recibir_mensaje(logger, cliente_fd);
 				break;
 			case -1:
 				log_error(logger, "El cliente se desconecto.");

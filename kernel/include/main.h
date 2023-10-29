@@ -7,6 +7,7 @@
 #include <semaphore.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <commons/log.h>
 #include <commons/string.h>
 #include <commons/collections/list.h>
 #include <commons/collections/queue.h>

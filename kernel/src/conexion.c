@@ -12,19 +12,19 @@ static void procesar_cliente(void* void_args){
 	free(args);
 
 //	datos_procesos = list_create();
-	t_list* lista;
+//	t_list* lista;
 	while(cliente_fd != -1){
 		int cod_op = recibir_operacion(cliente_fd);
 
 		switch (cod_op) {
 			case MENSAJE:
-				recibir_mensaje(cliente_fd);
+				recibir_mensaje(logger, cliente_fd);
 				break;
-			case PAQUETE:
-				lista = recibir_paquete(cliente_fd);
-				log_info(logger, "Me llegaron los siguientes valores:\n");
-				list_iterate(lista, (void*) iterator);
-				break;
+//			case PAQUETE:
+//				lista = recibir_paquete(cliente_fd);
+//				log_info(logger, "Me llegaron los siguientes valores:\n");
+//				list_iterate(lista, (void*) iterator);
+//				break;
 			case DATOS_PROCESO_NEW:
 				t_datos_proceso* datos = recv_datos_proceso(cliente_fd);
 				log_info(logger, "Recibi el nuevo proceso %d ubicado en %s", datos->pid, datos->path);

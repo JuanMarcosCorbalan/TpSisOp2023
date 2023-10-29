@@ -14,13 +14,13 @@ static void procesar_cliente(void* void_args){
 
 		switch (cod_op) {
 			case MENSAJE:
-				recibir_mensaje(cliente_fd);
+				recibir_mensaje(logger, cliente_fd);
 				break;
-			case PAQUETE:
-				lista = recibir_paquete(cliente_fd);
-				log_info(logger, "Me llegaron los siguientes valores:\n");
-				list_iterate(lista, (void*) iterator);
-				break;
+//			case PAQUETE:
+//				lista = recibir_paquete(cliente_fd);
+//				log_info(logger, "Me llegaron los siguientes valores:\n");
+//				list_iterate(lista, (void*) iterator);
+//				break;
 			case DATOS_PROCESO_NEW:
 				t_datos_proceso* datos_proceso = recv_datos_proceso(cliente_fd);
 				iniciar_proceso_memoria(datos_proceso->path, datos_proceso->size, datos_proceso->pid);
