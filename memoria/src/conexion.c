@@ -63,7 +63,7 @@ void iniciar_proceso_memoria(char* path, int size, int pid){
 void procesar_pedido_instruccion(int socket_cpu){
 	t_solicitud_instruccion* solicitud_instruccion = recv_solicitar_instruccion(socket_cpu);
 	t_instruccion* instruccion_a_enviar = buscar_instruccion(solicitud_instruccion->pid, solicitud_instruccion->program_counter);
-	//TODO Falta meter el RETARDO_RESPUESTA en algun lado.
+	sleep(retardo_respuesta);
 	send_proxima_instruccion(socket_cpu, instruccion_a_enviar);
 }
 

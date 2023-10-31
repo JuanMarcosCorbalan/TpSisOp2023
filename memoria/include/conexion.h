@@ -7,6 +7,7 @@
 #include <commons/config.h>
 #include <commons/log.h>
 #include <commons/string.h>
+#include "include/main.h"
 #include "../../mappaLib/include/sockets.h"
 #include "../../mappaLib/include/protocolo.h"
 #include "../../mappaLib/include/utils.h"

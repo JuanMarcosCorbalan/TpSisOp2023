@@ -2,8 +2,12 @@
 
 int main() {
 	logger = log_create("memoria.log", "MEMORIA", true, LOG_LEVEL_INFO);
-	t_config* config;
 	config = iniciar_config();
+	retardo_respuesta = atoi(config_get_string_value(config, "RETARDO_RESPUESTA"));
+	size_t tam_memoria = atoi(config_get_string_value(config, "TAM_MEMORIA"));
+
+	espacio_usuario = malloc(tam_memoria);
+
 	char* puerto_escucha;
 	puerto_escucha = config_get_string_value(config, "PUERTO_ESCUCHA");
 
