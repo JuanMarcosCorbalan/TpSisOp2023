@@ -34,47 +34,43 @@ int main(void)
 }
 
 void iniciar_consola(t_log* logger, t_config* config, int fd_memoria){
-	char* entrada;
 	bool salir = false;
-	char** argumentos_entrada;
-
-//	pthread_create(hilo_largo_plazo, NULL, (void*) planificador_largo_plazo, NULL);
-//	pthread_detach(*hilo_largo_plazo);
 
 	while(!salir){
-		entrada = readline("> ");
+		char* entrada = readline("> ");
 		add_history(entrada);
-		argumentos_entrada = string_split(entrada, " ");
+
+		char** argumentos_entrada = string_split(entrada, " ");
 
 		if(string_equals_ignore_case(entrada, "SALIR")){
 			salir = true;
-			free(entrada);
-			free(argumentos_entrada);
-			break;
-		}
-
+		} else
 		if(string_equals_ignore_case(argumentos_entrada[0], "INICIAR_PROCESO")){
 			iniciar_proceso(logger, argumentos_entrada, fd_memoria);
-//			iniciar_planificacion();
-		}
+		} else
 		if(string_equals_ignore_case(argumentos_entrada[0], "FINALIZAR_PROCESO")){
 //			finalizar_proceso(argumentos_entrada);
-		}
+		} else
 		if(string_equals_ignore_case(argumentos_entrada[0], "INICIAR_PLANIFICACION")){
 			iniciar_planificacion();
-		}
+		} else
 		if(string_equals_ignore_case(argumentos_entrada[0], "DETENER_PLANIFICACION")){
 //			detener_planificacion();
 		}
+
+		free(entrada);
+		free(*argumentos_entrada);
 	}
+	clear_history();
+	rl_clear_history();
+	rl_cleanup_after_signal();
 }
 
 void iniciar_planificacion() {
-	//Semaforo???
+	log_info(logger, "INICIO DE PLANIFICACION");
 	PLANIFICACION_ACTIVA = true;
 	planificador_largo_plazo();
 	planificador_corto_plazo();
-	log_info(logger, "INICIO DE PLANIFICACION");
 }
 
 void iniciar_proceso(t_log* logger, char *args[], int fd_memoria) {
@@ -144,12 +140,12 @@ void planificador_largo_plazo(){
 	pthread_t hilo_ready;
 	pthread_t hilo_exit;
 	pthread_create(&hilo_ready, NULL, (void*) planificar_procesos_ready, NULL);
-	pthread_create(&hilo_exit, NULL, (void*) planificar_procesos_exit, NULL);
+	pthread_create(&hilo_exit, NULL, (void*) procesar_respuesta_cpu, NULL);
 	pthread_detach(hilo_ready);
 	pthread_detach(hilo_exit);
 }
 
-void planificar_procesos_exit(){
+void procesar_respuesta_cpu(){
 	while(PLANIFICACION_ACTIVA){
 		sem_wait(&sem_procesos_exit);
 		int cod_op = recibir_operacion(fd_cpu_dispatch);
@@ -160,7 +156,7 @@ void planificar_procesos_exit(){
 			char* motivo = motivo_to_string(pcb_actualizado->estado);
 			log_info(logger, "Finaliza el proceso %d - Motivo: %s", pcb_actualizado->pid, motivo);
 			//TODO Terminar proceso en memoria
-			//TODO Destruir PCB
+			pcb_destroy(pcb_actualizado);
 			sem_post(&sem_multiprogramacion);
 			sem_post(&sem_proceso_exec);
 		break;
@@ -194,7 +190,6 @@ void planificador_corto_plazo(){
 
 void planificar_proceso_exec(){
 	while(PLANIFICACION_ACTIVA){
-		t_pcb* pcb_recibido = malloc(sizeof(t_pcb));
 		sem_wait(&sem_procesos_ready);
 		sem_wait(&sem_proceso_exec);
 
@@ -342,10 +337,15 @@ void inicializar_variables() {
 	pthread_mutex_init(&mutex_cola_new, NULL);
 	pthread_mutex_init(&mutex_ready_list, NULL);
 	pthread_mutex_init(&mutex_cola_exec, NULL);
+	pthread_mutex_init(&mutex_logger, NULL);
 
 	sem_init(&sem_multiprogramacion, 0, grado_multiprogramacion);
 	sem_init(&sem_procesos_new, 0, 0);
 	sem_init(&sem_procesos_ready, 0, 0);
 	sem_init(&sem_proceso_exec, 0, 1);
 	sem_init(&sem_procesos_exit, 0, 0);
+}
+
+void pcb_destroy(t_pcb* pcb){
+	free(pcb);
 }

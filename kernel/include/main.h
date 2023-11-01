@@ -28,6 +28,7 @@ pthread_t* hilo_corto_plazo;
 pthread_mutex_t mutex_ready_list;
 pthread_mutex_t mutex_cola_new;
 pthread_mutex_t mutex_cola_exec;
+pthread_mutex_t mutex_logger;
 
 sem_t sem_multiprogramacion;
 sem_t sem_procesos_new;
@@ -56,10 +57,11 @@ void planificar_procesos_ready();
 void planificador_corto_plazo();
 void planificar_proceso_exec();
 t_pcb* obtenerProximoAEjecutar();
-void planificar_procesos_exit();
+void procesar_respuesta_cpu();
 void log_cola_ready();
 t_list* obtener_lista_pid(t_list* lista);
 bool comparar_por_prioridad(void *pcb1, void *pcb2);
 void cambiar_estado(t_pcb* pcb, estado estado);
+void pcb_destroy(t_pcb* pcb);
 
 #endif

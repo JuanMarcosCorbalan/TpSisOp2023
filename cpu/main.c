@@ -219,7 +219,7 @@ void ejecutar_wait(t_pcb* pcb, char* param1){
 
 void ejecutar_exit(t_pcb* pcb){
 	flag_hay_interrupcion = true;
-	pcb->estado = SUCCESS;//EXIT_ESTADO
+	pcb->estado = SUCCESS;
 	send_pcb(pcb, dispatch_cliente_fd);
 }
 

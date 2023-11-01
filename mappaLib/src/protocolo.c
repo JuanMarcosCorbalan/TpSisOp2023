@@ -113,12 +113,25 @@ void recibir_mensaje(t_log* logger, int socket_cliente)
 	free(buffer);
 }
 
+//int recibir_operacion(int socket_cliente)
+//{
+//	op_code opc;
+//	if(recv(socket_cliente, &opc, sizeof(opc), 0) > 0){
+//		return opc;
+//	}
+//	else
+//	{
+//		close(socket_cliente);
+//		return -1;
+//	}
+//}
+
+//DEL TP0
 int recibir_operacion(int socket_cliente)
 {
-	op_code opc;
-	if(recv(socket_cliente, &opc, sizeof(opc), 0) > 0){
-		return opc;
-	}
+	int cod_op;
+	if(recv(socket_cliente, &cod_op, sizeof(int), MSG_WAITALL) > 0)
+		return cod_op;
 	else
 	{
 		close(socket_cliente);
