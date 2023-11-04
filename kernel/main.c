@@ -55,7 +55,7 @@ void iniciar_consola(t_log* logger, t_config* config, int fd_memoria){
 			iniciar_planificacion();
 		} else
 		if(string_equals_ignore_case(argumentos_entrada[0], "DETENER_PLANIFICACION")){
-//			detener_planificacion();
+			detener_planificacion();
 		}
 
 		free(entrada);
@@ -68,9 +68,21 @@ void iniciar_consola(t_log* logger, t_config* config, int fd_memoria){
 
 void iniciar_planificacion() {
 	log_info(logger, "INICIO DE PLANIFICACION");
+	pthread_mutex_lock(&mutex_planificacion_activa);
 	PLANIFICACION_ACTIVA = true;
+	pthread_mutex_unlock(&mutex_planificacion_activa);
 	planificador_largo_plazo();
 	planificador_corto_plazo();
+}
+
+void detener_planificacion() {
+	log_info(logger, "PAUSA DE PLANIFICACION");
+	pthread_mutex_lock(&mutex_planificacion_activa);
+	PLANIFICACION_ACTIVA = false;
+	pthread_mutex_unlock(&mutex_planificacion_activa);
+
+	semaforos_destroy();
+	inicializar_semaforos();
 }
 
 void iniciar_proceso(t_log* logger, char *args[], int fd_memoria) {
@@ -195,8 +207,6 @@ void planificar_proceso_exec(){
 
 		t_pcb* pcb = obtenerProximoAEjecutar();
 		cambiar_estado(pcb, EXEC);
-		//Falta el log	inicializar_semaforos_globales();
-
 		queue_push_con_mutex(procesos_en_exec, pcb, &mutex_cola_exec);
 		send_pcb(pcb, fd_cpu_dispatch);
 		sem_post(&sem_procesos_exit);
@@ -326,7 +336,6 @@ bool conectar_modulos(t_log* logger, t_config* config, int* fd_cpu_dispatch, int
 }
 
 void inicializar_variables() {
-	int grado_multiprogramacion = atoi(config_get_string_value(config, "GRADO_MULTIPROGRAMACION_INI"));
 	asignador_pid = 1;
 	procesos_en_new = queue_create();
 	procesos_en_exec = queue_create();
@@ -338,12 +347,26 @@ void inicializar_variables() {
 	pthread_mutex_init(&mutex_ready_list, NULL);
 	pthread_mutex_init(&mutex_cola_exec, NULL);
 	pthread_mutex_init(&mutex_logger, NULL);
+	pthread_mutex_init(&mutex_planificacion_activa, NULL);
 
+	inicializar_semaforos();
+}
+
+void inicializar_semaforos() {
+	int grado_multiprogramacion = atoi(config_get_string_value(config, "GRADO_MULTIPROGRAMACION_INI"));
 	sem_init(&sem_multiprogramacion, 0, grado_multiprogramacion);
 	sem_init(&sem_procesos_new, 0, 0);
 	sem_init(&sem_procesos_ready, 0, 0);
 	sem_init(&sem_proceso_exec, 0, 1);
 	sem_init(&sem_procesos_exit, 0, 0);
+}
+
+void semaforos_destroy() {
+	sem_close(&sem_multiprogramacion);
+	sem_close(&sem_procesos_new);
+	sem_close(&sem_procesos_ready);
+	sem_close(&sem_proceso_exec);
+	sem_close(&sem_procesos_exit);
 }
 
 void pcb_destroy(t_pcb* pcb){

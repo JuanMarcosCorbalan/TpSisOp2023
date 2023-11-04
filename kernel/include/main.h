@@ -29,6 +29,7 @@ pthread_mutex_t mutex_ready_list;
 pthread_mutex_t mutex_cola_new;
 pthread_mutex_t mutex_cola_exec;
 pthread_mutex_t mutex_logger;
+pthread_mutex_t mutex_planificacion_activa;
 
 sem_t sem_multiprogramacion;
 sem_t sem_procesos_new;
@@ -51,6 +52,7 @@ t_interrupt* crear_interrupcion(interrupt_code motivo);
 void inicializar_variables();
 void iniciar_consola(t_log* logger, t_config* config, int fd_memoria);
 void iniciar_planificacion();
+void detener_planificacion();
 void pasar_a_ready(t_pcb* proceso);
 void planificador_largo_plazo();
 void planificar_procesos_ready();
@@ -63,5 +65,7 @@ t_list* obtener_lista_pid(t_list* lista);
 bool comparar_por_prioridad(void *pcb1, void *pcb2);
 void cambiar_estado(t_pcb* pcb, estado estado);
 void pcb_destroy(t_pcb* pcb);
+void inicializar_semaforos();
+void semaforos_destroy();
 
 #endif
