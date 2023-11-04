@@ -11,6 +11,6 @@
 #include "../../mappaLib/include/protocolo.h"
 #include "../../mappaLib/include/utils.h"
 
-int experar_clientes(int server_socket);
+int experar_clientes(t_log* logger, int server_socket);
 
 #endif

@@ -9,9 +9,6 @@
 #include<readline/readline.h>
 #include "utils.h"
 
-extern t_list* datos_procesos;
-extern t_log* logger;
-
 typedef enum
 {
 	MENSAJE,
@@ -22,7 +19,8 @@ typedef enum
 	PROXIMA_INSTRUCCION,
 	DATOS_PROCESO_NEW,
 	EJECUTAR_PCB,
-	PCB_ACTUALIZADO
+	PCB_ACTUALIZADO,
+	RECURSO_WAIT
 }op_code;
 
 typedef enum
@@ -72,7 +70,7 @@ t_datos_proceso* recv_datos_proceso(int fd);
 void send_interrupcion(t_interrupt* interrupcion, int fd);
 t_interrupt* recv_interrupcion(int fd);
 void enviar_mensaje(char* mensaje, int socket_cliente);
-void recibir_mensaje(int socket_cliente);
+void recibir_mensaje(t_log* logger, int socket_cliente);
 
 int recibir_operacion(int socket_cliente);
 
@@ -89,6 +87,10 @@ t_solicitud_instruccion* recv_solicitar_instruccion(int fd);
 void send_proxima_instruccion(int fd, t_instruccion* instruccion);
 t_instruccion* recv_proxima_instruccion(int fd);
 
+// PCB
+void send_pcb(t_pcb* pcb, int socket);
+t_pcb* recv_pcb(int socket);
+
 // EJECUTAR_PCB
 void send_ejecutar_pcb(int fd, t_pcb* pcb);
 t_pcb* recv_ejecutar_pcb(int fd);
@@ -96,5 +98,9 @@ t_pcb* recv_ejecutar_pcb(int fd);
 // PCB_ACTUALIZADO
 void send_pcb_actualizado(int fd, t_pcb* pcb);
 t_pcb* recv_pcb_actualizado(int fd);
+
+// RECURSO_WAIT
+void send_recurso_wait(int dispatch_cliente_fd, char* recurso);
+char* recv_recurso_wait(int dispatch_cliente_fd);
 
 #endif

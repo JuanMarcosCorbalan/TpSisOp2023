@@ -1,5 +1,7 @@
 #include "include/main.h"
 
+t_log* logger;
+
 int main() {
 	logger = log_create("memoria.log", "MEMORIA", true, LOG_LEVEL_INFO);
 	t_config* config;
@@ -9,7 +11,7 @@ int main() {
 
 	int server_fd = iniciar_servidor(puerto_escucha);
 	log_info(logger, "MEMORIA LISTO...");
-    while (experar_clientes(server_fd));
+    while (experar_clientes(logger, server_fd));
 
     return 0;
 }

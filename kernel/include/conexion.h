@@ -9,6 +9,6 @@
 #include "../../mappaLib/include/sockets.h"
 #include "../../mappaLib/include/protocolo.h"
 
-int esperar_clientes(int server_socket);
+int esperar_clientes(t_log* logger, int server_socket);
 
 #endif

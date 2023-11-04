@@ -45,7 +45,7 @@ int iniciar_servidor(char* puerto)
 	return socket_servidor;
 }
 
-int esperar_cliente(int socket_servidor)
+int esperar_cliente(t_log* logger, int socket_servidor)
 {
 	struct sockaddr_in dir_cliente;
 	socklen_t tam_direccion = sizeof(struct sockaddr_in);
@@ -65,28 +65,63 @@ int esperar_cliente(int socket_servidor)
 
 int crear_conexion(t_log* loggerConexion, char *ip, char* puerto)
 {
-	struct addrinfo hints;
-	struct addrinfo *server_info;
+    struct addrinfo hints;
+    struct addrinfo *server_info;
 
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags = AI_PASSIVE;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE;
 
-	getaddrinfo(ip, puerto, &hints, &server_info);
+    getaddrinfo(ip, puerto, &hints, &server_info);
 
-	int socket_cliente = socket(server_info->ai_family, server_info->ai_socktype, server_info->ai_protocol);
+    int socket_cliente = socket(server_info->ai_family, server_info->ai_socktype, server_info->ai_protocol);
 
-	if(connect(socket_cliente, server_info->ai_addr, server_info->ai_addrlen)){
-		log_error(loggerConexion, "Error al conectar el socket");
-		freeaddrinfo(server_info);
-		return 0;
-	}
+    int enable = 1;
+    if (setsockopt(socket_cliente, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
+        log_error(loggerConexion, "Error al habilitar SO_REUSEADDR");
+        close(socket_cliente);  // Cierra el socket si la configuración falla
+        freeaddrinfo(server_info);
+        return 0;
+    }
 
-	log_info(loggerConexion, "Conectado correctamente.");
-	freeaddrinfo(server_info);
-	return socket_cliente;
+    if(connect(socket_cliente, server_info->ai_addr, server_info->ai_addrlen)){
+        log_error(loggerConexion, "Error al conectar el socket");
+        close(socket_cliente);
+        freeaddrinfo(server_info);
+        return 0;
+    }
+
+    log_info(loggerConexion, "Conectado correctamente.");
+    freeaddrinfo(server_info);
+    return socket_cliente;
 }
+
+//FUNCION VIEJA PERO FUNCIONAL (TARDA EN LIBERAR LOS SOCKETS)
+//int crear_conexion(t_log* loggerConexion, char *ip, char* puerto)
+//{
+//	struct addrinfo hints;
+//	struct addrinfo *server_info;
+//
+//	memset(&hints, 0, sizeof(hints));
+//	hints.ai_family = AF_UNSPEC;
+//	hints.ai_socktype = SOCK_STREAM;
+//	hints.ai_flags = AI_PASSIVE;
+//
+//	getaddrinfo(ip, puerto, &hints, &server_info);
+//
+//	int socket_cliente = socket(server_info->ai_family, server_info->ai_socktype, server_info->ai_protocol);
+//
+//	if(connect(socket_cliente, server_info->ai_addr, server_info->ai_addrlen)){
+//		log_error(loggerConexion, "Error al conectar el socket");
+//		freeaddrinfo(server_info);
+//		return 0;
+//	}
+//
+//	log_info(loggerConexion, "Conectado correctamente.");
+//	freeaddrinfo(server_info);
+//	return socket_cliente;
+//}
 
 void liberar_conexion(int socket_cliente)
 {
