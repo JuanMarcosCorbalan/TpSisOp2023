@@ -116,7 +116,7 @@ void finalizar_proceso(t_log* logger, t_pcb* proceso_a_finalizar,char *args[], i
 	// le va a pasar mediante un paquete a memoria el pid, el path y el size.
 
 	send_datos_proceso(path,size,proceso_a_finalizar->pid,fd_memoria);
-	log_info(logger, "Finaliza el proceso %d - Motivo: <%s>", proceso_a_finalizar->pid, motivo);
+	log_info(logger, "Finaliza el proceso %d - Motivo: %s", proceso_a_finalizar->pid, motivo);
 }
 
 t_pcb* crear_pcb(int prioridad){
