@@ -58,6 +58,21 @@ typedef struct
 	int size;
 }t_datos_proceso;
 
+typedef struct
+{
+	int pid;
+	t_list* paginas;
+} t_tdp;
+
+typedef struct
+{
+	int marco;
+	int bit_presencia;
+	int bit_modificado;
+	int pos_swap;
+	void* datos;
+}t_pagina;
+
 //t_list* datos_procesos;
 void imprimirPrueba();
 void* list_pop_con_mutex(t_list* lista, pthread_mutex_t* mutex);

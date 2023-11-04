@@ -16,6 +16,7 @@ t_config* iniciar_config(void);
 
 t_config* config;
 int retardo_respuesta;
+size_t tam_pagina;
 void* espacio_usuario;
 
 #endif

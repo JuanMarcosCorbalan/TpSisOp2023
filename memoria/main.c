@@ -5,7 +5,7 @@ int main() {
 	config = iniciar_config();
 	retardo_respuesta = atoi(config_get_string_value(config, "RETARDO_RESPUESTA"));
 	size_t tam_memoria = atoi(config_get_string_value(config, "TAM_MEMORIA"));
-
+	tam_pagina = atoi(config_get_string_value(config, "TAM_PAGINA"));
 	espacio_usuario = malloc(tam_memoria);
 
 	char* puerto_escucha;

@@ -20,6 +20,8 @@ t_list* procesos_en_ready;
 t_list* procesos_en_blocked;
 t_list* procesos_en_exit;
 
+t_list* tablas_de_paginas;
+
 pthread_t* hilo_largo_plazo;
 pthread_t* hilo_corto_plazo;
 
@@ -29,6 +31,8 @@ int asignador_pid;
 int asignador_iid;
 sem_t* cont_multiprogramacion;
 sem_t* bin_proceso_new;
+
+
 
 t_log* iniciar_logger(void);
 t_config* iniciar_config(void);

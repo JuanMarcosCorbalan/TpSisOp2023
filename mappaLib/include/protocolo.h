@@ -22,7 +22,8 @@ typedef enum
 	PROXIMA_INSTRUCCION,
 	DATOS_PROCESO_NEW,
 	EJECUTAR_PCB,
-	PCB_ACTUALIZADO
+	PCB_ACTUALIZADO,
+	TDP
 }op_code;
 
 typedef enum
@@ -96,5 +97,9 @@ t_pcb* recv_ejecutar_pcb(int fd);
 // PCB_ACTUALIZADO
 void send_pcb_actualizado(int fd, t_pcb* pcb);
 t_pcb* recv_pcb_actualizado(int fd);
+
+//TDP
+void send_tdp(int fd, t_tdp* tdp);
+t_tdp* recv_tdp(int fd);
 
 #endif

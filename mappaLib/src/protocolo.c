@@ -304,3 +304,19 @@ t_pcb* recv_pcb_actualizado(int fd){
 
 	return pcb;
 }
+// TDP
+void send_tdp(int fd, t_tdp* tdp){
+	t_paquete* paquete = crear_paquete(TDP);
+	agregar_a_paquete(paquete, &tdp, sizeof(t_tdp));
+	enviar_paquete(paquete, fd);
+	eliminar_paquete(paquete);
+}
+
+t_tdp* recv_tdp(int fd){
+	t_list* paquete = recibir_paquete(fd);
+	t_tdp* tdp = list_get(paquete, 0);
+
+	list_destroy(paquete);
+
+	return tdp;
+}

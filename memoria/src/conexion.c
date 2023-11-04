@@ -52,12 +52,37 @@ int experar_clientes(int server_socket){
 }
 
 void iniciar_proceso_memoria(char* path, int size, int pid){
+	//INSTRUCCIONES
 	t_proceso_instrucciones* proceso_instr = malloc(sizeof(t_proceso_instrucciones));
 	proceso_instr->pid = pid;
 	proceso_instr->instrucciones = generar_instrucciones(path);
 
 	list_add(proceso_instrucciones, proceso_instr);
 	free(proceso_instr);
+	//TABLA DE PAGINAS
+	t_pagina* pag = malloc(sizeof(t_pagina));
+	t_tdp* tdp = malloc(sizeof(t_pagina));
+	t_list* paginas = list_create();
+
+	pag->marco = malloc(sizeof(int));
+	pag->bit_presencia = 0;
+	pag->bit_modificado = 0;
+	pag->pos_swap = malloc(sizeof(int));
+	pag->datos = malloc(tam_pagina);
+
+	int cant_paginas = size / tam_pagina;
+
+	for(int i = 1; i < cant_paginas; i++){
+		list_add(paginas, pag);
+	}
+	tdp->pid = pid;
+	tdp->paginas = paginas;
+
+	//send_tdp(socket_kernel, tdp)
+
+	free(pag);
+	free(tdp);
+	list_destroy(paginas);
 }
 
 void procesar_pedido_instruccion(int socket_cpu){
