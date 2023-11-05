@@ -7,7 +7,8 @@ int main(void) {
 	leer_config();
 
 	fd_memoria = crear_conexion(logger, config_cpu.ip_memoria, config_cpu.puerto_memoria);
-	enviar_mensaje("Hola, soy el CPU!", fd_memoria);
+	enviar_operacion(HANDSHAKE_CPU_MEMORIA, fd_memoria);
+	t_herramientas_traduccion* herramientas_traduccion = recv_herramientas_traduccion(fd_memoria);
 //	liberar_conexion(fd_memoria);
 
 	pthread_t* hilo_dispatch = malloc(sizeof(pthread_t));

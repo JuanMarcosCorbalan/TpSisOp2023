@@ -23,7 +23,8 @@ typedef enum
 	DATOS_PROCESO_NEW,
 	EJECUTAR_PCB,
 	PCB_ACTUALIZADO,
-	TDP
+	TDP,
+	HANDSHAKE_CPU_MEMORIA
 }op_code;
 
 typedef enum
@@ -101,5 +102,9 @@ t_pcb* recv_pcb_actualizado(int fd);
 //TDP
 void send_tdp(int fd, t_tdp* tdp);
 t_tdp* recv_tdp(int fd);
+
+//HANDSHAKE CPU MEMORIA
+void send_herramientas_traduccion(int fd, size_t tam_pag, void* espacio_usuario);
+t_herramientas_traduccion* recv_herramientas_traduccion(int fd);
 
 #endif

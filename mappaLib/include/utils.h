@@ -73,6 +73,11 @@ typedef struct
 	void* datos;
 }t_pagina;
 
+typedef struct{
+	size_t tam_pagina;
+	void* reloc;
+}t_herramientas_traduccion;
+
 //t_list* datos_procesos;
 void imprimirPrueba();
 void* list_pop_con_mutex(t_list* lista, pthread_mutex_t* mutex);

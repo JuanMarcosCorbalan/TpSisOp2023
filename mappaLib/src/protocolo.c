@@ -65,6 +65,12 @@ t_list* recibir_paquete(int socket_cliente)
 	return valores;
 }
 
+void enviar_operacion(op_code codigo_operacion, int socket_cliente){
+	t_paquete* paquete = crear_paquete(codigo_operacion);
+	enviar_paquete(paquete, socket_cliente);
+	eliminar_paquete(paquete);
+}
+
 //void paquete(int conexion)
 //{
 //	char* leido;
@@ -307,7 +313,7 @@ t_pcb* recv_pcb_actualizado(int fd){
 // TDP
 void send_tdp(int fd, t_tdp* tdp){
 	t_paquete* paquete = crear_paquete(TDP);
-	agregar_a_paquete(paquete, &tdp, sizeof(t_tdp));
+	agregar_a_paquete(paquete, tdp, sizeof(t_tdp));
 	enviar_paquete(paquete, fd);
 	eliminar_paquete(paquete);
 }
@@ -319,4 +325,24 @@ t_tdp* recv_tdp(int fd){
 	list_destroy(paquete);
 
 	return tdp;
+}
+
+//HANDSHAKE CPU MEMORIA
+void send_herramientas_traduccion(int fd, size_t tam_pag, void* espacio_usuario){
+	t_paquete* paquete = crear_paquete(HANDSHAKE_CPU_MEMORIA);
+
+	agregar_a_paquete(paquete, tam_pag, sizeof(size_t));
+	agregar_a_paquete(paquete, espacio_usuario, sizeof(void*));
+	enviar_paquete(paquete, fd);
+	eliminar_paquete(paquete);
+}
+
+t_herramientas_traduccion* recv_herramientas_traduccion(int fd){
+	t_list* paquete = recibir_paquete(fd);
+	t_herramientas_traduccion* herr = malloc(sizeof(t_herramientas_traduccion));
+
+	herr->tam_pagina = list_get(paquete, 0);
+	herr->reloc = list_get(paquete, 1);
+	list_destroy(paquete);
+	return herr;
 }

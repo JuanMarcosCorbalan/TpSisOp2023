@@ -3,6 +3,7 @@
 int main() {
 	logger = log_create("memoria.log", "MEMORIA", true, LOG_LEVEL_INFO);
 	config = iniciar_config();
+
 	retardo_respuesta = atoi(config_get_string_value(config, "RETARDO_RESPUESTA"));
 	size_t tam_memoria = atoi(config_get_string_value(config, "TAM_MEMORIA"));
 	tam_pagina = atoi(config_get_string_value(config, "TAM_PAGINA"));

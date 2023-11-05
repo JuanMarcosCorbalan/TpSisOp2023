@@ -15,6 +15,9 @@ static void procesar_cliente(void* void_args){
 			case MENSAJE:
 				recibir_mensaje(cliente_fd);
 				break;
+			case HANDSHAKE_CPU_MEMORIA:
+				send_herramientas_traduccion(cliente_fd, tam_pagina, espacio_usuario);
+				break;
 			case PAQUETE:
 				lista = recibir_paquete(cliente_fd);
 				log_info(logger, "Me llegaron los siguientes valores:\n");
@@ -79,7 +82,7 @@ void iniciar_proceso_memoria(char* path, int size, int pid){
 	tdp->paginas = paginas;
 
 	//send_tdp(socket_kernel, tdp)
-
+	log_info(logger, "Tabla de paginas creada. PID: %d - Tamaño: %d\n", pid, cant_paginas); //log obligatorio
 	free(pag);
 	free(tdp);
 	list_destroy(paginas);
