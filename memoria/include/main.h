@@ -10,6 +10,4 @@
 #include "../../mappaLib/include/protocolo.h"
 #include "../../mappaLib/include/utils.h"
 
-t_config* iniciar_config(void);
-
 #endif

@@ -31,5 +31,6 @@ void iniciar_proceso_memoria(char* path, int size, int pid);
 t_instruccion* recibir_pedido_instruccion(int socket_cpu);
 void procesar_pedido_instruccion(int socket_cpu, t_list* proceso_instrucciones);
 t_instruccion* buscar_instruccion(int pid, int program_counter, t_list* proceso_instrucciones);
+t_config* iniciar_config(void);
 
 #endif

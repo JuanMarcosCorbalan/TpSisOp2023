@@ -82,12 +82,16 @@ void iniciar_proceso_memoria(char* path, int size, int pid){
 }
 
 void procesar_pedido_instruccion(int socket_cpu, t_list* proceso_instrucciones){
+	t_config* config = iniciar_config();
+	int retardo_respuesta = config_get_long_value(config, "RETARDO_RESPUESTA");
 	t_solicitud_instruccion* solicitud_instruccion = recv_solicitar_instruccion(socket_cpu);
 	t_proceso_instrucciones* pruebita = list_get(proceso_instrucciones, 0);
 	t_instruccion* pruebita2 = list_get(pruebita->instrucciones, 0);
 
 	t_instruccion* instruccion_a_enviar = buscar_instruccion(solicitud_instruccion->pid, solicitud_instruccion->program_counter - 1, proceso_instrucciones);
-	//TODO Falta meter el RETARDO_RESPUESTA en algun lado.
+
+	sleep(retardo_respuesta/1000);
+
 	send_proxima_instruccion(socket_cpu, instruccion_a_enviar);
 }
 
@@ -151,5 +155,17 @@ codigo_instruccion instruccion_to_enum(char* instruccion){
 	}
 
 	return EXIT_FAILURE;
+}
+
+t_config* iniciar_config(void)
+{
+	t_config* nuevo_config = config_create("./memoria.config");
+
+	if(nuevo_config == NULL){
+		printf("No se pudo leer el config\n");
+		exit(2);
+	}
+
+	return nuevo_config;
 }
 
