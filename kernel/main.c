@@ -49,7 +49,7 @@ void iniciar_consola(t_log* logger, t_config* config, int fd_memoria){
 			iniciar_proceso(logger, argumentos_entrada, fd_memoria);
 		} else
 		if(string_equals_ignore_case(argumentos_entrada[0], "FINALIZAR_PROCESO")){
-//			finalizar_proceso(argumentos_entrada);
+			finalizar_proceso(argumentos_entrada);
 		} else
 		if(string_equals_ignore_case(argumentos_entrada[0], "INICIAR_PLANIFICACION")){
 			iniciar_planificacion();
@@ -98,25 +98,28 @@ void iniciar_proceso(t_log* logger, char *args[], int fd_memoria) {
 	sem_post(&sem_procesos_new);
 }
 
-void finalizar_proceso(t_log* logger, t_pcb* proceso_a_finalizar,char *args[], int fd_memoria, int fd_cpu_interrupt){
-	char* path = args[1];
-	int size = atoi(args[2]);
-	char* motivo = "DESCONOCIDO";
-	if(proceso_a_finalizar->estado == EXEC){
-		// kernel envia señal de interrupcion a traves de interrupt a cpu y este tiene que devolverle
-		// a kernel el contexto de ejecucion antes de liberar memoria
+void finalizar_proceso(char *args[]){
+	int pid = atoi(args[1]);
 
-		t_interrupt* nueva_interrupcion = crear_interrupcion(END_PROCESO);
-		send_interrupcion(nueva_interrupcion,fd_cpu_interrupt);
-		motivo = "INVALID_ALGO";
-	} else {
-		motivo = "SUCCESS";
-	}
-	// kernel tiene que pedirle a memoria que libere el espacio que ocupa el pcb
-	// le va a pasar mediante un paquete a memoria el pid, el path y el size.
+	t_pcb* proceso_a_finalizar = buscar_proceso(pid);
 
-	send_datos_proceso(path,size,proceso_a_finalizar->pid,fd_memoria);
-	log_info(logger, "Finaliza el proceso %d - Motivo: %s", proceso_a_finalizar->pid, motivo);
+
+//	char* motivo = "DESCONOCIDO";
+//	if(proceso_a_finalizar->estado == EXEC){
+//		// kernel envia señal de interrupcion a traves de interrupt a cpu y este tiene que devolverle
+//		// a kernel el contexto de ejecucion antes de liberar memoria
+//
+//		t_interrupt* nueva_interrupcion = crear_interrupcion(END_PROCESO);
+//		send_interrupcion(nueva_interrupcion,fd_cpu_interrupt);
+//		motivo = "INVALID_ALGO";
+//	} else {
+//		motivo = "SUCCESS";
+//	}
+//	// kernel tiene que pedirle a memoria que libere el espacio que ocupa el pcb
+//	// le va a pasar mediante un paquete a memoria el pid, el path y el size.
+//
+//	send_datos_proceso(path,size,proceso_a_finalizar->pid,fd_memoria);
+//	log_info(logger, "Finaliza el proceso %d - Motivo: %s", proceso_a_finalizar->pid, motivo);
 }
 
 t_pcb* crear_pcb(int prioridad){
@@ -267,6 +270,46 @@ void cambiar_estado(t_pcb* pcb, estado estado){
 	log_info(logger, "PID: %d - Estado Anterior: %s - Estado Actual: %s", pcb->pid, estado_anterior, nuevo_estado);
 	free(nuevo_estado);
 	free(estado_anterior);
+}
+
+t_pcb* buscar_proceso(int pid) {
+	t_pcb* pcb = buscar_proceso_en_queue(pid, procesos_en_new);
+	t_list* procesos = list_create();
+
+	list_add_all(procesos, procesos_en_ready);
+	list_add_all(procesos, procesos_en_blocked);
+
+	if(pcb == NULL) {
+		pcb = buscar_proceso_en_queue(pid, procesos_en_exec);
+		if(pcb == NULL){
+			pcb = buscar_proceso_en_list(pid, procesos);
+		}
+	}
+	return pcb;
+}
+
+t_pcb* buscar_proceso_en_list(int pid, t_list* lista) {
+	t_pcb* pcb_encontrado = malloc(sizeof(t_pcb));
+
+	for(int i = 0; i<=list_size(lista); i++){
+		pcb_encontrado = list_get(lista, i);
+		if(pcb_encontrado->pid == pid){
+			return pcb_encontrado;
+		}
+	}
+	return NULL;
+}
+
+t_pcb* buscar_proceso_en_queue(int pid, t_queue* queue) {
+	t_pcb* pcb_encontrado = malloc(sizeof(t_pcb));
+
+	for(int i = 0; i<=queue_size(queue); i++){
+		pcb_encontrado = queue_pop(queue);
+		if(pcb_encontrado->pid == pid){
+			return pcb_encontrado;
+		}
+	}
+	return NULL;
 }
 
 t_log* iniciar_logger(void)

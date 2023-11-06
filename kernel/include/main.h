@@ -46,7 +46,8 @@ bool conectar_modulos(t_log* logger, t_config* config, int* fd_cpu_dispatch, int
 void terminar_programa(int conexion, int conexion2, int conexion3, int conexion4, t_log* logger, t_config* config);
 void iniciar_proceso(t_log* logger, char *args[], int fd_memoria);
 t_pcb* crear_pcb(int prioridad);
-void finalizar_proceso(t_log* logger, t_pcb* proceso_a_finalizar,char *args[], int fd_memoria, int fd_cpu_interrupt);
+void finalizar_proceso(char *args[]);
+//void finalizar_proceso(t_log* logger, t_pcb* proceso_a_finalizar,char *args[], int fd_memoria, int fd_cpu_interrupt);
 t_interrupt* crear_interrupcion(interrupt_code motivo);
 
 void inicializar_variables();
@@ -67,5 +68,8 @@ void cambiar_estado(t_pcb* pcb, estado estado);
 void pcb_destroy(t_pcb* pcb);
 void inicializar_semaforos();
 void semaforos_destroy();
+t_pcb* buscar_proceso_en_queue(int pid, t_queue* queue);
+t_pcb* buscar_proceso(int pid);
+t_pcb* buscar_proceso_en_list(int pid, t_list* lista);
 
 #endif
