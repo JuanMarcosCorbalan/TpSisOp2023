@@ -31,12 +31,21 @@ static void procesar_cliente(void* void_args){
 //				break;
 			case DATOS_PROCESO_NEW:
 				t_datos_proceso* datos_proceso = recv_datos_proceso(cliente_fd);
-				iniciar_proceso_memoria(datos_proceso->path, datos_proceso->size, datos_proceso->pid);
+				iniciar_proceso_memoria(datos_proceso->path, datos_proceso->size, datos_proceso->pid, cliente_fd);
 				break;
 			case SOLICITAR_INSTRUCCION:
 				t_proceso_instrucciones* pruebita = list_get(proceso_instrucciones, 0);
 				t_instruccion* pruebita2 = list_get(pruebita->instrucciones, 0);
 				procesar_pedido_instruccion(cliente_fd, proceso_instrucciones);
+				break;
+			case LEER_MEMORIA:
+				//recibir direccion
+				//dato = leer_espacio_usuario(direccion)
+				//mandar dato
+				break;
+			case ESCRIBIR_MEMORIA:
+				//recibir direccion y valor
+				//escribir_espacio_usuario(direccion, valor)
 				break;
 			case -1:
 				log_error(logger, "El cliente se desconecto.");
@@ -67,7 +76,7 @@ int experar_clientes(t_log* logger, int server_socket){
 	return 0;
 }
 
-void iniciar_proceso_memoria(char* path, int size, int pid){
+void iniciar_proceso_memoria(char* path, int size, int pid, int socket_kernel){
 	//INSTRUCCIONES
 	t_proceso_instrucciones* proceso_instr = malloc(sizeof(t_proceso_instrucciones));
 	char* prefijoRutaProceso = "/home/utnso/tp-2023-2c-Sisop-Five/mappa-pruebas/";
@@ -88,27 +97,26 @@ void iniciar_proceso_memoria(char* path, int size, int pid){
 	list_add(proceso_instrucciones, proceso_instr);
 	free(proceso_instr);
 	//TABLA DE PAGINAS
-	t_pagina* pag = malloc(sizeof(t_pagina));
-	t_tdp* tdp = malloc(sizeof(t_pagina));
-	t_list* paginas = list_create();
 
-	pag->marco = malloc(sizeof(int));
-	pag->bit_presencia = 0;
-	pag->bit_modificado = 0;
-	pag->pos_swap = malloc(sizeof(int));
-	pag->datos = malloc(tam_pagina);
+	t_tdp* tdp = malloc(sizeof(t_tdp));
+	t_list* paginas = list_create();
 
 	int cant_paginas = size / tam_pagina;
 
 	for(int i = 1; i < cant_paginas; i++){
+		t_pagina* pag = malloc(sizeof(t_pagina));
+		pag->bit_presencia = 0;
+		pag->bit_modificado = 0;
+		pag->marco = malloc(sizeof(int));
+		pag->pos_swap = malloc(sizeof(int)); //TODO preguntarle a fs
 		list_add(paginas, pag);
+		free(pag);
 	}
 	tdp->pid = pid;
 	tdp->paginas = paginas;
 
-	//send_tdp(socket_kernel, tdp)
+	send_tdp(socket_kernel, tdp);
 	log_info(logger, "Tabla de paginas creada. PID: %d - Tamaño: %d\n", pid, cant_paginas); //log obligatorio
-	free(pag);
 	free(tdp);
 	list_destroy(paginas);
 	t_proceso_instrucciones* pruebita = list_get(proceso_instrucciones, 0);
@@ -119,13 +127,11 @@ void iniciar_proceso_memoria(char* path, int size, int pid){
 void procesar_pedido_instruccion(int socket_cpu, t_list* proceso_instrucciones){
 	t_solicitud_instruccion* solicitud_instruccion = recv_solicitar_instruccion(socket_cpu);
 
-	t_instruccion* instruccion_a_enviar = buscar_instruccion(solicitud_instruccion->pid, solicitud_instruccion->program_counter);
-	sleep(retardo_respuesta);
 	t_proceso_instrucciones* pruebita = list_get(proceso_instrucciones, 0);
 	t_instruccion* pruebita2 = list_get(pruebita->instrucciones, 0);
 
 	t_instruccion* instruccion_a_enviar = buscar_instruccion(solicitud_instruccion->pid, solicitud_instruccion->program_counter - 1, proceso_instrucciones);
-	//TODO Falta meter el RETARDO_RESPUESTA en algun lado.
+	sleep(retardo_respuesta);
 	send_proxima_instruccion(socket_cpu, instruccion_a_enviar);
 }
 
@@ -191,3 +197,17 @@ codigo_instruccion instruccion_to_enum(char* instruccion){
 	return EXIT_FAILURE;
 }
 
+uint32_t leer_espacio_usuario(uint32_t direccion) {
+	uint32_t valor;
+
+	//mutex
+	memcpy(&valor, espacio_usuario + direccion, sizeof(uint32_t));
+
+	return valor;
+}
+
+void escribir_espacio_usuario(uint32_t direccion, uint32_t valor) {
+	//mutex
+	memcpy(espacio_usuario + direccion, &valor, sizeof(int));
+
+}

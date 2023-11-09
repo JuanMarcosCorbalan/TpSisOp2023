@@ -33,4 +33,6 @@ t_instruccion* recibir_pedido_instruccion(int socket_cpu);
 void procesar_pedido_instruccion(int socket_cpu, t_list* proceso_instrucciones);
 t_instruccion* buscar_instruccion(int pid, int program_counter, t_list* proceso_instrucciones);
 
+uint32_t leer_espacio_usuario(uint32_t direccion);
+void escribir_espacio_usuario(uint32_t direccion, uint32_t valor);
 #endif

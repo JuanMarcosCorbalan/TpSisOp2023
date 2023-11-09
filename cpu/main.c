@@ -148,7 +148,7 @@ void decode(t_instruccion* instruccion, t_pcb* pcb){
 
 void ejecutar_set(t_pcb* pcb, char* param1, char* param2){
 	if(strcmp(param1, "AX") == 0){
-		pcb->registros_generales_cpu.ax = (uint32_t)strtoul(param2, NULL, 10);
+		pcb->registros_generales_cpu.ax = (uint32_t)strtoul(param2, NULL, 10); //send_escribir_memoria(param2,
 	} else if(strcmp(param1, "BX") == 0){
 		pcb->registros_generales_cpu.bx = (uint32_t)strtoul(param2, NULL, 10);
 	} else if(strcmp(param1, "CX") == 0){

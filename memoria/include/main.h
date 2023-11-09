@@ -16,7 +16,12 @@ t_config* iniciar_config(void);
 
 t_config* config;
 int retardo_respuesta;
-size_t tam_pagina;
+int tam_pagina;
+int tam_memoria;
+int cant_marcos;
+char* bitmap_marcos;
+char* inicializar_bitmap_marcos(void);
+
 void* espacio_usuario;
 
 #endif

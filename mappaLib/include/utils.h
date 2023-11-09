@@ -79,7 +79,6 @@ typedef struct
 	int bit_presencia;
 	int bit_modificado;
 	int pos_swap;
-	void* datos;
 }t_pagina;
 
 typedef struct{
