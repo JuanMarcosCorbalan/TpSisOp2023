@@ -5,6 +5,7 @@ t_list* proceso_instrucciones;
 static void procesar_cliente(void* void_args){
 	t_procesar_cliente_args* args = (t_procesar_cliente_args*) void_args;
 	int cliente_fd = args -> fd_cliente;
+	t_log* logger = args ->logger;
 	free(args);
 
 	t_list* lista;
@@ -13,7 +14,7 @@ static void procesar_cliente(void* void_args){
 
 		switch (cod_op) {
 			case MENSAJE:
-				recibir_mensaje(cliente_fd);
+				recibir_mensaje(logger, cliente_fd);
 				break;
 			case HANDSHAKE_CPU_MEMORIA:
 				send_herramientas_traduccion(cliente_fd, tam_pagina, espacio_usuario);
@@ -23,8 +24,19 @@ static void procesar_cliente(void* void_args){
 				log_info(logger, "Me llegaron los siguientes valores:\n");
 				list_iterate(lista, (void*) iterator);
 				break;
+//			case PAQUETE:
+//				lista = recibir_paquete(cliente_fd);
+//				log_info(logger, "Me llegaron los siguientes valores:\n");
+//				list_iterate(lista, (void*) iterator);
+//				break;
+			case DATOS_PROCESO_NEW:
+				t_datos_proceso* datos_proceso = recv_datos_proceso(cliente_fd);
+				iniciar_proceso_memoria(datos_proceso->path, datos_proceso->size, datos_proceso->pid);
+				break;
 			case SOLICITAR_INSTRUCCION:
-				procesar_pedido_instruccion(cliente_fd);
+				t_proceso_instrucciones* pruebita = list_get(proceso_instrucciones, 0);
+				t_instruccion* pruebita2 = list_get(pruebita->instrucciones, 0);
+				procesar_pedido_instruccion(cliente_fd, proceso_instrucciones);
 				break;
 			case -1:
 				log_error(logger, "El cliente se desconecto.");
@@ -38,14 +50,15 @@ static void procesar_cliente(void* void_args){
 	return;
 }
 
-int experar_clientes(int server_socket){
+int experar_clientes(t_log* logger, int server_socket){
 	proceso_instrucciones = list_create();
-	int cliente_socket = esperar_cliente(server_socket);
+	int cliente_socket = esperar_cliente(logger, server_socket);
 
 	if(cliente_socket != -1){
 		pthread_t hilo;
 		t_procesar_cliente_args* args = malloc(sizeof(t_procesar_cliente_args));
 		args -> fd_cliente = cliente_socket;
+		args ->logger = logger;
 		pthread_create(&hilo, NULL, (void*) procesar_cliente, (void*) args);
 		pthread_detach(hilo);
 		return 1;
@@ -57,8 +70,20 @@ int experar_clientes(int server_socket){
 void iniciar_proceso_memoria(char* path, int size, int pid){
 	//INSTRUCCIONES
 	t_proceso_instrucciones* proceso_instr = malloc(sizeof(t_proceso_instrucciones));
+	char* prefijoRutaProceso = "/home/utnso/tp-2023-2c-Sisop-Five/mappa-pruebas/";
+	char* extensionProceso = ".txt";
+	char* rutaCompleta = string_new();
+
+	string_append(&rutaCompleta, prefijoRutaProceso);
+	string_append(&rutaCompleta, path);
+	string_append(&rutaCompleta, extensionProceso);
+
+//	t_proceso_instrucciones* proceso_instr = malloc(sizeof(t_proceso_instrucciones));
+    t_proceso_instrucciones* proceso_instr = malloc(sizeof(t_proceso_instrucciones));
+	proceso_instr->instrucciones = list_create();
+
 	proceso_instr->pid = pid;
-	proceso_instr->instrucciones = generar_instrucciones(path);
+	proceso_instr->instrucciones = generar_instrucciones(rutaCompleta);
 
 	list_add(proceso_instrucciones, proceso_instr);
 	free(proceso_instr);
@@ -86,16 +111,25 @@ void iniciar_proceso_memoria(char* path, int size, int pid){
 	free(pag);
 	free(tdp);
 	list_destroy(paginas);
+	t_proceso_instrucciones* pruebita = list_get(proceso_instrucciones, 0);
+	t_instruccion* pruebita2 = list_get(pruebita->instrucciones, 0);
+//	free(proceso_instr);
 }
 
-void procesar_pedido_instruccion(int socket_cpu){
+void procesar_pedido_instruccion(int socket_cpu, t_list* proceso_instrucciones){
 	t_solicitud_instruccion* solicitud_instruccion = recv_solicitar_instruccion(socket_cpu);
+
 	t_instruccion* instruccion_a_enviar = buscar_instruccion(solicitud_instruccion->pid, solicitud_instruccion->program_counter);
 	sleep(retardo_respuesta);
+	t_proceso_instrucciones* pruebita = list_get(proceso_instrucciones, 0);
+	t_instruccion* pruebita2 = list_get(pruebita->instrucciones, 0);
+
+	t_instruccion* instruccion_a_enviar = buscar_instruccion(solicitud_instruccion->pid, solicitud_instruccion->program_counter - 1, proceso_instrucciones);
+	//TODO Falta meter el RETARDO_RESPUESTA en algun lado.
 	send_proxima_instruccion(socket_cpu, instruccion_a_enviar);
 }
 
-t_instruccion* buscar_instruccion(int pid, int program_counter){
+t_instruccion* buscar_instruccion(int pid, int program_counter, t_list* proceso_instrucciones){
 	int i = 0;
 	t_proceso_instrucciones* proceso_instr = list_get(proceso_instrucciones, i);
 
@@ -127,16 +161,17 @@ t_list* generar_instrucciones(char* path) {
 
 		instruccion->codigo = instruccion_to_enum(token_instruccion[0]);
 		if(cant_parametros == 0){
-			instruccion->param1 = NULL;//" "??
-			instruccion->param2 = NULL;
+			instruccion->param1 = "";
+			instruccion->param2 = "";
 		} else if(cant_parametros == 1){
 			instruccion->param1 = token_instruccion[1];
-			instruccion->param2 = NULL;
+			instruccion->param2 = "";
 		} else if(cant_parametros == 2){
 			instruccion->param1 = token_instruccion[1];
 			instruccion->param2 = token_instruccion[2];;
 		}
 		list_add(instrucciones, instruccion);
+		t_instruccion* pruebita = list_get(instrucciones, 0);
 		//TODO Faltan los free??
 	}
 	return instrucciones;

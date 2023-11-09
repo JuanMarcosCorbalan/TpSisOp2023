@@ -1,5 +1,7 @@
 #include "include/main.h"
 
+t_log* logger;
+
 int main(void) {
 	logger = log_create("filesystem.log", "FILESYSTEM", 1, LOG_LEVEL_DEBUG);
 
@@ -7,7 +9,6 @@ int main(void) {
 	char* ip;
 	char* puerto_escucha;
 	char* puerto_memoria;
-	char* valor;
 	int fd_memoria = 0;
 	config = iniciar_config();
 	ip = config_get_string_value(config, "IP");
@@ -19,7 +20,7 @@ int main(void) {
 
 	int server_fd = iniciar_servidor(puerto_escucha);
 	log_info(logger, "FILESYSTEM LISTO...");
-	while(experar_clientes(server_fd));
+	while(experar_clientes(logger, server_fd));
 
 	return EXIT_SUCCESS;
 }
