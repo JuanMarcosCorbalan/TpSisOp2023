@@ -67,6 +67,13 @@ typedef struct
 	int size;
 }t_datos_proceso;
 
+typedef struct
+{
+	char* nombre_archivo;
+	int tamanio_archivo; // en bytes
+	int bloque_inicial; // tambien en bytes
+}t_fcb;
+
 //t_list* datos_procesos;
 void imprimirPrueba();
 char* list_to_string(t_list *list);
