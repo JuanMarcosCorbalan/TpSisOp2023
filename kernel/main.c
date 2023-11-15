@@ -98,28 +98,49 @@ void iniciar_proceso(t_log* logger, char *args[], int fd_memoria) {
 	sem_post(&sem_procesos_new);
 }
 
+bool is_pid_equal(void *element, int target_pid) {
+    t_pcb *pcb = (t_pcb *)element;
+    return (pcb->pid == target_pid);
+}
+
 void finalizar_proceso(char *args[]){
-	int pid = atoi(args[1]);
+////	char* motivo = "DESCONOCIDO";
+////	if(proceso_a_finalizar->estado == EXEC){
+////		// kernel envia señal de interrupcion a traves de interrupt a cpu y este tiene que devolverle
+////		// a kernel el contexto de ejecucion antes de liberar memoria
+////
+////		t_interrupt* nueva_interrupcion = crear_interrupcion(END_PROCESO);
+////		send_interrupcion(nueva_interrupcion,fd_cpu_interrupt);
+////		motivo = "INVALID_ALGO";
+////	} else {
+////		motivo = "SUCCESS";
+////	}
+////	// kernel tiene que pedirle a memoria que libere el espacio que ocupa el pcb
+////	// le va a pasar mediante un paquete a memoria el pid, el path y el size.
+////
+////	send_datos_proceso(path,size,proceso_a_finalizar->pid,fd_memoria);
+////	log_info(logger, "Finaliza el proceso %d - Motivo: %s", proceso_a_finalizar->pid, motivo);
 
-	t_pcb* proceso_a_finalizar = buscar_proceso(pid);
+	//SOLO FUNCIONA EN NEW
+	int target_pid = atoi(args[1]);
 
+	if (queue_filter(procesos_en_new, (bool (*)(void *, int))is_pid_equal, target_pid)) {
+		printf("Se encontró un elemento con PID igual a %d en la cola.\n", target_pid);
+	} else {
+		printf("No hay elementos con PID igual a %d en la cola.\n", target_pid);
+	}
 
-//	char* motivo = "DESCONOCIDO";
-//	if(proceso_a_finalizar->estado == EXEC){
-//		// kernel envia señal de interrupcion a traves de interrupt a cpu y este tiene que devolverle
-//		// a kernel el contexto de ejecucion antes de liberar memoria
-//
-//		t_interrupt* nueva_interrupcion = crear_interrupcion(END_PROCESO);
-//		send_interrupcion(nueva_interrupcion,fd_cpu_interrupt);
-//		motivo = "INVALID_ALGO";
-//	} else {
-//		motivo = "SUCCESS";
-//	}
-//	// kernel tiene que pedirle a memoria que libere el espacio que ocupa el pcb
-//	// le va a pasar mediante un paquete a memoria el pid, el path y el size.
-//
-//	send_datos_proceso(path,size,proceso_a_finalizar->pid,fd_memoria);
-//	log_info(logger, "Finaliza el proceso %d - Motivo: %s", proceso_a_finalizar->pid, motivo);
+	pthread_mutex_lock(&mutex_cola_new);
+	t_pcb *removed_pcb = queue_find_and_remove(procesos_en_new, target_pid);
+	pthread_mutex_unlock(&mutex_cola_new);
+
+	cambiar_estado(removed_pcb, EXIT_CONSOLA);
+	char* motivo = motivo_to_string(removed_pcb->estado);
+	log_info(logger, "Finaliza el proceso %d - Motivo: %s", removed_pcb->pid, motivo);
+	//TODO Terminar proceso en memoria
+	pcb_destroy(removed_pcb);
+
+	sem_wait(&sem_procesos_new);
 }
 
 t_pcb* crear_pcb(int prioridad){

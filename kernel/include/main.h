@@ -71,5 +71,6 @@ void semaforos_destroy();
 t_pcb* buscar_proceso_en_queue(int pid, t_queue* queue);
 t_pcb* buscar_proceso(int pid);
 t_pcb* buscar_proceso_en_list(int pid, t_list* lista);
+bool is_pid_equal(void *element, int target_pid);
 
 #endif
