@@ -412,10 +412,10 @@ t_tdp* recv_tdp(int fd){
 }
 
 //HANDSHAKE CPU MEMORIA
-void send_herramientas_traduccion(int fd, size_t tam_pag, void* espacio_usuario){
+void send_herramientas_traduccion(int fd, int tam_pag, void* espacio_usuario){
 	t_paquete* paquete = crear_paquete(HANDSHAKE_CPU_MEMORIA);
 
-	agregar_a_paquete(paquete, tam_pag, sizeof(size_t));
+	agregar_a_paquete(paquete, &tam_pag, sizeof(int));
 	agregar_a_paquete(paquete, espacio_usuario, sizeof(void*));
 	enviar_paquete(paquete, fd);
 	eliminar_paquete(paquete);
@@ -429,6 +429,7 @@ t_herramientas_traduccion* recv_herramientas_traduccion(int fd){
 	herr->reloc = list_get(paquete, 1);
 	list_destroy(paquete);
 	return herr;
+}
 //SEND_RECURSO_WAIT
 
 void send_recurso_wait(int dispatch_cliente_fd, char* recurso){

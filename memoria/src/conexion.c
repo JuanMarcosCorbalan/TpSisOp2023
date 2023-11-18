@@ -1,12 +1,23 @@
 #include "../include/conexion.h"
 
 t_list* proceso_instrucciones;
+int tam_pagina;
+int tam_memoria;
+int retardo_respuesta;
+void* espacio_usuario;
 
 static void procesar_cliente(void* void_args){
 	t_procesar_cliente_args* args = (t_procesar_cliente_args*) void_args;
 	int cliente_fd = args -> fd_cliente;
 	t_log* logger = args ->logger;
+	t_config* config =  args->config;
 	free(args);
+
+	tam_pagina = atoi(config_get_string_value(config, "TAM_PAGINA"));
+	tam_memoria = atoi(config_get_string_value(config, "TAM_MEMORIA"));
+	retardo_respuesta = atoi(config_get_string_value(config, "RETARDO_RESPUESTA"));
+
+	espacio_usuario = malloc(tam_memoria);
 
 	t_list* lista;
 	while(cliente_fd != -1){
@@ -31,7 +42,7 @@ static void procesar_cliente(void* void_args){
 //				break;
 			case DATOS_PROCESO_NEW:
 				t_datos_proceso* datos_proceso = recv_datos_proceso(cliente_fd);
-				iniciar_proceso_memoria(datos_proceso->path, datos_proceso->size, datos_proceso->pid, cliente_fd);
+				iniciar_proceso_memoria(datos_proceso->path, datos_proceso->size, datos_proceso->pid, cliente_fd, logger);
 				break;
 			case SOLICITAR_INSTRUCCION:
 				t_proceso_instrucciones* pruebita = list_get(proceso_instrucciones, 0);
@@ -59,7 +70,7 @@ static void procesar_cliente(void* void_args){
 	return;
 }
 
-int experar_clientes(t_log* logger, int server_socket){
+int experar_clientes(t_log* logger, int server_socket, t_config* config){
 	proceso_instrucciones = list_create();
 	int cliente_socket = esperar_cliente(logger, server_socket);
 
@@ -68,6 +79,7 @@ int experar_clientes(t_log* logger, int server_socket){
 		t_procesar_cliente_args* args = malloc(sizeof(t_procesar_cliente_args));
 		args -> fd_cliente = cliente_socket;
 		args ->logger = logger;
+		args->config = config;
 		pthread_create(&hilo, NULL, (void*) procesar_cliente, (void*) args);
 		pthread_detach(hilo);
 		return 1;
@@ -76,7 +88,7 @@ int experar_clientes(t_log* logger, int server_socket){
 	return 0;
 }
 
-void iniciar_proceso_memoria(char* path, int size, int pid, int socket_kernel){
+void iniciar_proceso_memoria(char* path, int size, int pid, int socket_kernel, t_log* logger){
 	//INSTRUCCIONES
 	t_proceso_instrucciones* proceso_instr = malloc(sizeof(t_proceso_instrucciones));
 	char* prefijoRutaProceso = "/home/utnso/tp-2023-2c-Sisop-Five/mappa-pruebas/";
@@ -87,8 +99,6 @@ void iniciar_proceso_memoria(char* path, int size, int pid, int socket_kernel){
 	string_append(&rutaCompleta, path);
 	string_append(&rutaCompleta, extensionProceso);
 
-//	t_proceso_instrucciones* proceso_instr = malloc(sizeof(t_proceso_instrucciones));
-    t_proceso_instrucciones* proceso_instr = malloc(sizeof(t_proceso_instrucciones));
 	proceso_instr->instrucciones = list_create();
 
 	proceso_instr->pid = pid;
@@ -107,8 +117,7 @@ void iniciar_proceso_memoria(char* path, int size, int pid, int socket_kernel){
 		t_pagina* pag = malloc(sizeof(t_pagina));
 		pag->bit_presencia = 0;
 		pag->bit_modificado = 0;
-		pag->marco = malloc(sizeof(int));
-		pag->pos_swap = malloc(sizeof(int)); //TODO preguntarle a fs
+		// pag->pos_swap = ??//TODO preguntarle a fs
 		list_add(paginas, pag);
 		free(pag);
 	}

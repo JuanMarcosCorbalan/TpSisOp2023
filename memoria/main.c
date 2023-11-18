@@ -6,18 +6,17 @@ int main() {
 	logger = log_create("memoria.log", "MEMORIA", true, LOG_LEVEL_INFO);
 	config = iniciar_config();
 
-	retardo_respuesta = atoi(config_get_string_value(config, "RETARDO_RESPUESTA"));
-	tam_memoria = atoi(config_get_string_value(config, "TAM_MEMORIA"));
-	tam_pagina = atoi(config_get_string_value(config, "TAM_PAGINA"));
-	cant_marcos = tam_memoria/tam_pagina;
-	espacio_usuario = malloc(tam_memoria);
+	int tam_memoria = atoi(config_get_string_value(config, "TAM_MEMORIA"));
+	int tam_pagina = atoi(config_get_string_value(config, "TAM_PAGINA"));
+	cant_marcos = tam_memoria / tam_pagina;
+
 	bitmap_marcos = inicializar_bitmap_marcos();
 	char* puerto_escucha;
 	puerto_escucha = config_get_string_value(config, "PUERTO_ESCUCHA");
 
 	int server_fd = iniciar_servidor(puerto_escucha);
 	log_info(logger, "MEMORIA LISTO...");
-    while (experar_clientes(logger, server_fd));
+    while (experar_clientes(logger, server_fd, config));
 
     return 0;
 }

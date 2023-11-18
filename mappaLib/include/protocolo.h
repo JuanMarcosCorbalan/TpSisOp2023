@@ -108,7 +108,7 @@ void send_tdp(int fd, t_tdp* tdp);
 t_tdp* recv_tdp(int fd);
 
 //HANDSHAKE CPU MEMORIA
-void send_herramientas_traduccion(int fd, size_t tam_pag, void* espacio_usuario);
+void send_herramientas_traduccion(int fd, int tam_pag, void* espacio_usuario);
 t_herramientas_traduccion* recv_herramientas_traduccion(int fd);
 
 // RECURSO_WAIT

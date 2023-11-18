@@ -82,7 +82,7 @@ typedef struct
 }t_pagina;
 
 typedef struct{
-	size_t tam_pagina;
+	int* tam_pagina;
 	void* reloc;
 }t_herramientas_traduccion;
 
