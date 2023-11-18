@@ -30,11 +30,6 @@ static void procesar_cliente(void* void_args){
 			case HANDSHAKE_CPU_MEMORIA:
 				send_herramientas_traduccion(cliente_fd, tam_pagina, espacio_usuario);
 				break;
-			case PAQUETE:
-				lista = recibir_paquete(cliente_fd);
-				log_info(logger, "Me llegaron los siguientes valores:\n");
-				list_iterate(lista, (void*) iterator);
-				break;
 //			case PAQUETE:
 //				lista = recibir_paquete(cliente_fd);
 //				log_info(logger, "Me llegaron los siguientes valores:\n");
