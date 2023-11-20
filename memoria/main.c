@@ -8,9 +8,6 @@ int main() {
 
 	int tam_memoria = atoi(config_get_string_value(config, "TAM_MEMORIA"));
 	int tam_pagina = atoi(config_get_string_value(config, "TAM_PAGINA"));
-	cant_marcos = tam_memoria / tam_pagina;
-
-	bitmap_marcos = inicializar_bitmap_marcos();
 	char* puerto_escucha;
 	puerto_escucha = config_get_string_value(config, "PUERTO_ESCUCHA");
 
@@ -38,15 +35,6 @@ void liberar_proceso(int server_fd)
 // 	t_datos_proceso* proceso_a_finalizar;
 	recv_datos_proceso(server_fd);
 
-}
-
-char* inicializar_bitmap_marcos(void){
-	char* bitmap = malloc(cant_marcos);
-
-	for(int i = 0; i < cant_marcos-1; i++){
-		bitmap[i] = '0';
-	}
-	return bitmap;
 }
 
 

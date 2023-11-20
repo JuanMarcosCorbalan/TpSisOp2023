@@ -13,7 +13,7 @@ int main(void) {
 	sem_init(&sem_ciclo_de_instrucciones, 0, 0);
 	fd_memoria = crear_conexion(logger, config_cpu.ip_memoria, config_cpu.puerto_memoria);
 	enviar_operacion(HANDSHAKE_CPU_MEMORIA, fd_memoria);
-	t_herramientas_traduccion* herramientas_traduccion = recv_herramientas_traduccion(fd_memoria);
+	herramientas_traduccion = recv_herramientas_traduccion(fd_memoria);
 //	liberar_conexion(fd_memoria);
 
 	pthread_t *hilo_dispatch = malloc(sizeof(pthread_t));
@@ -143,12 +143,18 @@ void decode(t_instruccion* instruccion, t_pcb* pcb){
 	case EXIT:
 		ejecutar_exit(pcb);
 		break;
+	case MOV_IN:
+		ejecutar_mov_in(pcb, instruccion->param1, instruccion->param2);
+		break;
+	case MOV_OUT:
+		ejecutar_exit(pcb);
+		break;
 	}
 }
 
 void ejecutar_set(t_pcb* pcb, char* param1, char* param2){
 	if(strcmp(param1, "AX") == 0){
-		pcb->registros_generales_cpu.ax = (uint32_t)strtoul(param2, NULL, 10); //send_escribir_memoria(param2,
+		pcb->registros_generales_cpu.ax = (uint32_t)strtoul(param2, NULL, 10);
 	} else if(strcmp(param1, "BX") == 0){
 		pcb->registros_generales_cpu.bx = (uint32_t)strtoul(param2, NULL, 10);
 	} else if(strcmp(param1, "CX") == 0){
@@ -222,6 +228,22 @@ void ejecutar_exit(t_pcb* pcb){
 	flag_hay_interrupcion = true;
 	pcb->estado = SUCCESS;
 	send_pcb(pcb, dispatch_cliente_fd);
+}
+
+void ejecutar_mov_in(t_pcb* pcb, char* param1, char* param2){
+	char* registro = param1;
+	int direccion_logica = atoi(param2);
+	int numero_pagina = floor(direccion_logica / herramientas_traduccion->tam_pagina);
+	int desplazamiento =  direccion_logica - numero_pagina * herramientas_traduccion->tam_pagina;
+	send_solicitud_marco(fd_memoria, pcb->pid, numero_pagina);
+	int marco = recv_marco(fd_memoria);
+
+	if(marco == NULL){
+		log_info( "Page Fault PID: %d - Pagina: %d", pcb->pid, numero_pagina);
+		//TODO iniciar acciones page fault
+
+	}
+
 }
 
 t_config* iniciar_config(void)

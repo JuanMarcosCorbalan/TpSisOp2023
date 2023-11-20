@@ -52,6 +52,8 @@ typedef enum {
 	WAIT,
 	SIGNAL,
 	EXIT,
+	MOV_IN,
+	MOV_OUT
 } codigo_instruccion;
 
 typedef struct {

@@ -447,3 +447,38 @@ char* recv_recurso_wait(int dispatch_cliente_fd){
 
 	return recurso;
 }
+
+//SOLICITU DE MARCO
+void send_solicitud_marco(int fd, int pid, int numero_pagina){
+	t_paquete* paquete = crear_paquete(MARCO);
+
+	agregar_a_paquete(paquete, &pid, sizeof(int));
+	agregar_a_paquete(paquete, &numero_pagina, sizeof(void*));
+	enviar_paquete(paquete, fd);
+	eliminar_paquete(paquete);
+}
+
+void recv_solicitud_marco(int fd, int* pid, int* numero_pagina){
+	t_list* paquete = recibir_paquete(fd);
+
+	pid = list_get(paquete, 0);
+	numero_pagina = list_get(paquete, 1);
+
+	list_destroy(paquete);
+}
+
+void send_marco (int fd, int marco){
+	t_paquete* paquete = crear_paquete(MARCO);
+
+	agregar_a_paquete(paquete, &marco, sizeof(int));
+	enviar_paquete(paquete, fd);
+	eliminar_paquete(paquete);
+}
+int recv_marco (int fd){
+	t_list* paquete = recibir_paquete(fd);
+
+	int marco = list_get(paquete, 0);
+	list_destroy(paquete);
+	return marco;
+}
+

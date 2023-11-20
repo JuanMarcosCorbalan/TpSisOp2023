@@ -17,6 +17,8 @@ typedef struct {
 
 t_config_cpu config_cpu;
 
+t_herramientas_traduccion* herramientas_traduccion;
+
 sem_t sem_nuevo_proceso;
 sem_t sem_ciclo_de_instrucciones;
 
@@ -35,5 +37,7 @@ void ejecutar_sum(t_pcb* pcb, char* param1, char* param2);
 void ejecutar_sub(t_pcb* pcb, char* param1, char* param2);
 void ejecutar_wait(t_pcb* pcb, char* param1);
 void ejecutar_exit(t_pcb* pcb);
+void ejecutar_mov_in(t_pcb* pcb, char* param1, char* param2);
+void ejecutar_mov_out(t_pcb* pcb, char* param1, char* param2);
 
 #endif

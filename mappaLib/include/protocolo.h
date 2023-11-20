@@ -24,7 +24,8 @@ typedef enum
 	HANDSHAKE_CPU_MEMORIA,
 	RECURSO_WAIT,
 	LEER_MEMORIA,
-	ESCRIBIR_MEMORIA
+	ESCRIBIR_MEMORIA,
+	MARCO
 }op_code;
 
 typedef enum
@@ -115,5 +116,11 @@ t_herramientas_traduccion* recv_herramientas_traduccion(int fd);
 void send_recurso_wait(int dispatch_cliente_fd, char* recurso);
 char* recv_recurso_wait(int dispatch_cliente_fd);
 
+//SOLICITUD DE MARCO
+void send_solicitud_marco(int dispatch_cliente_fd, int pid, int numero_pagina);// cpu
+void recv_solicitud_marco(int dispatch_cliente_fd, int* pid, int* numero_pagina); //kernel
+
+void send_marco (int dispatch_cliente_fd, int marco); //kernel
+int recv_marco (int dispatch_cliente_fd); //cpu
 
 #endif

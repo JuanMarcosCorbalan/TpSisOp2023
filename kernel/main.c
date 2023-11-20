@@ -81,9 +81,6 @@ void iniciar_proceso(t_log* logger, char *args[], int fd_memoria) {
 
 	send_datos_proceso(path, size, nuevo_proceso->pid, fd_memoria);
 
-	t_tdp* tdp = recv_tdp(fd_memoria);
-	list_add(tablas_de_paginas, tdp);
-
 	queue_push(procesos_en_new, nuevo_proceso);
 	log_info(logger, "Se crea el proceso %d en NEW", nuevo_proceso->pid);
 	sem_post(&sem_procesos_new);
@@ -337,7 +334,7 @@ void inicializar_variables() {
 	procesos_en_blocked = list_create();
 	procesos_en_exit = list_create();
 
-	tablas_de_paginas = list_create();
+
 
 
 	pthread_mutex_init(&mutex_cola_new, NULL);

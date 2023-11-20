@@ -1,9 +1,13 @@
 #include "../include/conexion.h"
 
 t_list* proceso_instrucciones;
+t_list* tablas_de_paginas;
 int tam_pagina;
 int tam_memoria;
 int retardo_respuesta;
+int cant_marcos;
+int contador_marcos;
+char* bitmap_marcos;
 void* espacio_usuario;
 
 static void procesar_cliente(void* void_args){
@@ -16,8 +20,11 @@ static void procesar_cliente(void* void_args){
 	tam_pagina = atoi(config_get_string_value(config, "TAM_PAGINA"));
 	tam_memoria = atoi(config_get_string_value(config, "TAM_MEMORIA"));
 	retardo_respuesta = atoi(config_get_string_value(config, "RETARDO_RESPUESTA"));
-
+	cant_marcos = tam_memoria / tam_pagina;
+	bitmap_marcos = inicializar_bitmap_marcos();
 	espacio_usuario = malloc(tam_memoria);
+
+	tablas_de_paginas = list_create();
 
 	t_list* lista;
 	while(cliente_fd != -1){
@@ -43,6 +50,9 @@ static void procesar_cliente(void* void_args){
 				t_proceso_instrucciones* pruebita = list_get(proceso_instrucciones, 0);
 				t_instruccion* pruebita2 = list_get(pruebita->instrucciones, 0);
 				procesar_pedido_instruccion(cliente_fd, proceso_instrucciones);
+				break;
+			case MARCO:
+				procesar_solicitud_marco(cliente_fd);
 				break;
 			case LEER_MEMORIA:
 				//recibir direccion
@@ -110,6 +120,7 @@ void iniciar_proceso_memoria(char* path, int size, int pid, int socket_kernel, t
 
 	for(int i = 1; i < cant_paginas; i++){
 		t_pagina* pag = malloc(sizeof(t_pagina));
+		pag->marco = NULL;
 		pag->bit_presencia = 0;
 		pag->bit_modificado = 0;
 		// pag->pos_swap = ??//TODO preguntarle a fs
@@ -119,7 +130,7 @@ void iniciar_proceso_memoria(char* path, int size, int pid, int socket_kernel, t
 	tdp->pid = pid;
 	tdp->paginas = paginas;
 
-	send_tdp(socket_kernel, tdp);
+	list_add(tablas_de_paginas, tdp);
 	log_info(logger, "Tabla de paginas creada. PID: %d - Tamaño: %d\n", pid, cant_paginas); //log obligatorio
 	free(tdp);
 	list_destroy(paginas);
@@ -200,6 +211,34 @@ codigo_instruccion instruccion_to_enum(char* instruccion){
 
 	return EXIT_FAILURE;
 }
+
+char* inicializar_bitmap_marcos(void){
+	char* bitmap = malloc(cant_marcos);
+
+	for(int i = 0; i < cant_marcos-1; i++){
+		bitmap[i] = '0';
+	}
+	return bitmap;
+}
+
+void procesar_solicitud_marco(int fd_cpu){
+	int* pid;
+	int* numero_pagina;
+	recv_solicitud_marco(fd_cpu, pid, numero_pagina);
+
+	//buscar proceso en tdps
+	int _encontrar_pid(t_tdp *t) {
+		return t->pid == *pid;
+	}
+	t_tdp* tdp = list_find(tablas_de_paginas, (void*) _encontrar_pid);
+
+	//buscar pagina en tdp
+	t_pagina* pagina = list_get(tdp->paginas, numero_pagina);
+
+	send_marco(fd_cpu, pagina->marco);
+
+}
+
 
 uint32_t leer_espacio_usuario(uint32_t direccion) {
 	uint32_t valor;
