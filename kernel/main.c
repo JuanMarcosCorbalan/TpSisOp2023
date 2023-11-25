@@ -56,10 +56,20 @@ void iniciar_consola(t_log* logger, t_config* config, int fd_memoria){
 		} else
 		if(string_equals_ignore_case(argumentos_entrada[0], "DETENER_PLANIFICACION")){
 			detener_planificacion();
+		} else
+		if(string_equals_ignore_case(argumentos_entrada[0], "MULTIPROGRAMACION")){
+			actualizar_multiprogramacion(argumentos_entrada);
+		} else
+		if(string_equals_ignore_case(argumentos_entrada[0], "PROCESO_ESTADO")){
+			listar_estados_proceso();
 		}
 
 		free(entrada);
-		free(*argumentos_entrada);
+		char** args = argumentos_entrada;
+		for (int i = 0; args[i] != NULL; i++) {
+		    free(args[i]);
+		}
+		free(argumentos_entrada);
 	}
 	clear_history();
 	rl_clear_history();
@@ -83,6 +93,104 @@ void detener_planificacion() {
 
 	semaforos_destroy();
 	inicializar_semaforos();
+}
+
+void actualizar_multiprogramacion(char *args[]){
+	int nuevo_grado_multiprogramacion = atoi(args[1]);
+	int grado_multiprogramacion_inicial = atoi(config_get_string_value(config, "GRADO_MULTIPROGRAMACION_INI"));
+
+	if(nuevo_grado_multiprogramacion == grado_multiprogramacion_inicial){
+		log_warning(logger, "El grado de multiprogramacion ingresado es igual al inicial.");
+	} else {
+		if(nuevo_grado_multiprogramacion > grado_multiprogramacion_inicial){
+			for(int i=grado_multiprogramacion_inicial; i<nuevo_grado_multiprogramacion; i++){
+				sem_post(&sem_multiprogramacion);
+			}
+		} else {
+			for(int i=nuevo_grado_multiprogramacion; i<grado_multiprogramacion_inicial; i++){
+				sem_wait(&sem_multiprogramacion);
+			}
+		}
+	}
+}
+
+void listar_estados_proceso(){
+	//T_QUEUE
+	t_list* copy_list_new = queue_to_list_copy(procesos_en_new);
+	t_list* lista_new = obtener_lista_pid(copy_list_new);
+	char* new = list_to_string(lista_new);
+	list_destroy(copy_list_new);
+	list_destroy(lista_new);
+
+	t_list* copy_list_exec = queue_to_list_copy(procesos_en_exec);
+	t_list* lista_exec = obtener_lista_pid(copy_list_exec);
+	char* exec = list_to_string(lista_exec);
+	list_destroy(copy_list_exec);
+	list_destroy(lista_exec);
+
+	//T_LIST
+	t_list* lista_procesos_ready = list_create();
+	list_add_all(lista_procesos_ready, procesos_en_ready);
+	t_list* lista_ready = obtener_lista_pid(lista_procesos_ready);
+	char* ready = list_to_string(lista_ready);
+	list_destroy(lista_procesos_ready);
+	list_destroy(lista_ready);
+
+	//TODO HAY VARIAS LISTAS DE BLOCKED
+	t_list* lista_procesos_blocked = list_create();
+	list_add_all(lista_procesos_blocked, procesos_en_blocked);
+	t_list* lista_blocked = obtener_lista_pid(lista_procesos_blocked);
+	char* blocked = list_to_string(lista_blocked);
+	list_destroy(lista_procesos_blocked);
+	list_destroy(lista_blocked);
+
+	t_list* lista_procesos_exit = list_create();
+	list_add_all(lista_procesos_exit, procesos_en_exit);
+	t_list* lista_exit = obtener_lista_pid(lista_procesos_exit);
+	char* exit = list_to_string(lista_exit);
+	list_destroy(lista_procesos_exit);
+	list_destroy(lista_exit);
+
+	log_info(logger, "Estado NEW: [%s]\nEstado READY: [%s]\nEstado EXEC: [%s]\nEstado BLOCKED: [%s]\nEstado EXIT: [%s]", new, ready, exec, blocked, exit);
+}
+
+t_list* queue_to_list_copy(t_queue* original) {
+    t_list* copy_list = list_create();
+
+    t_link_element* current_element = original->elements->head;
+
+    while (current_element != NULL) {
+        t_pcb* pcb_copy = pcb_copy_function((t_pcb*)current_element->data);
+        list_add(copy_list, pcb_copy);
+        current_element = current_element->next;
+    }
+
+    return copy_list;
+}
+
+t_pcb* pcb_copy_function(t_pcb* original) {
+    // Verifica si el puntero original es válido
+    if (original == NULL) {
+        return NULL;
+    }
+
+    // Crea un nuevo t_pcb y asigna los valores del original al nuevo
+    t_pcb* copy = malloc(sizeof(t_pcb));
+    if (copy != NULL) {
+        copy->pid = original->pid;
+        copy->program_counter = original->program_counter;
+        copy->prioridad = original->prioridad;
+        copy->estado = original->estado;
+        copy->registros_generales_cpu = original->registros_generales_cpu;
+        // Puedes copiar otros campos si los tienes
+
+        // Asegúrate de inicializar otros campos según sea necesario
+
+        // Si tienes campos dinámicos, también debes copiarlos adecuadamente
+        // Por ejemplo, si hay strings, deberías realizar una copia profunda (usando strdup)
+    }
+
+    return copy;
 }
 
 void iniciar_proceso(t_log* logger, char *args[], int fd_memoria) {
@@ -121,26 +229,33 @@ void finalizar_proceso(char *args[]){
 ////	send_datos_proceso(path,size,proceso_a_finalizar->pid,fd_memoria);
 ////	log_info(logger, "Finaliza el proceso %d - Motivo: %s", proceso_a_finalizar->pid, motivo);
 
-	//SOLO FUNCIONA EN NEW
 	int target_pid = atoi(args[1]);
+	t_pcb* pcb = buscar_proceso(target_pid);
+	estado estado = pcb->estado;
+//
+//	switch(estado){
+//	case NEW:
+		if (queue_filter(procesos_en_new, (bool (*)(void *, int))is_pid_equal, target_pid)) {
+			printf("Se encontró un elemento con PID igual a %d en la cola.\n", target_pid);
+		} else {
+			printf("No hay elementos con PID igual a %d en la cola.\n", target_pid);
+		}
 
-	if (queue_filter(procesos_en_new, (bool (*)(void *, int))is_pid_equal, target_pid)) {
-		printf("Se encontró un elemento con PID igual a %d en la cola.\n", target_pid);
-	} else {
-		printf("No hay elementos con PID igual a %d en la cola.\n", target_pid);
-	}
+		pthread_mutex_lock(&mutex_cola_new);
+		t_pcb *removed_pcb = queue_find_and_remove(procesos_en_new, target_pid);
+		pthread_mutex_unlock(&mutex_cola_new);
 
-	pthread_mutex_lock(&mutex_cola_new);
-	t_pcb *removed_pcb = queue_find_and_remove(procesos_en_new, target_pid);
-	pthread_mutex_unlock(&mutex_cola_new);
+		cambiar_estado(removed_pcb, EXIT_CONSOLA);
+		char* motivo = motivo_to_string(removed_pcb->estado);
+		log_info(logger, "Finaliza el proceso %d - Motivo: %s", removed_pcb->pid, motivo);
+		//TODO Terminar proceso en memoria
+		pcb_destroy(removed_pcb);
 
-	cambiar_estado(removed_pcb, EXIT_CONSOLA);
-	char* motivo = motivo_to_string(removed_pcb->estado);
-	log_info(logger, "Finaliza el proceso %d - Motivo: %s", removed_pcb->pid, motivo);
-	//TODO Terminar proceso en memoria
-	pcb_destroy(removed_pcb);
+		sem_wait(&sem_procesos_new);
+//	break;
+//	}
 
-	sem_wait(&sem_procesos_new);
+
 }
 
 t_pcb* crear_pcb(int prioridad){
@@ -295,8 +410,8 @@ void cambiar_estado(t_pcb* pcb, estado estado){
 
 t_pcb* buscar_proceso(int pid) {
 	t_pcb* pcb = buscar_proceso_en_queue(pid, procesos_en_new);
-	t_list* procesos = list_create();
 
+	t_list* procesos = list_create();
 	list_add_all(procesos, procesos_en_ready);
 	list_add_all(procesos, procesos_en_blocked);
 
@@ -322,15 +437,18 @@ t_pcb* buscar_proceso_en_list(int pid, t_list* lista) {
 }
 
 t_pcb* buscar_proceso_en_queue(int pid, t_queue* queue) {
-	t_pcb* pcb_encontrado = malloc(sizeof(t_pcb));
+    t_pcb* ret = NULL;
 
-	for(int i = 0; i<=queue_size(queue); i++){
-		pcb_encontrado = queue_pop(queue);
-		if(pcb_encontrado->pid == pid){
-			return pcb_encontrado;
-		}
-	}
-	return NULL;
+    for (int i = 0; i < queue_size(queue); i++) {
+        t_pcb* pcb_encontrado = queue_pop(queue);
+
+        if (pcb_encontrado->pid == pid) {
+            ret = pcb_encontrado;
+        }
+        queue_push(queue, pcb_encontrado);
+    }
+
+    return ret;
 }
 
 t_log* iniciar_logger(void)

@@ -6,7 +6,7 @@
 * SOLO FUNCIONA CON PID.
 */
 bool queue_filter(t_queue *queue, bool (*condition)(void *, int), int target_pid) {
-    if (queue == NULL || queue_is_empty(queue) || condition == NULL) {
+    if (queue == NULL || queue->elements == NULL || queue->elements->head == NULL || condition == NULL) {
         return false;
     }
 
@@ -20,6 +20,7 @@ bool queue_filter(t_queue *queue, bool (*condition)(void *, int), int target_pid
         }
         current_element = current_element->next;
     }
+
     // No se encontró ningún elemento que cumpla con la condición
     return false;
 }

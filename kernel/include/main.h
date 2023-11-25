@@ -72,5 +72,9 @@ t_pcb* buscar_proceso_en_queue(int pid, t_queue* queue);
 t_pcb* buscar_proceso(int pid);
 t_pcb* buscar_proceso_en_list(int pid, t_list* lista);
 bool is_pid_equal(void *element, int target_pid);
+void actualizar_multiprogramacion(char *args[]);
+void listar_estados_proceso();
+t_pcb* pcb_copy_function(t_pcb* original);
+t_list* queue_to_list_copy(t_queue* original);
 
 #endif
