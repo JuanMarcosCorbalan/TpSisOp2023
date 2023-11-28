@@ -56,6 +56,7 @@ void inicializar_variables();
 void iniciar_consola(t_log* logger, t_config* config, int fd_memoria);
 void iniciar_planificacion();
 void pasar_a_ready(t_pcb* proceso);
+void execute_a_bloqueado(t_pcb* pcb);
 void planificador_largo_plazo();
 void planificar_procesos_ready();
 void planificador_corto_plazo();

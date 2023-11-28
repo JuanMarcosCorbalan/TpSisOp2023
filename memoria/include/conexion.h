@@ -37,6 +37,8 @@ t_instruccion* buscar_instruccion(int pid, int program_counter, t_list* proceso_
 char* inicializar_bitmap_marcos(void);
 void procesar_solicitud_marco(int fd_cpu);
 
+void cargar_pagina(int pid, int numero_pagina);
+
 uint32_t leer_espacio_usuario(uint32_t direccion);
 void escribir_espacio_usuario(uint32_t direccion, uint32_t valor);
 #endif

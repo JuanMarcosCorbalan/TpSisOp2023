@@ -238,10 +238,10 @@ void ejecutar_mov_in(t_pcb* pcb, char* param1, char* param2){
 	send_solicitud_marco(fd_memoria, pcb->pid, numero_pagina);
 	int marco = recv_marco(fd_memoria);
 
-	if(marco == NULL){
+	if(marco == -1){
 		log_info( "Page Fault PID: %d - Pagina: %d", pcb->pid, numero_pagina);
-		//TODO iniciar acciones page fault
-
+		//iniciar acciones page fault
+		send_pcb_pf(pcb, numero_pagina, dispatch_cliente_fd);
 	}
 
 }

@@ -143,6 +143,7 @@ void planificador_largo_plazo(){
 	pthread_create(&hilo_exit, NULL, (void*) procesar_respuesta_cpu, NULL);
 	pthread_detach(hilo_ready);
 	pthread_detach(hilo_exit);
+
 }
 
 void procesar_respuesta_cpu(){
@@ -160,6 +161,17 @@ void procesar_respuesta_cpu(){
 			sem_post(&sem_multiprogramacion);
 			sem_post(&sem_proceso_exec);
 		break;
+		case PCB_PF:
+			//TODO recibir pcb y num de pag
+			int* numero_pagina;
+			t_pcb* pcb = recv_pcb_pf(fd_cpu_dispatch, numero_pagina);
+			//pasar proceso a bloqueado
+			execute_a_bloqueado(pcb);
+			//enviar num de pag a memoria y cargarla
+			send_numero_pagina(pcb->pid, *numero_pagina, fd_memoria);
+			//esperar respuesta de memoria
+			//pasar proceso a ready
+			break;
 		}
 	}
 }
@@ -180,6 +192,18 @@ void pasar_a_ready(t_pcb* pcb){
 	list_add(procesos_en_ready, pcb);
 	log_cola_ready();
 	pthread_mutex_unlock(&mutex_ready_list);
+}
+
+void execute_a_bloqueado(t_pcb* pcb){
+	sem_wait(&sem_proceso_exec);
+	t_pcb* pcb_exec = queue_pop(procesos_en_exec);
+	sem_post(&sem_proceso_exec);
+	if (pcb->pid == pcb_exec->pid){
+		cambiar_estado(pcb_exec, BLOCKED);
+	}
+	else{
+		log_info(logger, "Error"); //?
+	}
 }
 
 void planificador_corto_plazo(){

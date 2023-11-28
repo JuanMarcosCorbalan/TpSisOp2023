@@ -6,8 +6,6 @@ int main() {
 	logger = log_create("memoria.log", "MEMORIA", true, LOG_LEVEL_INFO);
 	config = iniciar_config();
 
-	int tam_memoria = atoi(config_get_string_value(config, "TAM_MEMORIA"));
-	int tam_pagina = atoi(config_get_string_value(config, "TAM_PAGINA"));
 	char* puerto_escucha;
 	puerto_escucha = config_get_string_value(config, "PUERTO_ESCUCHA");
 

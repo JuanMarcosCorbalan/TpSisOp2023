@@ -22,7 +22,10 @@ static void procesar_cliente(void* void_args){
 	retardo_respuesta = atoi(config_get_string_value(config, "RETARDO_RESPUESTA"));
 	cant_marcos = tam_memoria / tam_pagina;
 	bitmap_marcos = inicializar_bitmap_marcos();
+
 	espacio_usuario = malloc(tam_memoria);
+
+	memset(espacio_usuario, 0, tam_memoria);
 
 	tablas_de_paginas = list_create();
 
@@ -37,11 +40,6 @@ static void procesar_cliente(void* void_args){
 			case HANDSHAKE_CPU_MEMORIA:
 				send_herramientas_traduccion(cliente_fd, tam_pagina, espacio_usuario);
 				break;
-//			case PAQUETE:
-//				lista = recibir_paquete(cliente_fd);
-//				log_info(logger, "Me llegaron los siguientes valores:\n");
-//				list_iterate(lista, (void*) iterator);
-//				break;
 			case DATOS_PROCESO_NEW:
 				t_datos_proceso* datos_proceso = recv_datos_proceso(cliente_fd);
 				iniciar_proceso_memoria(datos_proceso->path, datos_proceso->size, datos_proceso->pid, cliente_fd, logger);
@@ -53,6 +51,13 @@ static void procesar_cliente(void* void_args){
 				break;
 			case MARCO:
 				procesar_solicitud_marco(cliente_fd);
+				break;
+			case CARGAR_PAGINA:
+				int* pid;
+				int* numero_pagina;
+				recv_numero_pagina(pid, numero_pagina, cliente_fd);
+				cargar_pagina(*pid, *numero_pagina);
+				//mandar respuesta a kernel
 				break;
 			case LEER_MEMORIA:
 				//recibir direccion
@@ -120,7 +125,7 @@ void iniciar_proceso_memoria(char* path, int size, int pid, int socket_kernel, t
 
 	for(int i = 1; i < cant_paginas; i++){
 		t_pagina* pag = malloc(sizeof(t_pagina));
-		pag->marco = NULL;
+		pag->marco = -1;
 		pag->bit_presencia = 0;
 		pag->bit_modificado = 0;
 		// pag->pos_swap = ??//TODO preguntarle a fs
@@ -233,12 +238,32 @@ void procesar_solicitud_marco(int fd_cpu){
 	t_tdp* tdp = list_find(tablas_de_paginas, (void*) _encontrar_pid);
 
 	//buscar pagina en tdp
-	t_pagina* pagina = list_get(tdp->paginas, numero_pagina);
+	t_pagina* pagina = list_get(tdp->paginas, *numero_pagina);
 
 	send_marco(fd_cpu, pagina->marco);
 
 }
 
+void cargar_pagina(int pid, int numero_pagina){
+	//TODO Decirle a fs que me traiga la pagina
+
+	//ver si la memoria esta llena (bitmap de marcos)
+	bool flag_memoria_llena = true;
+	int i;
+	for(i = 0; i < cant_marcos; i++){
+		if(bitmap_marcos[i] == 0){
+			break;
+			flag_memoria_llena = false;
+		}
+	}
+	//en ese caso, ejecutar algoritmo de reemplazo
+	if(flag_memoria_llena){
+		//algoritmo de reemplazo
+	}else{
+		//sino - cargar pagina (asignarle un marco si no tiene y cambiarle el bit de presencia a 1)
+	}
+
+}
 
 uint32_t leer_espacio_usuario(uint32_t direccion) {
 	uint32_t valor;

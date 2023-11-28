@@ -25,7 +25,9 @@ typedef enum
 	RECURSO_WAIT,
 	LEER_MEMORIA,
 	ESCRIBIR_MEMORIA,
-	MARCO
+	MARCO,
+	PCB_PF,
+	CARGAR_PAGINA
 }op_code;
 
 typedef enum
@@ -123,4 +125,11 @@ void recv_solicitud_marco(int dispatch_cliente_fd, int* pid, int* numero_pagina)
 void send_marco (int dispatch_cliente_fd, int marco); //kernel
 int recv_marco (int dispatch_cliente_fd); //cpu
 
+//PAGE FAULT CPU A KERNEL
+void send_pcb_pf(t_pcb* pcb, int numero_pagina, int dispatch_cliente_fd);
+t_pcb* recv_pcb_pf(int fd_cpu_dispatch, int* numero_pagina);
+
+//NUMERO DE PAGINA
+void send_numero_pagina(int pid, int numero_pagina, int fd_memoria);
+void recv_numero_pagina(int* pid, int* numero_pagina, int fd_kernel);
 #endif

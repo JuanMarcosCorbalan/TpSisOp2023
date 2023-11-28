@@ -16,8 +16,5 @@ t_config* iniciar_config(void);
 
 t_config* config;
 
-int cant_marcos;
-char* bitmap_marcos;
-char* inicializar_bitmap_marcos(void);
 
 #endif

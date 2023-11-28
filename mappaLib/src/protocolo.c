@@ -477,8 +477,44 @@ void send_marco (int fd, int marco){
 int recv_marco (int fd){
 	t_list* paquete = recibir_paquete(fd);
 
-	int marco = list_get(paquete, 0);
+	int* marco = list_get(paquete, 0);
 	list_destroy(paquete);
-	return marco;
+	return *marco;
+}
+
+//PAGE FAULT CPU A KERNEL
+void send_pcb_pf(t_pcb* pcb, int numero_pagina, int dispatch_cliente_fd){
+	t_paquete* paquete = crear_paquete(PCB_PF);
+
+	agregar_a_paquete(paquete, pcb, sizeof(t_pcb));
+	agregar_a_paquete(paquete, &numero_pagina, sizeof(int));
+
+	enviar_paquete(paquete, dispatch_cliente_fd);
+	eliminar_paquete(paquete);
+}
+t_pcb* recv_pcb_pf(int fd_cpu_dispatch, int* numero_pagina){
+	t_list* paquete = recibir_paquete(fd_cpu_dispatch);
+	t_pcb* pcb = list_get(paquete, 0);
+	numero_pagina = list_get(paquete, 1);
+	list_destroy(paquete);
+
+	return pcb;
+}
+//NUMERO DE PAGINA
+void send_numero_pagina(int pid, int numero_pagina, int fd_memoria){
+	t_paquete* paquete = crear_paquete(CARGAR_PAGINA);
+
+	agregar_a_paquete(paquete, &pid, sizeof(t_pcb));
+	agregar_a_paquete(paquete, &numero_pagina, sizeof(int));
+
+	enviar_paquete(paquete, fd_memoria);
+	eliminar_paquete(paquete);
+}
+void recv_numero_pagina(int* pid, int* numero_pagina, int fd_kernel){
+	t_list* paquete = recibir_paquete(fd_kernel);
+	pid = list_get(paquete, 0);
+	numero_pagina = list_get(paquete, 1);
+	list_destroy(paquete);
+
 }
 
