@@ -12,5 +12,10 @@
 
 t_config* iniciar_config(void);
 
+uint32_t* inicializar_fat(int);
+t_config* crear_archivo_fcb(t_fcb*);
+void crear_fcb(char* , int , int);
+void crear_archivo(char* , t_list*);
+
 #endif
 
