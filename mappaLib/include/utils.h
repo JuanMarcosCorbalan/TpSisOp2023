@@ -81,6 +81,7 @@ typedef struct
 	int bit_presencia;
 	int bit_modificado;
 	int pos_swap;
+	int instante_de_referencia;
 }t_pagina;
 
 typedef struct{

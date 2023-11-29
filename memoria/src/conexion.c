@@ -9,6 +9,9 @@ int cant_marcos;
 int contador_marcos;
 char* bitmap_marcos;
 void* espacio_usuario;
+char* algoritmo_reemplazo;
+t_list* paginas_en_memoria = list_create();
+int contador_instante = 0;
 
 static void procesar_cliente(void* void_args){
 	t_procesar_cliente_args* args = (t_procesar_cliente_args*) void_args;
@@ -20,6 +23,7 @@ static void procesar_cliente(void* void_args){
 	tam_pagina = atoi(config_get_string_value(config, "TAM_PAGINA"));
 	tam_memoria = atoi(config_get_string_value(config, "TAM_MEMORIA"));
 	retardo_respuesta = atoi(config_get_string_value(config, "RETARDO_RESPUESTA"));
+	algoritmo_reemplazo = config_get_string_value(config, "ALGORITMO_REEMPLAZO");
 	cant_marcos = tam_memoria / tam_pagina;
 	bitmap_marcos = inicializar_bitmap_marcos();
 
@@ -249,20 +253,38 @@ void cargar_pagina(int pid, int numero_pagina){
 
 	//ver si la memoria esta llena (bitmap de marcos)
 	bool flag_memoria_llena = true;
-	int i;
-	for(i = 0; i < cant_marcos; i++){
-		if(bitmap_marcos[i] == 0){
-			break;
+	int marco;
+	for(marco = 0; marco < cant_marcos; marco++){
+		if(bitmap_marcos[marco] == '0'){
 			flag_memoria_llena = false;
+			break;
 		}
 	}
 	//en ese caso, ejecutar algoritmo de reemplazo
 	if(flag_memoria_llena){
 		//algoritmo de reemplazo
+		realizar_reemplazo(pid, numero_pagina);
 	}else{
 		//sino - cargar pagina (asignarle un marco si no tiene y cambiarle el bit de presencia a 1)
+
+		//TODO delegar a otra funcion "
+		//pagina->marco = marco;
+		//pagina->bit_presencia = 1;
+		//pagina->instante_de_referencia = contador_instante;
+		bitmap_marcos[marco] = '1';
+		//list_add(paginas_en_memoria, pagina);
 	}
 
+}
+
+void realizar_reemplazo(int pid, int numero_pagina){ //TODO
+	if(!strcmp(algoritmo_reemplazo, "FIFO")){
+		t_pagina* pagina_victima = list_remove(paginas_en_memoria, 0);
+
+	}
+	else if(!strcmp(algoritmo_reemplazo, "LRU")){
+
+	}
 }
 
 uint32_t leer_espacio_usuario(uint32_t direccion) {
