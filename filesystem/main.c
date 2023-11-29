@@ -5,12 +5,14 @@ t_log* logger;
 int main(void) {
 	logger = log_create("filesystem.log", "FILESYSTEM", 1, LOG_LEVEL_DEBUG);
 
+
 	t_config* config;
-	t_list* tabla_fat;
+	uint32_t* tabla_fat;
 	char* ip;
 	char* puerto_escucha;
 	char* puerto_memoria;
 	int fd_memoria = 0;
+	FILE* archivo_bloques;
 	config = iniciar_config();
 	ip = config_get_string_value(config, "IP");
 	puerto_escucha = config_get_string_value(config, "PUERTO_ESCUCHA");
@@ -20,7 +22,7 @@ int main(void) {
 	int tamanio_fat = cant_bloques_total - cant_bloques_swap;
 	int tam_bloque = atoi(config_get_string_value(config, "TAM_BLOQUE"));
 	int cant_bloques = tamanio_fat / tam_bloque;
-
+	int tamanio_swap = cant_bloques_swap * tam_bloque;
 //	fd_memoria = crear_conexion(logger, ip, puerto_memoria);
 //	enviar_mensaje("Hola, soy un File System!", fd_memoria);
 //
@@ -29,9 +31,13 @@ int main(void) {
 //	while(experar_clientes(logger, server_fd));
 //	log_info(logger, "KERNEL CONECTADO A FS");
 
-
 	tabla_fat = inicializar_fat(tamanio_fat);
-	crear_archivo("hola",tabla_fat);
+	archivo_bloques = cargar_fat_en_archivo(tabla_fat, cant_bloques, tamanio_swap);
+	t_config* archivo_fcb = crear_archivo_fcb("hola");
+
+	fclose(archivo_bloques);
+	config_destroy(config);
+	config_destroy(archivo_fcb);
 	return EXIT_SUCCESS;
 }
 
@@ -64,16 +70,12 @@ void recibir_peticion_cpu(){
 //}
 
 uint32_t* inicializar_fat(int cantidad_bloques_fat){ // se inicializan todas las entradas de la tabla fat
-//	t_list* fat = list_create();
-//	fat->elements_count = tamanio_fat;
-//	for (int i = 0; i < list_size(fat); i++){
-//		uint32_t* entrada = list_get(fat, i);
-//		entrada = 0;
-//	return fat;
-
-//	}
-
-	uint32_t* tabla_fat[cantidad_bloques_fat];
+	uint32_t* tabla_fat = malloc(cantidad_bloques_fat * sizeof(uint32_t));
+	if (tabla_fat == NULL) {
+		// Manejar error de asignación de memoria
+		fprintf(stderr, "Error al asignar memoria para la tabla FAT\n");
+		return NULL;
+	}
 	for (int i = 0; i<cantidad_bloques_fat; i++) {
 		tabla_fat[i] = 0;
 	}
@@ -86,44 +88,67 @@ FILE* cargar_fat_en_archivo(uint32_t* tabla_fat, int cantidad_bloques_fat, uint3
 
 	for(int i = 0; i < cantidad_bloques_fat; i++){
 		int bloque_actual = tabla_fat[i];
-		fwrite(bloque_actual,sizeof(tabla_fat), 1 , archivo_bloques);
+		fwrite(&bloque_actual,sizeof(tabla_fat), 1 , archivo_bloques);
 	}
 	return archivo_bloques;
+	// no cierro el archivo para que quede abierto hasta que termine de ejecutar el fs
 }
 
-uint32_t* obtener_bloque_siguiente(int bloque_actual, uint32_t* tabla_fat){
-	uint32_t* bloque_siguiente = 0;
+uint32_t obtener_bloque_siguiente(int bloque_actual, uint32_t* tabla_fat){
+	uint32_t bloque_siguiente = 0;
 	bloque_siguiente = tabla_fat[bloque_actual];
 	return bloque_siguiente;
 }
 
-t_config* crear_archivo_fcb(t_fcb* fcb){
+t_config* crear_archivo_fcb(char* nombre_archivo){
 	//segun el enunciado conviene hacerlo como si fuera un config
-	char tamanio_archivo[] = "VACIO";
-	char bloque_inicial[] = "NO_ASIGNADO";
-	sprintf(tamanio_archivo, "%d", fcb->tamanio_archivo);
-	sprintf(bloque_inicial, "%d", fcb->bloque_inicial);
-//	bloque_inicial = itoa(fcb->bloque_inicial);
-	t_config* archivo_fcb;
-	archivo_fcb = config_create(("./%s",fcb->nombre_archivo));
-	config_set_value(archivo_fcb,"NOMBRE_ARCHIVO",fcb->nombre_archivo);
-	config_set_value(archivo_fcb,"TAMANIO_ARCHIVO",tamanio_archivo);
-	config_set_value(archivo_fcb,"BLOQUE_INICIAL",bloque_inicial);
+	char* path = malloc(strlen("./fcbs/") + strlen(nombre_archivo) + strlen(".fcb") + 1); // +1 para el carácter nulo al final
+	char* aux_nombre = malloc(strlen(nombre_archivo) + 1);
+	strcpy(path, "./fcbs/");
+	strcat(path, nombre_archivo);
+	strcat(path, ".fcb");
+	strcpy(aux_nombre, nombre_archivo);
+
+
+	FILE* archivo_fcb_txt = fopen(path, "w");
+
+	fprintf(archivo_fcb_txt, "NOMBRE_ARCHIVO=\n");
+	fprintf(archivo_fcb_txt, "TAMANIO_ARCHIVO=\n");
+	fprintf(archivo_fcb_txt, "BLOQUE_INICIAL=\n");
+
+	fclose(archivo_fcb_txt);
+
+	t_config* archivo_fcb = config_create(path);
+	if (archivo_fcb == NULL) {
+		// Imprime un mensaje de error si config_create falla
+		fprintf(stderr, "Error al abrir el archivo FCB: %s\n", path);
+		free(path);
+		free(aux_nombre);
+	return NULL;
+	}
+	config_set_value(archivo_fcb,"NOMBRE_ARCHIVO",aux_nombre);
+	config_set_value(archivo_fcb,"TAMANIO_ARCHIVO","0");
+	config_set_value(archivo_fcb,"BLOQUE_INICIAL","0");
+
+	config_save(archivo_fcb);
+
+	free(path);
+	free(aux_nombre);
+
 	return archivo_fcb;
 }
 
-void crear_fcb(char* nombre, int tamanio, int bloque){
-	t_fcb* nuevo_fcb;
-	nuevo_fcb->nombre_archivo = nombre;
-	nuevo_fcb->tamanio_archivo = tamanio;
-	nuevo_fcb->bloque_inicial = bloque;
-	crear_archivo_fcb(nuevo_fcb);
-}
+//void crear_archivo_en_fat(char* nombreArchivoNuevo){
+//	crear_fcb(nombreArchivoNuevo, 0, 0);//deberia pasarle como argumentos el tamaño inicial 0 y bloque inicial null
+//
+//}
 
-void crear_archivo(char* nombreArchivoNuevo, t_list* fat){
-	crear_fcb(nombreArchivoNuevo, 0, 0);//deberia pasarle como argumentos el tamaño inicial 0 y bloque inicial null
-
-}
+//void inicializar_fcb(t_fcb* fcb){
+////	fcb->nombre_archivo =  malloc(strlen(fcb->nombre_archivo)+1);
+//	fcb->tamanio_archivo = 0;
+//	fcb->bloque_inicial = 0;
+//
+//}
 
 // A ESTA FUNCION POR AHORA NO LE DOY BOLA PERO NO SE COMO HACER PARA REPRESENTAR UN BLOQUE VACIO
 //bool archivo_entra_en_fat(t_list* fat, int tamanio_fat, int tam_bloque, t_fcb* fcb_archivo) {
