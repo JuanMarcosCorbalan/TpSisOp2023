@@ -27,7 +27,8 @@ typedef enum
 	ESCRIBIR_MEMORIA,
 	MARCO,
 	PCB_PF,
-	CARGAR_PAGINA
+	CARGAR_PAGINA,
+	PAGINA_CARGADA
 }op_code;
 
 typedef enum
@@ -132,4 +133,7 @@ t_pcb* recv_pcb_pf(int fd_cpu_dispatch, int* numero_pagina);
 //NUMERO DE PAGINA
 void send_numero_pagina(int pid, int numero_pagina, int fd_memoria);
 void recv_numero_pagina(int* pid, int* numero_pagina, int fd_kernel);
+
+//PAGINA CARGADA
+void recv_pagina_cargada(fd_memoria);
 #endif

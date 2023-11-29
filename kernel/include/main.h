@@ -31,6 +31,7 @@ pthread_mutex_t mutex_ready_list;
 pthread_mutex_t mutex_cola_new;
 pthread_mutex_t mutex_cola_exec;
 pthread_mutex_t mutex_logger;
+pthread_mutex_t mutex_blocked_list;
 
 sem_t sem_multiprogramacion;
 sem_t sem_procesos_new;

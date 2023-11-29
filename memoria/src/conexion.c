@@ -62,6 +62,7 @@ static void procesar_cliente(void* void_args){
 				recv_numero_pagina(pid, numero_pagina, cliente_fd);
 				cargar_pagina(*pid, *numero_pagina);
 				//mandar respuesta a kernel
+				enviar_operacion(PAGINA_CARGADA, cliente_fd);
 				break;
 			case LEER_MEMORIA:
 				//recibir direccion
@@ -283,7 +284,11 @@ void realizar_reemplazo(int pid, int numero_pagina){ //TODO
 
 	}
 	else if(!strcmp(algoritmo_reemplazo, "LRU")){
+		void* _paginas_menor_referencia(t_pagina* pagina1, t_pagina* pagina2) {
+		    return pagina1->instante_de_referencia <= pagina2->instante_de_referencia ? pagina1 : pagina2;
+		}
 
+		t_pagina* pagina_victima = list_get_minimum(paginas_en_memoria, (void*) _paginas_menor_referencia);
 	}
 }
 
