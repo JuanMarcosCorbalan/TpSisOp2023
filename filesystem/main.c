@@ -98,7 +98,6 @@ void leer_archivo(){
 void escribir_archivo(char* path){
 	//cuando se escribe un archivo, primero hay que truncarlo, modificar el fcb con el nuevo tamaño y escribir en los bloques
 
-	if ();
 }
 
 void truncar_archivo(char* path, int tamanio_a_cambiar) {
