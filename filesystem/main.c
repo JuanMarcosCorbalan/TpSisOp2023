@@ -19,21 +19,31 @@ int main(void) {
 	puerto_memoria = config_get_string_value(config, "PUERTO_MEMORIA");
 	int cant_bloques_total = atoi(config_get_string_value(config, "CANT_BLOQUES_TOTAL"));
 	int cant_bloques_swap = atoi(config_get_string_value(config, "CANT_BLOQUES_SWAP"));
-	int tamanio_fat = cant_bloques_total - cant_bloques_swap;
+	int cant_bloques_fat = cant_bloques_total - cant_bloques_swap;
 	int tam_bloque = atoi(config_get_string_value(config, "TAM_BLOQUE"));
-	int cant_bloques = tamanio_fat / tam_bloque;
+	int tamanio_fat = cant_bloques_fat * tam_bloque;
 	int tamanio_swap = cant_bloques_swap * tam_bloque;
-//	fd_memoria = crear_conexion(logger, ip, puerto_memoria);
-//	enviar_mensaje("Hola, soy un File System!", fd_memoria);
-//
-//	int server_fd = iniciar_servidor(puerto_escucha);
-//	log_info(logger, "FILESYSTEM LISTO...");
-//	while(experar_clientes(logger, server_fd));
-//	log_info(logger, "KERNEL CONECTADO A FS");
+	int tamanio_archivo_bloques = tamanio_swap + tamanio_fat;
+	fd_memoria = crear_conexion(logger, ip, puerto_memoria);
+	enviar_mensaje("Hola, soy un File System!", fd_memoria);
 
+	int server_fd = iniciar_servidor(puerto_escucha);
+	log_info(logger, "FILESYSTEM LISTO...");
+	while(experar_clientes(logger, server_fd));
+	log_info(logger, "KERNEL CONECTADO A FS");
+
+
+	while(manejar_peticiones());
+	// esto deberia ir en manejar solicitudes? o antes?
 	tabla_fat = inicializar_fat(tamanio_fat);
-	archivo_bloques = cargar_fat_en_archivo(tabla_fat, cant_bloques, tamanio_swap);
+//	archivo_bloques = cargar_fat_en_archivo(tabla_fat, cant_bloques, tamanio_swap);
 	t_config* archivo_fcb = crear_archivo_fcb("hola");
+
+	archivo_bloques = fopen("./ArchivoDeBloques", "wb+");
+	if (archivo_bloques == NULL) {
+		crear_archivo_bloques(tamanio_archivo_bloques);
+		log_info(logger, "No se encontro el archivo de bloques, se creo uno nuevo");
+	}
 
 	fclose(archivo_bloques);
 	config_destroy(config);
@@ -53,17 +63,37 @@ t_config* iniciar_config(void)
 	return nuevo_config;
 }
 
-//void solicitud_peticion(){
-//	// como hago para tener multiples instancias? SERIA UNA POR SOCKET
-//	pthread_t hilo_peticion;
-//	pthread_create(&hilo_peticion, NULL, (void*) recibir_peticion_cpu, NULL);
-//	pthread_detach(hilo_peticion);
-//}
+void manejar_peticiones(){
+	// como hago para tener multiples instancias? SERIA UNA POR SOCKET
+	pthread_t hilo_peticion;
+	pthread_create(&hilo_peticion, NULL, (void*) recibir_peticion_cpu, NULL);
+	pthread_detach(hilo_peticion);
+}
 
 void recibir_peticion_cpu(){
 	// aca va a llegar peticiones tales como abrir archivo, truncar, leer o escribir. ¿que hago con crear y cerrar?
 }
 
+void crear_archivo(){
+
+}
+void abrir_archivo(){
+
+}
+
+void leer_archivo(){
+
+}
+
+void escribir_archivo(char* path){
+	//cuando se escribe un archivo, primero hay que truncarlo, modificar el fcb con el nuevo tamaño y escribir en los bloques
+
+	if ();
+}
+
+void truncar_archivo(char* path, int tamanio_a_cambiar) {
+
+}
 
 //t_list* swap{
 //
@@ -82,6 +112,9 @@ uint32_t* inicializar_fat(int cantidad_bloques_fat){ // se inicializan todas las
 	return tabla_fat;
 }
 
+// esto esta mal, la fat no va en el archivo
+// lo que va en el archivo son los datos
+// la fat la voy a tratar como una estructura propia del fs para simplemente manejar los bloques
 FILE* cargar_fat_en_archivo(uint32_t* tabla_fat, int cantidad_bloques_fat, uint32_t tamanio_swap){
 	FILE *archivo_bloques = fopen("./ArchivoDeBloques", "wb+");
 	fseek(archivo_bloques, tamanio_swap, SEEK_SET); // busca hasta el final de la swap
@@ -93,6 +126,8 @@ FILE* cargar_fat_en_archivo(uint32_t* tabla_fat, int cantidad_bloques_fat, uint3
 	return archivo_bloques;
 	// no cierro el archivo para que quede abierto hasta que termine de ejecutar el fs
 }
+
+
 
 uint32_t obtener_bloque_siguiente(int bloque_actual, uint32_t* tabla_fat){
 	uint32_t bloque_siguiente = 0;
@@ -136,6 +171,21 @@ t_config* crear_archivo_fcb(char* nombre_archivo){
 	free(aux_nombre);
 
 	return archivo_fcb;
+}
+
+// TANTO PARA CREAR COMO PARA ABRIR UN ARCHIVO NO TIENE NINGUNA IMPLICANCIA EN EL ARCHIVO DE BLOQUES, ESTE SOLO GUARDA DATOS
+// Y ABRIR CREO QUE VA MAS POR EL LADO DE LOS PERMISOS Y ESAS COSAS
+
+// LAS PRIMERAS OPERACIONES QUE COMIENZAN A TENER IMPLICANCIA DIRECTA EN EL ARCHIVO DE BLOQUES SON LEER, ESCRIBIR Y TRUNCAR
+// CABE ACLARAR QUE CADA VEZ QUE SE ESCRIBE HAY QUE TRUNCAR HASTA EL TAMAÑO QUE SE NECESITE, LUEGO TENGO QUE VER COMO REPRESENTO LOS BLOQUES
+// A PARTIR DEL ARCHIVO DE BLOQUES
+// TAMBIEN ACLARO QUE EN LA ASIGNACION DE BLOQUES, QUE SE VA A DAR PRIMERO BUSCANDO UN BLOQUE INICIAL Y LUEGO ASIGNANDO CUALQUIERA DE
+// LOS BLOQUES SIGUIENTES
+
+
+// primero deberia crear el archivo de bloques en caso de que no este en el path, es un archivo binario
+void crear_archivo_bloques(int tamanio_archivo_bloques, char* path){
+
 }
 
 //void crear_archivo_en_fat(char* nombreArchivoNuevo){
