@@ -52,6 +52,12 @@ typedef enum {
 	WAIT,
 	SIGNAL,
 	EXIT,
+	F_OPEN,
+	F_CLOSE,
+	F_SEEK,
+	F_WRITE,
+	F_READ,
+	F_TRUNCATE
 } codigo_instruccion;
 
 typedef struct {

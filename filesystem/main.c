@@ -24,16 +24,23 @@ int main(void) {
 	int tamanio_fat = cant_bloques_fat * tam_bloque;
 	int tamanio_swap = cant_bloques_swap * tam_bloque;
 	int tamanio_archivo_bloques = tamanio_swap + tamanio_fat;
+
+
 	fd_memoria = crear_conexion(logger, ip, puerto_memoria);
 	enviar_mensaje("Hola, soy un File System!", fd_memoria);
 
+
 	int server_fd = iniciar_servidor(puerto_escucha);
 	log_info(logger, "FILESYSTEM LISTO...");
+
+
 	while(experar_clientes(logger, server_fd));
 	log_info(logger, "KERNEL CONECTADO A FS");
 
 
 	while(manejar_peticiones());
+
+
 	// esto deberia ir en manejar solicitudes? o antes?
 	tabla_fat = inicializar_fat(tamanio_fat);
 //	archivo_bloques = cargar_fat_en_archivo(tabla_fat, cant_bloques, tamanio_swap);
@@ -66,12 +73,15 @@ t_config* iniciar_config(void)
 void manejar_peticiones(){
 	// como hago para tener multiples instancias? SERIA UNA POR SOCKET
 	pthread_t hilo_peticion;
-	pthread_create(&hilo_peticion, NULL, (void*) recibir_peticion_cpu, NULL);
+	pthread_create(&hilo_peticion, NULL, (void*) procesar_peticion, NULL);
 	pthread_detach(hilo_peticion);
+
+
 }
 
-void recibir_peticion_cpu(){
+void procesar_peticion(){
 	// aca va a llegar peticiones tales como abrir archivo, truncar, leer o escribir. ¿que hago con crear y cerrar?
+
 }
 
 void crear_archivo(){
