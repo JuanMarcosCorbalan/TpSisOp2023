@@ -15,10 +15,9 @@ t_config* iniciar_config(void);
 uint32_t* inicializar_fat(int);
 t_config* crear_archivo_fcb(char*);
 void crear_fcb(char* , int , int);
-void crear_archivo(char* , t_list*);
 void crear_archivo_en_fat(char*);
 void inicializar_fcb(t_fcb*);
-
+void crear_archivo_bloques(int , char*){
 
 #endif
 
