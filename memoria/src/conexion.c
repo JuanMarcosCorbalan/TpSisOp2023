@@ -150,8 +150,14 @@ codigo_instruccion instruccion_to_enum(char* instruccion){
 		return SUM;
 	} else if(strcmp(instruccion, "SUB") == 0){
 		return SUB;
-	}  else if(strcmp(instruccion, "EXIT") == 0){
+	} else if(strcmp(instruccion, "EXIT") == 0){
 		return EXIT;
+	} else if(strcmp(instruccion, "WAIT") == 0){
+		return WAIT;
+	} else if(strcmp(instruccion, "SLEEP") == 0){
+		return SLEEP;
+	} else if(strcmp(instruccion, "SIGNAL") == 0){
+		return SIGNAL;
 	}
 
 	return EXIT_FAILURE;
