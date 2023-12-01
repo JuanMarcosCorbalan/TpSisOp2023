@@ -523,3 +523,38 @@ void recv_pagina_cargada(fd_memoria){
 	recibir_operacion(fd_memoria);
 }
 
+//SOLICITUD DE LECTURA DE MEMORIA
+void send_solicitud_lectura(int direccion_logica, int fd_memoria){
+	t_paquete* paquete = crear_paquete(LEER_MEMORIA);
+
+	agregar_a_paquete(paquete, &direccion_logica, sizeof(t_pcb));
+
+	enviar_paquete(paquete, fd_memoria);
+	eliminar_paquete(paquete);
+}
+
+int recv_solicitud_lectura(int fd_cpu){
+	t_list* paquete = recibir_paquete(fd_cpu);
+	int direccion_fisica = list_get(paquete, 0);
+
+	list_destroy(paquete);
+	return direccion_fisica;
+}
+
+// ENVIAR VALOR LEIDO
+void send_valor_leido(uint32_t valor, int fd_cpu){
+	t_paquete* paquete = crear_paquete();
+
+	agregar_a_paquete(paquete, &valor, sizeof(t_pcb));
+
+	enviar_paquete(paquete, fd_cpu);
+	eliminar_paquete(paquete);
+}
+
+uint32_t recv_valor_leido(int fd_memoria){
+	t_list* paquete = recibir_paquete(fd_memoria);
+	uint32_t valor = list_get(paquete, 0);
+
+	list_destroy(paquete);
+	return valor;
+}

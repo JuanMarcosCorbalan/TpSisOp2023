@@ -39,6 +39,6 @@ void procesar_solicitud_marco(int fd_cpu);
 
 void cargar_pagina(int pid, int numero_pagina);
 
-uint32_t leer_espacio_usuario(uint32_t direccion);
-void escribir_espacio_usuario(uint32_t direccion, uint32_t valor);
+uint32_t leer_espacio_usuario(int direccion);
+void escribir_espacio_usuario(int direccion, uint32_t valor);
 #endif

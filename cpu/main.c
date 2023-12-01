@@ -89,7 +89,7 @@ void ejecutar_instrucciones(t_pcb* pcb){
 	}
 }
 
-void* ejecutar_interrupcion(t_pcb* pcb, void *arg) {
+void ejecutar_interrupcion(t_pcb* pcb, void *arg) {
 	t_interrupt* interrupcion;
 	int interrupt_server_fd = iniciar_servidor(config_cpu.puerto_escucha_interrupt);
 	log_info(logger, "INTERRUPT CPU LISTO.");
@@ -152,23 +152,25 @@ void decode(t_instruccion* instruccion, t_pcb* pcb){
 	}
 }
 
-void ejecutar_set(t_pcb* pcb, char* param1, char* param2){
-	if(strcmp(param1, "AX") == 0){
-		pcb->registros_generales_cpu.ax = (uint32_t)strtoul(param2, NULL, 10);
-	} else if(strcmp(param1, "BX") == 0){
-		pcb->registros_generales_cpu.bx = (uint32_t)strtoul(param2, NULL, 10);
-	} else if(strcmp(param1, "CX") == 0){
-		pcb->registros_generales_cpu.cx = (uint32_t)strtoul(param2, NULL, 10);
-	} else if(strcmp(param1, "DX") == 0){
-		pcb->registros_generales_cpu.dx = (uint32_t)strtoul(param2, NULL, 10);
+void cambiar_valor_registro(t_pcb* pcb, char* registro, uint32_t nuevo_valor){
+	if(strcmp(registro, "AX") == 0){
+		pcb->registros_generales_cpu.ax = nuevo_valor;
+	} else if(strcmp(registro, "BX") == 0){
+		pcb->registros_generales_cpu.bx = nuevo_valor;
+	} else if(strcmp(registro, "CX") == 0){
+		pcb->registros_generales_cpu.cx = nuevo_valor;
+	} else if(strcmp(registro, "DX") == 0){
+		pcb->registros_generales_cpu.dx = nuevo_valor;
 	}
+}
+
+void ejecutar_set(t_pcb* pcb, char* param1, char* param2){
+	cambiar_valor_registro(pcb, param1, (uint32_t)strtoul(param2, NULL, 10));
 }
 
 void ejecutar_sum(t_pcb* pcb, char* param1, char* param2){
 	uint32_t parametroASumar1;// = (uint32_t)strtoul(param1, NULL, 10);
 	uint32_t parametroASumar2;// = (uint32_t)strtoul(param2, NULL, 10);
-
-
 
 	if(strcmp(param1, "AX") == 0){
 			parametroASumar1 = pcb->registros_generales_cpu.ax;// = parametroASumar1 + parametroASumar2;
@@ -190,30 +192,14 @@ void ejecutar_sum(t_pcb* pcb, char* param1, char* param2){
 			parametroASumar2 = pcb->registros_generales_cpu.dx;// = parametroASumar1 + parametroASumar2;
 	}
 
-	if(strcmp(param1, "AX") == 0){
-			pcb->registros_generales_cpu.ax = parametroASumar1 + parametroASumar2;
-		} else if(strcmp(param1, "BX") == 0){
-			pcb->registros_generales_cpu.bx = parametroASumar1 + parametroASumar2;
-		} else if(strcmp(param1, "CX") == 0){
-			pcb->registros_generales_cpu.cx = parametroASumar1 + parametroASumar2;
-		} else if(strcmp(param1, "DX") == 0){
-			pcb->registros_generales_cpu.dx = parametroASumar1 + parametroASumar2;
-	}
+	cambiar_valor_registro(pcb, param1, parametroASumar1 + parametroASumar2);
 }
 
 void ejecutar_sub(t_pcb* pcb, char* param1, char* param2){
 	uint32_t parametroARestar1 = (uint32_t)strtoul(param1, NULL, 10);
 	uint32_t parametroARestar2 = (uint32_t)strtoul(param2, NULL, 10);
 
-	if(strcmp(param1, "AX") == 0){
-			pcb->registros_generales_cpu.ax = parametroARestar1 - parametroARestar2;
-		} else if(strcmp(param1, "BX") == 0){
-			pcb->registros_generales_cpu.bx = parametroARestar1 - parametroARestar2;
-		} else if(strcmp(param1, "CX") == 0){
-			pcb->registros_generales_cpu.cx = parametroARestar1 - parametroARestar2;
-		} else if(strcmp(param1, "DX") == 0){
-			pcb->registros_generales_cpu.dx = parametroARestar1 - parametroARestar2;
-	}
+	cambiar_valor_registro(pcb, param1, parametroARestar1 + parametroARestar2);
 }
 
 void ejecutar_wait(t_pcb* pcb, char* param1){
@@ -239,11 +225,20 @@ void ejecutar_mov_in(t_pcb* pcb, char* param1, char* param2){
 	int marco = recv_marco(fd_memoria);
 
 	if(marco == -1){
-		log_info( "Page Fault PID: %d - Pagina: %d", pcb->pid, numero_pagina);
+		log_info( "Page Fault PID: %d - Pagina: %d", pcb->pid, numero_pagina); //log ob
 		//iniciar acciones page fault
 		send_pcb_pf(pcb, numero_pagina, dispatch_cliente_fd);
+		//TODO mandar interrupcion para que no actualice el program counter
+		return;
 	}
+	log_info( "PID: %d - OBTENER MARCO - Página: %d - Marco: %", pcb->pid, numero_pagina, marco); //log ob
 
+	int direccion_logica = marco + desplazamiento;
+
+	send_solicitud_lectura(direccion_logica, fd_memoria);
+	uint32_t valor = recv_valor_leido(fd_memoria);
+
+	cambiar_valor_registro(pcb, param1, valor);
 }
 
 t_config* iniciar_config(void)

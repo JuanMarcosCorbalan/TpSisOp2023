@@ -136,4 +136,13 @@ void recv_numero_pagina(int* pid, int* numero_pagina, int fd_kernel);
 
 //PAGINA CARGADA
 void recv_pagina_cargada(fd_memoria);
+
+//SOLICITUD DE LECTURA
+void send_solicitud_lectura(int direccion_logica, int fd_memoria);
+int recv_solicitud_lectura(int fd_cpu);
+
+//ENVIAR VALOR LEIDO
+void send_valor_leido(uint32_t valor, int fd_cpu);
+uint32_t recv_valor_leido(int fd_memoria);
+
 #endif

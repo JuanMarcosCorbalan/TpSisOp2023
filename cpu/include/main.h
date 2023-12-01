@@ -32,6 +32,7 @@ void fetch(t_pcb* pcb);
 t_instruccion* solicitar_instruccion(int pid, int program_counter);
 void decode(t_instruccion* instruccion, t_pcb* pcb);
 void leer_config();
+void cambiar_valor_registro(t_pcb* pcb, char* registro, uint32_t nuevo_valor);
 void ejecutar_set(t_pcb* pcb, char* param1, char* param2);
 void ejecutar_sum(t_pcb* pcb, char* param1, char* param2);
 void ejecutar_sub(t_pcb* pcb, char* param1, char* param2);

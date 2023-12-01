@@ -66,8 +66,10 @@ static void procesar_cliente(void* void_args){
 				break;
 			case LEER_MEMORIA:
 				//recibir direccion
-				//dato = leer_espacio_usuario(direccion)
+				int direccion_fisica = recv_solicitud_lectura(cliente_fd);
+				uint32_t dato = leer_espacio_usuario(direccion_fisica);
 				//mandar dato
+				send_valor_leido(dato, cliente_fd);
 				break;
 			case ESCRIBIR_MEMORIA:
 				//recibir direccion y valor
@@ -292,7 +294,7 @@ void realizar_reemplazo(int pid, int numero_pagina){ //TODO
 	}
 }
 
-uint32_t leer_espacio_usuario(uint32_t direccion) {
+uint32_t leer_espacio_usuario(int direccion) {
 	uint32_t valor;
 
 	//mutex
@@ -301,7 +303,7 @@ uint32_t leer_espacio_usuario(uint32_t direccion) {
 	return valor;
 }
 
-void escribir_espacio_usuario(uint32_t direccion, uint32_t valor) {
+void escribir_espacio_usuario(int direccion, uint32_t valor) {
 	//mutex
 	memcpy(espacio_usuario + direccion, &valor, sizeof(int));
 
