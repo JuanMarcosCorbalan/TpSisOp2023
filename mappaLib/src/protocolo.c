@@ -310,6 +310,8 @@ void send_pcb(t_pcb* pcb, int socket){
 	agregar_a_paquete(paquete, &(pcb->registros_generales_cpu.cx), sizeof(uint32_t));
 	agregar_a_paquete(paquete, &(pcb->registros_generales_cpu.dx), sizeof(uint32_t));
 
+	agregar_a_paquete(paquete, &(pcb->motivo_exit), sizeof(t_motivo_exit));
+
 	enviar_paquete(paquete, socket);
 	eliminar_paquete(paquete);
 }
@@ -350,6 +352,10 @@ t_pcb* recv_pcb(int socket){
 	pcb->registros_generales_cpu.dx = *dx;
 	free(dx);
 
+	t_motivo_exit* motivo_exit = list_get(paquete, 8);
+	pcb->motivo_exit = *motivo_exit;
+	free(motivo_exit);
+
 	list_destroy(paquete);
 	return pcb;
 }
@@ -372,20 +378,60 @@ t_pcb* recv_pcb_actualizado(int fd){
 	return pcb;
 }
 
-//SEND_RECURSO_WAIT
+//RECURSO_WAIT
 
 void send_recurso_wait(int dispatch_cliente_fd, char* recurso){
-	t_paquete* paquete = crear_paquete(RECURSO_WAIT);
-	agregar_a_paquete(paquete, &recurso, sizeof(t_pcb));
+	t_paquete* paquete = crear_paquete(ATENDER_WAIT);
+	agregar_a_paquete(paquete, recurso, strlen(recurso) + 1);
 	enviar_paquete(paquete, dispatch_cliente_fd);
 	eliminar_paquete(paquete);
 }
 
-char* recv_recurso_wait(int dispatch_cliente_fd){
+void send_recurso_signal(int dispatch_cliente_fd, char* recurso){
+	t_paquete* paquete = crear_paquete(ATENDER_SIGNAL);
+	agregar_a_paquete(paquete, recurso, strlen(recurso) + 1);
+	enviar_paquete(paquete, dispatch_cliente_fd);
+	eliminar_paquete(paquete);
+}
+
+char* recv_recurso(int dispatch_cliente_fd){
 	t_list* paquete = recibir_paquete(dispatch_cliente_fd);
 	char* recurso = list_get(paquete, 0);
 
 	list_destroy(paquete);
 
 	return recurso;
+}
+
+//CAMBIAR_ESTADO
+void send_cambiar_estado(estado estado, int fd_modulo){
+	t_paquete* paquete = crear_paquete(CAMBIAR_ESTADO);
+	agregar_a_paquete(paquete, &estado, sizeof(estado));
+	enviar_paquete(paquete, fd_modulo);
+	eliminar_paquete(paquete);
+}
+
+estado recv_cambiar_estado(int fd_modulo){
+	t_list* paquete = recibir_paquete(fd_modulo);
+	estado* estado_proceso = list_get(paquete, 0);
+	estado ret = *estado_proceso;
+	free(estado_proceso);
+	list_destroy(paquete);
+	return ret;
+}
+
+//SLEEP
+void send_sleep(int tiempo_bloqueado, int fd_modulo){
+	t_paquete* paquete = crear_paquete(ATENDER_SLEEP);
+	agregar_a_paquete(paquete, &tiempo_bloqueado, sizeof(tiempo_bloqueado));
+	enviar_paquete(paquete, fd_modulo);
+	eliminar_paquete(paquete);
+}
+
+int recv_sleep(int fd_modulo){
+	t_list* paquete = recibir_paquete(fd_modulo);
+	int* tiempo_bloqueado_ptr = list_get(paquete, 0);
+	int tiempo_bloqueado = *tiempo_bloqueado_ptr;
+	list_destroy(paquete);
+	return tiempo_bloqueado;
 }

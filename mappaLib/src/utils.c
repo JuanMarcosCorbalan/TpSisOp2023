@@ -91,7 +91,7 @@ char *list_to_string(t_list *list){
     return string;
 }
 
-char* motivo_to_string(estado estado_exit){
+char* motivo_to_string(t_motivo_exit estado_exit){
 	switch(estado_exit){
 		case SUCCESS:
 			return "SUCCESS";
@@ -124,8 +124,8 @@ char* estado_to_string(estado estado){
 		case BLOCKED:
 			return "BLOCKED";
 			break;
-		case EXIT_CONSOLA:
-			return "EXIT_CONSOLA";
+		case EXIT_ESTADO:
+			return "EXIT_ESTADO";
 			break;
 		default:
 			return "DESCONOCIDO";

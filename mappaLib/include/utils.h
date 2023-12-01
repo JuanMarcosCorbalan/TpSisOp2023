@@ -21,12 +21,16 @@ typedef enum {
 	READY,
 	EXEC,
 	BLOCKED,
-	EXIT_ESTADO,
+	EXIT_ESTADO
+} estado;
+
+typedef enum{
+	PROCESO_ACTIVO,
 	SUCCESS,
 	INVALID_RESOURCE,
 	INVALID_WRITE,
 	EXIT_CONSOLA
-} estado;
+} t_motivo_exit;
 
 typedef struct {
 	int fd;
@@ -47,8 +51,9 @@ typedef struct {
 	int prioridad;
 	estado estado;
 	t_registros_generales_cpu registros_generales_cpu;
+	t_motivo_exit motivo_exit;
 //	t_archivos_abiertos archivos_abiertos;
-
+//	t_list recursos_asignados;
 } t_pcb;
 
 typedef enum {
@@ -77,7 +82,7 @@ typedef struct
 //t_list* datos_procesos;
 void imprimirPrueba();
 char* list_to_string(t_list *list);
-char* motivo_to_string(estado estado_exit);
+char* motivo_to_string(t_motivo_exit estado_exit);
 char* estado_to_string(estado estado);
 void* list_pop_con_mutex(t_list* lista, pthread_mutex_t* mutex);
 void list_push_con_mutex(t_list* lista, void* elemento, pthread_mutex_t* mutex);

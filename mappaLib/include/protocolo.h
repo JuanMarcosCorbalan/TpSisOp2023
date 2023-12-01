@@ -20,7 +20,10 @@ typedef enum
 	DATOS_PROCESO_NEW,
 	EJECUTAR_PCB,
 	PCB_ACTUALIZADO,
-	RECURSO_WAIT
+	ATENDER_WAIT,
+	ATENDER_SIGNAL,
+	CAMBIAR_ESTADO,
+	ATENDER_SLEEP
 }op_code;
 
 typedef enum
@@ -101,6 +104,17 @@ t_pcb* recv_pcb_actualizado(int fd);
 
 // RECURSO_WAIT
 void send_recurso_wait(int dispatch_cliente_fd, char* recurso);
-char* recv_recurso_wait(int dispatch_cliente_fd);
+char* recv_recurso(int dispatch_cliente_fd);
+
+// RECURSO_SIGNAL
+void send_recurso_signal(int dispatch_cliente_fd, char* recurso);
+
+// CAMBIAR_ESTADO
+void send_cambiar_estado(estado estado, int fd_modulo);
+estado recv_cambiar_estado(int fd_modulo);
+
+//SLEEP
+void send_sleep(int tiempo_bloqueado, int fd_modulo);
+int recv_sleep(int fd_modulo);
 
 #endif
