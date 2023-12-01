@@ -105,8 +105,8 @@ void* ejecutar_interrupcion(t_pcb* pcb, void *arg) {
 void fetch(t_pcb* pcb){
 	t_instruccion* proxima_instruccion = solicitar_instruccion(pcb->pid, pcb->program_counter);
 	log_info(logger, "PID: %d - FETCH - Program Counter: %d", pcb->pid, pcb->program_counter);
-	decode(proxima_instruccion, pcb);
 	pcb->program_counter += 1;
+	decode(proxima_instruccion, pcb);
 	//TODO
 //	check_interrupt();
 }
@@ -137,8 +137,17 @@ void decode(t_instruccion* instruccion, t_pcb* pcb){
 	case SUB:
 		ejecutar_sub(pcb, instruccion->param1, instruccion->param2);
 		break;
+	case SLEEP:
+		flag_hay_interrupcion = true;
+		ejecutar_sleep(pcb, instruccion->param1);
+		break;
 	case WAIT:
+		flag_hay_interrupcion = true;
 		ejecutar_wait(pcb, instruccion->param1);
+		break;
+	case SIGNAL:
+		flag_hay_interrupcion = true;
+		ejecutar_signal(pcb, instruccion->param1);
 		break;
 	case EXIT:
 		ejecutar_exit(pcb);
@@ -213,20 +222,36 @@ void ejecutar_sub(t_pcb* pcb, char* param1, char* param2){
 	}
 }
 
+void ejecutar_sleep(t_pcb* pcb, char* param1){
+	log_info(logger, "PID: %d - Ejecutando: %s - [%s]", pcb->pid, "SLEEP", param1);
+	int tiempo_bloqueado = strtoul(param1, NULL, 10);
+	send_pcb(pcb, dispatch_cliente_fd);
+	send_sleep(tiempo_bloqueado, dispatch_cliente_fd);
+}
+
 void ejecutar_wait(t_pcb* pcb, char* param1){
 	log_info(logger, "PID: %d - Ejecutando: %s - [%s]", pcb->pid, "WAIT", param1);
 	char* recurso = malloc(strlen(param1) + 1);
 	strcpy(recurso, param1);
-	send_pcb_actualizado(dispatch_cliente_fd, pcb);
+	send_pcb(pcb, dispatch_cliente_fd);
 	send_recurso_wait(dispatch_cliente_fd, recurso);
+	free(recurso);
+}
+
+void ejecutar_signal(t_pcb* pcb, char* param1) {
+	log_info(logger, "PID: %d - Ejecutando: %s - [%s]", pcb->pid, "SIGNAL", param1);
+	char* recurso = malloc(strlen(param1) + 1);
+	strcpy(recurso, param1);
+	send_pcb(pcb, dispatch_cliente_fd);
+	send_recurso_signal(dispatch_cliente_fd, recurso);
 	free(recurso);
 }
 
 void ejecutar_exit(t_pcb* pcb){
 	log_info(logger, "PID: %d - Ejecutando: %s", pcb->pid, "EXIT");
 	flag_hay_interrupcion = true;
-	pcb->estado = SUCCESS;
 	send_pcb(pcb, dispatch_cliente_fd);
+	send_cambiar_estado(EXIT_ESTADO, dispatch_cliente_fd);
 }
 
 t_config* iniciar_config(void)
