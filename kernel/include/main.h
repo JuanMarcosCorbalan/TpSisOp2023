@@ -16,11 +16,26 @@
 #include "../../mappaLib/include/protocolo.h"
 #include "../../mappaLib/include/utils.h"
 
+typedef struct{
+	char* recurso;
+	int id;
+	int instancias;
+	t_list* cola_block_asignada;
+	pthread_mutex_t mutex_asignado;
+}t_recurso;
+
+typedef struct {
+    t_pcb* pcb;
+    int retardo_bloqueo;
+} t_datos_hilo_sleep;
+
 t_queue* procesos_en_new;
 t_queue* procesos_en_exec;
 t_list* procesos_en_ready;
 t_list* procesos_en_blocked;
+t_list* procesos_en_blocked_sleep;
 t_list* procesos_en_exit;
+t_list* lista_recursos;
 
 pthread_t* hilo_largo_plazo;
 pthread_t* hilo_corto_plazo;
@@ -30,12 +45,18 @@ pthread_mutex_t mutex_cola_new;
 pthread_mutex_t mutex_cola_exec;
 pthread_mutex_t mutex_logger;
 pthread_mutex_t mutex_planificacion_activa;
+pthread_mutex_t mutex_lista_blocked;
+pthread_mutex_t mutex_lista_blocked_sleep;
+pthread_mutex_t mutex_lista_exit;
 
 sem_t sem_multiprogramacion;
 sem_t sem_procesos_new;
 sem_t sem_procesos_ready;
 sem_t sem_proceso_exec;
 sem_t sem_procesos_exit;
+sem_t sem_vuelta_blocked;
+sem_t sem_procesos_blocked;
+sem_t sem_procesos_blocked_sleep;
 
 int asignador_pid;
 int asignador_iid;
@@ -76,5 +97,16 @@ void actualizar_multiprogramacion(char *args[]);
 void listar_estados_proceso();
 t_pcb* pcb_copy_function(t_pcb* original);
 t_list* queue_to_list_copy(t_queue* original);
+
+void procesar_cambio_estado(t_pcb* pcb, estado nuevo_estado);
+void procesar_exit();
+t_list* inicializar_recursos();
+int* string_to_int_array(char** array_de_strings);
+t_recurso* buscar_recurso(char* recurso);
+void atender_wait(t_pcb* pcb, char* recurso);
+void procesar_vuelta_blocked();
+void atender_sleep(t_pcb* pcb, int retardo_bloqueo);
+void atender_signal(t_pcb* pcb, char* recurso);
+void procesar_sleep(void* args);
 
 #endif
