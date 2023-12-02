@@ -60,6 +60,7 @@ typedef enum {
 	SET,
 	SUM,
 	SUB,
+	JNZ,
 	SLEEP,
 	WAIT,
 	SIGNAL,

@@ -137,6 +137,9 @@ void decode(t_instruccion* instruccion, t_pcb* pcb){
 	case SUB:
 		ejecutar_sub(pcb, instruccion->param1, instruccion->param2);
 		break;
+	case JNZ:
+		ejecutar_jnz(pcb, instruccion->param1, instruccion->param2);
+		break;
 	case SLEEP:
 		flag_hay_interrupcion = true;
 		ejecutar_sleep(pcb, instruccion->param1);
@@ -219,6 +222,30 @@ void ejecutar_sub(t_pcb* pcb, char* param1, char* param2){
 			pcb->registros_generales_cpu.cx = parametroARestar1 - parametroARestar2;
 		} else if(strcmp(param1, "DX") == 0){
 			pcb->registros_generales_cpu.dx = parametroARestar1 - parametroARestar2;
+	}
+}
+
+void ejecutar_jnz(t_pcb* pcb, char* param1, char* param2){
+	int nuevo_program_counter = (int)strtoul(param2, NULL, 10);
+
+	log_info(logger, "PID: %d - Ejecutando: %s - [%s, %s]", pcb->pid, "JNZ", param1, param2);
+
+	if(strcmp(param1, "AX") == 0){
+		if(pcb->registros_generales_cpu.ax != 0){
+			pcb->program_counter = nuevo_program_counter;
+		}
+	} else if(strcmp(param1, "BX") == 0){
+		if(pcb->registros_generales_cpu.bx != 0){
+			pcb->program_counter = nuevo_program_counter;
+		}
+	} else if(strcmp(param1, "CX") == 0){
+		if(pcb->registros_generales_cpu.cx != 0){
+			pcb->program_counter = nuevo_program_counter;
+		}
+	} else if(strcmp(param1, "DX") == 0){
+		if(pcb->registros_generales_cpu.dx != 0){
+			pcb->program_counter = nuevo_program_counter;
+		}
 	}
 }
 
