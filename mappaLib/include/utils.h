@@ -29,7 +29,8 @@ typedef enum{
 	SUCCESS,
 	INVALID_RESOURCE,
 	INVALID_WRITE,
-	EXIT_CONSOLA
+	EXIT_CONSOLA,
+	INTERRUPT
 } t_motivo_exit;
 
 typedef struct {

@@ -43,7 +43,6 @@ pthread_t* hilo_corto_plazo;
 pthread_mutex_t mutex_ready_list;
 pthread_mutex_t mutex_cola_new;
 pthread_mutex_t mutex_cola_exec;
-pthread_mutex_t mutex_logger;
 pthread_mutex_t mutex_planificacion_activa;
 pthread_mutex_t mutex_lista_blocked;
 pthread_mutex_t mutex_lista_blocked_sleep;
@@ -108,5 +107,6 @@ void procesar_vuelta_blocked();
 void atender_sleep(t_pcb* pcb, int retardo_bloqueo);
 void atender_signal(t_pcb* pcb, char* recurso);
 void procesar_sleep(void* args);
+void recurso_destroy(t_recurso* recurso);
 
 #endif

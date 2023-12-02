@@ -19,13 +19,14 @@ t_config_cpu config_cpu;
 
 sem_t sem_nuevo_proceso;
 sem_t sem_ciclo_de_instrucciones;
+sem_t sem_interrupcion;
 
 t_instruccion* recibir_instruccion();
 void* ejecutar_ciclo_instruccion(void *arg);
 t_config* iniciar_config(void);
 void* ejecutar_pcb(void *arg);
 void ejecutar_instrucciones(t_pcb* pcb);
-void* ejecutar_interrupcion(t_pcb* pcb, void *arg);
+void* ejecutar_interrupcion(void *arg);
 void fetch(t_pcb* pcb);
 t_instruccion* solicitar_instruccion(int pid, int program_counter);
 void decode(t_instruccion* instruccion, t_pcb* pcb);

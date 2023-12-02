@@ -223,30 +223,21 @@ t_instruccion* recv_proxima_instruccion(int fd){
 	return instruccion_recibida;
 }
 
-/////////////////
-
-void send_interrupcion(t_interrupt* interrupcion, int fd){
-	t_paquete* datos_interrupcion = crear_paquete(INTERRUPCION);
-	t_interrupt* interrupcion_a_enviar = malloc(sizeof(t_interrupt));
-
-	interrupcion_a_enviar->motivo = interrupcion->motivo;
-	interrupcion_a_enviar->interrupt_id = interrupcion->interrupt_id;
-	interrupcion_a_enviar->flag = interrupcion->flag;
-
-	agregar_a_paquete(datos_interrupcion, interrupcion_a_enviar, sizeof(interrupcion_a_enviar));
-
-
-	enviar_paquete(datos_interrupcion, fd);
-	eliminar_paquete(datos_interrupcion);
+// INTERRUPCION
+void send_interrupcion(t_motivo_exit motivo, int fd){
+	t_paquete* paquete = crear_paquete(INTERRUPCION);
+	agregar_a_paquete(paquete, &motivo, sizeof(motivo));
+	enviar_paquete(paquete, fd);
+	eliminar_paquete(paquete);
 }
-t_interrupt* recv_interrupcion(int fd){
+
+t_motivo_exit recv_interrupcion(int fd){
 	t_list* paquete = recibir_paquete(fd);
-	t_interrupt* interrupcion = malloc(sizeof(t_interrupt));
-//	interrupcion->motivo = list_get(paquete, 0);
-//	interrupcion->interrupt_id = list_get(paquete, 1);
-//	interrupcion->flag = list_get(paquete, 2);
+	t_motivo_exit* motivo = list_get(paquete, 0);
+	t_motivo_exit ret = *motivo;
+	free(motivo);
 	list_destroy(paquete);
-	return interrupcion;
+	return ret;
 }
 
 // DATOS_PROCESO_NEW
@@ -380,14 +371,14 @@ t_pcb* recv_pcb_actualizado(int fd){
 
 //RECURSO_WAIT
 
-void send_recurso_wait(int dispatch_cliente_fd, char* recurso){
+void send_recurso_wait(char* recurso, int dispatch_cliente_fd){
 	t_paquete* paquete = crear_paquete(ATENDER_WAIT);
 	agregar_a_paquete(paquete, recurso, strlen(recurso) + 1);
 	enviar_paquete(paquete, dispatch_cliente_fd);
 	eliminar_paquete(paquete);
 }
 
-void send_recurso_signal(int dispatch_cliente_fd, char* recurso){
+void send_recurso_signal(char* recurso, int dispatch_cliente_fd){
 	t_paquete* paquete = crear_paquete(ATENDER_SIGNAL);
 	agregar_a_paquete(paquete, recurso, strlen(recurso) + 1);
 	enviar_paquete(paquete, dispatch_cliente_fd);
@@ -432,6 +423,7 @@ int recv_sleep(int fd_modulo){
 	t_list* paquete = recibir_paquete(fd_modulo);
 	int* tiempo_bloqueado_ptr = list_get(paquete, 0);
 	int tiempo_bloqueado = *tiempo_bloqueado_ptr;
+	free(tiempo_bloqueado_ptr);
 	list_destroy(paquete);
 	return tiempo_bloqueado;
 }
