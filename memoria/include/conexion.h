@@ -38,6 +38,7 @@ char* inicializar_bitmap_marcos(void);
 void procesar_solicitud_marco(int fd_cpu);
 
 void cargar_pagina(int pid, int numero_pagina);
+void realizar_reemplazo(int pid, int numero_pagina);
 
 uint32_t leer_espacio_usuario(int direccion);
 void escribir_espacio_usuario(int direccion, uint32_t valor);

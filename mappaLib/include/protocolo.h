@@ -28,7 +28,8 @@ typedef enum
 	MARCO,
 	PCB_PF,
 	CARGAR_PAGINA,
-	PAGINA_CARGADA
+	PAGINA_CARGADA,
+	VALOR_LEIDO
 }op_code;
 
 typedef enum
@@ -80,6 +81,7 @@ t_interrupt* recv_interrupcion(int fd);
 void enviar_mensaje(char* mensaje, int socket_cliente);
 void recibir_mensaje(t_log* logger, int socket_cliente);
 
+void enviar_operacion(op_code codigo_operacion, int socket_cliente);
 int recibir_operacion(int socket_cliente);
 
 void crear_buffer(t_paquete* paquete);
@@ -135,14 +137,18 @@ void send_numero_pagina(int pid, int numero_pagina, int fd_memoria);
 void recv_numero_pagina(int* pid, int* numero_pagina, int fd_kernel);
 
 //PAGINA CARGADA
-void recv_pagina_cargada(fd_memoria);
+void recv_pagina_cargada(int fd_memoria);
 
 //SOLICITUD DE LECTURA
-void send_solicitud_lectura(int direccion_logica, int fd_memoria);
+void send_solicitud_lectura(int direccion_fisica, int fd_memoria);
 int recv_solicitud_lectura(int fd_cpu);
 
 //ENVIAR VALOR LEIDO
 void send_valor_leido(uint32_t valor, int fd_cpu);
 uint32_t recv_valor_leido(int fd_memoria);
+
+//SOLICITUD DE ESCRITURA
+void send_solicitud_escritura(int direccion_fisica, uint32_t valor, int fd_memoria);
+void recv_solicitud_escritura(int* direccion_fisica, uint32_t* valor, int fd_cpu);
 
 #endif

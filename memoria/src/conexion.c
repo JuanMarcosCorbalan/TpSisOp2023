@@ -10,7 +10,7 @@ int contador_marcos;
 char* bitmap_marcos;
 void* espacio_usuario;
 char* algoritmo_reemplazo;
-t_list* paginas_en_memoria = list_create();
+t_list* paginas_en_memoria;
 int contador_instante = 0;
 
 static void procesar_cliente(void* void_args){
@@ -26,6 +26,8 @@ static void procesar_cliente(void* void_args){
 	algoritmo_reemplazo = config_get_string_value(config, "ALGORITMO_REEMPLAZO");
 	cant_marcos = tam_memoria / tam_pagina;
 	bitmap_marcos = inicializar_bitmap_marcos();
+
+	paginas_en_memoria = list_create();
 
 	espacio_usuario = malloc(tam_memoria);
 
@@ -73,7 +75,10 @@ static void procesar_cliente(void* void_args){
 				break;
 			case ESCRIBIR_MEMORIA:
 				//recibir direccion y valor
-				//escribir_espacio_usuario(direccion, valor)
+				int* direccion;
+				uint32_t* valor;
+				recv_solicitud_escritura(direccion, valor, cliente_fd);
+				escribir_espacio_usuario(*direccion, *valor);
 				break;
 			case -1:
 				log_error(logger, "El cliente se desconecto.");

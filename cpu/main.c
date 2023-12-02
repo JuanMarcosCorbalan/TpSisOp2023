@@ -147,7 +147,7 @@ void decode(t_instruccion* instruccion, t_pcb* pcb){
 		ejecutar_mov_in(pcb, instruccion->param1, instruccion->param2);
 		break;
 	case MOV_OUT:
-		ejecutar_exit(pcb);
+		ejecutar_mov_out(pcb, instruccion->param1, instruccion->param2);
 		break;
 	}
 }
@@ -217,7 +217,6 @@ void ejecutar_exit(t_pcb* pcb){
 }
 
 void ejecutar_mov_in(t_pcb* pcb, char* param1, char* param2){
-	char* registro = param1;
 	int direccion_logica = atoi(param2);
 	int numero_pagina = floor(direccion_logica / herramientas_traduccion->tam_pagina);
 	int desplazamiento =  direccion_logica - numero_pagina * herramientas_traduccion->tam_pagina;
@@ -233,12 +232,46 @@ void ejecutar_mov_in(t_pcb* pcb, char* param1, char* param2){
 	}
 	log_info( "PID: %d - OBTENER MARCO - Página: %d - Marco: %", pcb->pid, numero_pagina, marco); //log ob
 
-	int direccion_logica = marco + desplazamiento;
+	int direccion_fisica = marco + desplazamiento;
 
-	send_solicitud_lectura(direccion_logica, fd_memoria);
+	send_solicitud_lectura(direccion_fisica, fd_memoria);
 	uint32_t valor = recv_valor_leido(fd_memoria);
 
 	cambiar_valor_registro(pcb, param1, valor);
+}
+
+void ejecutar_mov_out(t_pcb* pcb, char* param1, char* param2){
+	char* registro = param2;
+	int direccion_logica = atoi(param1);
+	int numero_pagina = floor(direccion_logica / herramientas_traduccion->tam_pagina);
+	int desplazamiento =  direccion_logica - numero_pagina * herramientas_traduccion->tam_pagina;
+	send_solicitud_marco(fd_memoria, pcb->pid, numero_pagina);
+	int marco = recv_marco(fd_memoria);
+
+	if(marco == -1){
+		log_info( "Page Fault PID: %d - Pagina: %d", pcb->pid, numero_pagina); //log ob
+		//iniciar acciones page fault
+		send_pcb_pf(pcb, numero_pagina, dispatch_cliente_fd);
+		//TODO mandar interrupcion para que no actualice el program counter
+		return;
+	}
+	log_info( "PID: %d - OBTENER MARCO - Página: %d - Marco: %", pcb->pid, numero_pagina, marco); //log ob
+
+	int direccion_fisica = marco + desplazamiento;
+
+	uint32_t valor;
+
+	if(strcmp(registro, "AX") == 0){
+		valor = pcb->registros_generales_cpu.ax;
+	} else if(strcmp(registro, "BX") == 0){
+		valor = pcb->registros_generales_cpu.bx;
+	} else if(strcmp(registro, "CX") == 0){
+		valor = pcb->registros_generales_cpu.cx;
+	} else if(strcmp(registro, "DX") == 0){
+		valor = pcb->registros_generales_cpu.dx;
+	}
+
+	send_solicitud_escritura(direccion_fisica, valor, fd_memoria);
 }
 
 t_config* iniciar_config(void)
