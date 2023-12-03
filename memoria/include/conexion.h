@@ -17,7 +17,6 @@
 typedef struct {
     int fd_cliente;
     t_log* logger;
-    t_config* config;
 } t_procesar_cliente_args;
 
 

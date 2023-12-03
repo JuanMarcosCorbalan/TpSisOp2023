@@ -84,11 +84,6 @@ typedef struct
 	int instante_de_referencia;
 }t_pagina;
 
-typedef struct{
-	int* tam_pagina;
-	void* reloc;
-}t_herramientas_traduccion;
-
 //t_list* datos_procesos;
 void imprimirPrueba();
 char* list_to_string(t_list *list);

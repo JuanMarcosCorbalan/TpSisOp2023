@@ -13,29 +13,14 @@ char* algoritmo_reemplazo;
 t_list* paginas_en_memoria;
 int contador_instante = 0;
 
+int inicializado = 0;
+
 static void procesar_cliente(void* void_args){
 	t_procesar_cliente_args* args = (t_procesar_cliente_args*) void_args;
 	int cliente_fd = args -> fd_cliente;
 	t_log* logger = args ->logger;
-	t_config* config =  args->config;
 	free(args);
 
-	tam_pagina = atoi(config_get_string_value(config, "TAM_PAGINA"));
-	tam_memoria = atoi(config_get_string_value(config, "TAM_MEMORIA"));
-	retardo_respuesta = atoi(config_get_string_value(config, "RETARDO_RESPUESTA"));
-	algoritmo_reemplazo = config_get_string_value(config, "ALGORITMO_REEMPLAZO");
-	cant_marcos = tam_memoria / tam_pagina;
-	bitmap_marcos = inicializar_bitmap_marcos();
-
-	paginas_en_memoria = list_create();
-
-	espacio_usuario = malloc(tam_memoria);
-
-	memset(espacio_usuario, 0, tam_memoria);
-
-	tablas_de_paginas = list_create();
-
-	t_list* lista;
 	while(cliente_fd != -1){
 		int cod_op = recibir_operacion(cliente_fd);
 
@@ -44,15 +29,16 @@ static void procesar_cliente(void* void_args){
 				recibir_mensaje(logger, cliente_fd);
 				break;
 			case HANDSHAKE_CPU_MEMORIA:
-				send_herramientas_traduccion(cliente_fd, tam_pagina, espacio_usuario);
+				send_tam_pagina(cliente_fd, tam_pagina);
+				log_info(logger, "Herramientas para traduccion de direcciones enviadas a CPU");
 				break;
 			case DATOS_PROCESO_NEW:
 				t_datos_proceso* datos_proceso = recv_datos_proceso(cliente_fd);
 				iniciar_proceso_memoria(datos_proceso->path, datos_proceso->size, datos_proceso->pid, cliente_fd, logger);
 				break;
 			case SOLICITAR_INSTRUCCION:
-				t_proceso_instrucciones* pruebita = list_get(proceso_instrucciones, 0);
-				t_instruccion* pruebita2 = list_get(pruebita->instrucciones, 0);
+				//t_proceso_instrucciones* pruebita = list_get(proceso_instrucciones, 0);
+				//t_instruccion* pruebita2 = list_get(pruebita->instrucciones, 0);
 				procesar_pedido_instruccion(cliente_fd, proceso_instrucciones);
 				break;
 			case MARCO:
@@ -93,7 +79,26 @@ static void procesar_cliente(void* void_args){
 }
 
 int experar_clientes(t_log* logger, int server_socket, t_config* config){
-	proceso_instrucciones = list_create();
+	if(inicializado != 1){
+		proceso_instrucciones = list_create();
+		tam_pagina = atoi(config_get_string_value(config, "TAM_PAGINA"));
+		tam_memoria = atoi(config_get_string_value(config, "TAM_MEMORIA"));
+		retardo_respuesta = atoi(config_get_string_value(config, "RETARDO_RESPUESTA"));
+		algoritmo_reemplazo = config_get_string_value(config, "ALGORITMO_REEMPLAZO");
+		cant_marcos = tam_memoria / tam_pagina;
+		bitmap_marcos = inicializar_bitmap_marcos();
+
+		paginas_en_memoria = list_create();
+
+		espacio_usuario = malloc(tam_memoria);
+
+		memset(espacio_usuario, 0, tam_memoria);
+
+		tablas_de_paginas = list_create();
+		log_info(logger, "MEMORIA LISTO...");
+		inicializado = 1;
+	}
+
 	int cliente_socket = esperar_cliente(logger, server_socket);
 
 	if(cliente_socket != -1){
@@ -101,7 +106,6 @@ int experar_clientes(t_log* logger, int server_socket, t_config* config){
 		t_procesar_cliente_args* args = malloc(sizeof(t_procesar_cliente_args));
 		args -> fd_cliente = cliente_socket;
 		args ->logger = logger;
-		args->config = config;
 		pthread_create(&hilo, NULL, (void*) procesar_cliente, (void*) args);
 		pthread_detach(hilo);
 		return 1;
@@ -151,9 +155,9 @@ void iniciar_proceso_memoria(char* path, int size, int pid, int socket_kernel, t
 	log_info(logger, "Tabla de paginas creada. PID: %d - Tamaño: %d\n", pid, cant_paginas); //log obligatorio
 	free(tdp);
 	list_destroy(paginas);
-	t_proceso_instrucciones* pruebita = list_get(proceso_instrucciones, 0);
-	t_instruccion* pruebita2 = list_get(pruebita->instrucciones, 0);
-//	free(proceso_instr);
+	//t_proceso_instrucciones* pruebita = list_get(proceso_instrucciones, 0);
+	//t_instruccion* pruebita2 = list_get(pruebita->instrucciones, 0);
+	//free(proceso_instr);
 }
 
 void procesar_pedido_instruccion(int socket_cpu, t_list* proceso_instrucciones){
@@ -239,8 +243,8 @@ char* inicializar_bitmap_marcos(void){
 }
 
 void procesar_solicitud_marco(int fd_cpu){
-	int* pid;
-	int* numero_pagina;
+	int* pid = malloc(sizeof(int));
+	int* numero_pagina = malloc(sizeof(int));;
 	recv_solicitud_marco(fd_cpu, pid, numero_pagina);
 
 	//buscar proceso en tdps
@@ -252,6 +256,8 @@ void procesar_solicitud_marco(int fd_cpu){
 	//buscar pagina en tdp
 	t_pagina* pagina = list_get(tdp->paginas, *numero_pagina);
 
+	free(pid);
+	free(numero_pagina);
 	send_marco(fd_cpu, pagina->marco);
 
 }

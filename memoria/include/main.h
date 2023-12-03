@@ -16,5 +16,12 @@ t_config* iniciar_config(void);
 
 t_config* config;
 
+/*typedef struct {
+	int tam_pagina;
+	int tam_memoria;
+	int retardo_respuesta;
+	char* algoritmo_reemplazo;
+} t_config_memoria;*/
 
+//t_config_memoria config_memoria;
 #endif

@@ -10,7 +10,7 @@ int main() {
 	puerto_escucha = config_get_string_value(config, "PUERTO_ESCUCHA");
 
 	int server_fd = iniciar_servidor(puerto_escucha);
-	log_info(logger, "MEMORIA LISTO...");
+
     while (experar_clientes(logger, server_fd, config));
 
     return 0;

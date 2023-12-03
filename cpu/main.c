@@ -3,6 +3,7 @@
 int fd_memoria = 0;
 int dispatch_cliente_fd = 0;
 bool flag_hay_interrupcion = false;
+int tam_pagina;
 t_log* logger;
 t_pcb* pcb;
 
@@ -12,15 +13,16 @@ int main(void) {
 	sem_init(&sem_nuevo_proceso, 0, 1);
 	sem_init(&sem_ciclo_de_instrucciones, 0, 0);
 	fd_memoria = crear_conexion(logger, config_cpu.ip_memoria, config_cpu.puerto_memoria);
-	enviar_operacion(HANDSHAKE_CPU_MEMORIA, fd_memoria);
-	herramientas_traduccion = recv_herramientas_traduccion(fd_memoria);
+	send_handshake_cpu_memoria(fd_memoria);
+	tam_pagina = recv_tam_pagina(fd_memoria);
+	log_info(logger, "Herramientas para traduccion recibidas");
 //	liberar_conexion(fd_memoria);
 
 	pthread_t *hilo_dispatch = malloc(sizeof(pthread_t));
 	pthread_t *hilo_interrupt = malloc(sizeof(pthread_t));
 
 	pthread_create(hilo_dispatch, NULL, &ejecutar_pcb, NULL);
-	pthread_create(hilo_interrupt, NULL, &ejecutar_interrupcion, NULL);
+	//pthread_create(hilo_interrupt, NULL, &ejecutar_interrupcion, NULL);
 
 	pthread_join(*hilo_dispatch, NULL);
 	pthread_join(*hilo_interrupt, NULL);
@@ -89,7 +91,7 @@ void ejecutar_instrucciones(t_pcb* pcb){
 	}
 }
 
-void ejecutar_interrupcion(t_pcb* pcb, void *arg) {
+void* ejecutar_interrupcion(t_pcb* pcb, void *arg) {
 	t_interrupt* interrupcion;
 	int interrupt_server_fd = iniciar_servidor(config_cpu.puerto_escucha_interrupt);
 	log_info(logger, "INTERRUPT CPU LISTO.");
@@ -216,23 +218,28 @@ void ejecutar_exit(t_pcb* pcb){
 	send_pcb(pcb, dispatch_cliente_fd);
 }
 
-void ejecutar_mov_in(t_pcb* pcb, char* param1, char* param2){
-	int direccion_logica = atoi(param2);
-	int numero_pagina = floor(direccion_logica / herramientas_traduccion->tam_pagina);
-	int desplazamiento =  direccion_logica - numero_pagina * herramientas_traduccion->tam_pagina;
-	send_solicitud_marco(fd_memoria, pcb->pid, numero_pagina);
+int solicitar_direccion_fisica(int direccion_logica, int pid){
+	int numero_pagina = floor(direccion_logica / tam_pagina);
+	int desplazamiento =  direccion_logica - numero_pagina * tam_pagina;
+	send_solicitud_marco(fd_memoria, pid, numero_pagina);
 	int marco = recv_marco(fd_memoria);
-
 	if(marco == -1){
-		log_info( "Page Fault PID: %d - Pagina: %d", pcb->pid, numero_pagina); //log ob
+		log_info(logger, "Page Fault PID: %d - Pagina: %d", pid, numero_pagina); //log ob
 		//iniciar acciones page fault
 		send_pcb_pf(pcb, numero_pagina, dispatch_cliente_fd);
 		//TODO mandar interrupcion para que no actualice el program counter
+		return marco;
+	}
+	log_info(logger,  "PID: %d - OBTENER MARCO - Página: %d - Marco: %d", pid, numero_pagina, marco); //log ob
+	return marco+desplazamiento;
+}
+
+void ejecutar_mov_in(t_pcb* pcb, char* param1, char* param2){
+	int direccion_logica = atoi(param2);
+	int direccion_fisica = solicitar_direccion_fisica(direccion_logica, pcb->pid);
+	if(direccion_fisica == -1){
 		return;
 	}
-	log_info( "PID: %d - OBTENER MARCO - Página: %d - Marco: %", pcb->pid, numero_pagina, marco); //log ob
-
-	int direccion_fisica = marco + desplazamiento;
 
 	send_solicitud_lectura(direccion_fisica, fd_memoria);
 	uint32_t valor = recv_valor_leido(fd_memoria);
@@ -243,21 +250,10 @@ void ejecutar_mov_in(t_pcb* pcb, char* param1, char* param2){
 void ejecutar_mov_out(t_pcb* pcb, char* param1, char* param2){
 	char* registro = param2;
 	int direccion_logica = atoi(param1);
-	int numero_pagina = floor(direccion_logica / herramientas_traduccion->tam_pagina);
-	int desplazamiento =  direccion_logica - numero_pagina * herramientas_traduccion->tam_pagina;
-	send_solicitud_marco(fd_memoria, pcb->pid, numero_pagina);
-	int marco = recv_marco(fd_memoria);
-
-	if(marco == -1){
-		log_info( "Page Fault PID: %d - Pagina: %d", pcb->pid, numero_pagina); //log ob
-		//iniciar acciones page fault
-		send_pcb_pf(pcb, numero_pagina, dispatch_cliente_fd);
-		//TODO mandar interrupcion para que no actualice el program counter
+	int direccion_fisica = solicitar_direccion_fisica(direccion_logica, pcb->pid);
+	if(direccion_fisica == -1){
 		return;
 	}
-	log_info( "PID: %d - OBTENER MARCO - Página: %d - Marco: %", pcb->pid, numero_pagina, marco); //log ob
-
-	int direccion_fisica = marco + desplazamiento;
 
 	uint32_t valor;
 

@@ -14,14 +14,14 @@ int main(void)
 {
 	logger = iniciar_logger();
 	config = iniciar_config();
-
-	if(!conectar_modulos(logger, config, &fd_cpu_dispatch, &fd_cpu_interrupt, &fd_filesystem, &fd_memoria)){
+	conectar_modulos(logger, config, &fd_cpu_dispatch, &fd_cpu_interrupt, &fd_filesystem, &fd_memoria);
+	/*if(!conectar_modulos(logger, config, &fd_cpu_dispatch, &fd_cpu_interrupt, &fd_filesystem, &fd_memoria)){
 		terminar_programa(fd_cpu_dispatch, fd_cpu_interrupt, fd_filesystem, fd_memoria, logger, config);
 		return EXIT_FAILURE;
-	}
+	}*/
 
 	enviar_mensaje("Hola, soy el Kernel!", fd_cpu_dispatch);
-	enviar_mensaje("Hola, soy el Kernel!", fd_cpu_interrupt);
+	//enviar_mensaje("Hola, soy el Kernel!", fd_cpu_interrupt);
 	enviar_mensaje("Hola, soy el Kernel!", fd_filesystem);
 	enviar_mensaje("Hola, soy el Kernel!", fd_memoria);
 

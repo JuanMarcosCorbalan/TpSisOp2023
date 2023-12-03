@@ -412,23 +412,20 @@ t_tdp* recv_tdp(int fd){
 }
 
 //HANDSHAKE CPU MEMORIA
-void send_herramientas_traduccion(int fd, int tam_pag, void* espacio_usuario){
+void send_tam_pagina(int fd, int tam_pag){
 	t_paquete* paquete = crear_paquete(HANDSHAKE_CPU_MEMORIA);
 
 	agregar_a_paquete(paquete, &tam_pag, sizeof(int));
-	agregar_a_paquete(paquete, espacio_usuario, sizeof(void*));
 	enviar_paquete(paquete, fd);
 	eliminar_paquete(paquete);
 }
 
-t_herramientas_traduccion* recv_herramientas_traduccion(int fd){
+int recv_tam_pagina(int fd){
 	t_list* paquete = recibir_paquete(fd);
-	t_herramientas_traduccion* herr = malloc(sizeof(t_herramientas_traduccion));
 
-	herr->tam_pagina = list_get(paquete, 0);
-	herr->reloc = list_get(paquete, 1);
+	int* tam_pag = list_get(paquete, 0);
 	list_destroy(paquete);
-	return herr;
+	return *tam_pag;
 }
 //SEND_RECURSO_WAIT
 
@@ -446,6 +443,18 @@ char* recv_recurso_wait(int dispatch_cliente_fd){
 	list_destroy(paquete);
 
 	return recurso;
+}
+
+//HANDSHAKE CPU MEMORIA
+void send_handshake_cpu_memoria(int fd_memoria){
+	t_paquete* paquete = crear_paquete(HANDSHAKE_CPU_MEMORIA);
+	enviar_paquete(paquete, fd_memoria);
+	eliminar_paquete(paquete);
+}
+
+void recv_handshake_cpu_memoria(int fd_cpu){
+	t_list* paquete = recibir_paquete(fd_cpu);
+	list_destroy(paquete);
 }
 
 //SOLICITU DE MARCO

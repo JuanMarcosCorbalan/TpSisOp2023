@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <math.h>
 #include "../../mappaLib/include/sockets.h"
 #include "../../mappaLib/include/protocolo.h"
 #include "../../mappaLib/include/utils.h"
@@ -17,7 +18,6 @@ typedef struct {
 
 t_config_cpu config_cpu;
 
-t_herramientas_traduccion* herramientas_traduccion;
 
 sem_t sem_nuevo_proceso;
 sem_t sem_ciclo_de_instrucciones;
