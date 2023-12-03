@@ -28,24 +28,22 @@ int main(void)
 
 	inicializar_variables();
 
-	iniciar_consola(logger, config, fd_memoria);
+	pthread_t *hilo_consola = malloc(sizeof(pthread_t));
+	pthread_create(hilo_consola, NULL, &iniciar_consola, NULL);
+	pthread_join(*hilo_consola, NULL);
+
 	terminar_programa(fd_cpu_dispatch, fd_cpu_interrupt, fd_filesystem, fd_memoria, logger, config);
 
 	return EXIT_SUCCESS;
 }
 
-void iniciar_consola(t_log* logger, t_config* config, int fd_memoria){
-	bool salir = false;
-
-	while(!salir){
+void* iniciar_consola(){
+	while(1){
 		char* entrada = readline("> ");
 		add_history(entrada);
 
 		char** argumentos_entrada = string_split(entrada, " ");
 
-		if(string_equals_ignore_case(entrada, "SALIR")){
-			salir = true;
-		} else
 		if(string_equals_ignore_case(argumentos_entrada[0], "INICIAR_PROCESO")){
 			iniciar_proceso(logger, argumentos_entrada, fd_memoria);
 		} else
@@ -433,8 +431,6 @@ t_recurso* buscar_recurso(char* recurso) {
         if (strcmp(recurso_buscado->recurso, recurso) == 0) {
             // Si se encuentra el recurso, no es necesario asignar memoria aquí.
             return recurso_buscado;
-        } else {
-        	recurso_destroy(recurso_buscado);
         }
     }
 

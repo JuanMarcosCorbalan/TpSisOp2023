@@ -71,7 +71,7 @@ void finalizar_proceso(char *args[]);
 t_interrupt* crear_interrupcion(interrupt_code motivo);
 
 void inicializar_variables();
-void iniciar_consola(t_log* logger, t_config* config, int fd_memoria);
+void* iniciar_consola();
 void iniciar_planificacion();
 void detener_planificacion();
 void pasar_a_ready(t_pcb* proceso);
