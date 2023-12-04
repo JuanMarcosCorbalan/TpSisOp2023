@@ -20,19 +20,20 @@ void crear_archivo_en_fat(char*);
 void inicializar_fcb(t_fcb*);
 void crear_archivo_bloques(char*);
 int abrir_archivo(char*);
-void leer_archivo(char* ,int);
-void escribir_archivo(char* ,int);
-void truncar_archivo(t_config* ,t_config* ,int ,t_bloque*);
-void agrandar_archivo(t_config* ,t_config* ,int ,t_bloque*);
-void reducir_archivo(t_config*,t_config* ,int ,t_bloque*);
-int ultimo_bloque_archivo_fat(t_config*, t_config*, t_bloque*);
+void leer_archivo(char* ,int, int);
+void truncar_archivo(t_config* ,int ,t_bloque*);
+void agrandar_archivo(t_config* ,int ,t_bloque*);
+void reducir_archivo(t_config* ,int ,t_bloque*);
+int ultimo_bloque_archivo_fat( t_config*, t_bloque*);
 bool archivo_sin_bloques(t_config*);
-void desasignar_bloques_archivo(t_config*, t_config*, int, t_bloque*, int);
-int ultimo_bloque_archivo_fat(t_config* , t_config* , t_bloque* );
-void asignar_bloques_archivo(t_config* , t_config* , int , t_bloque* , int );
+void desasignar_bloques_archivo(t_config*, int, t_bloque*, int);
+int ultimo_bloque_archivo_fat( t_config* , t_bloque* );
+void asignar_bloques_archivo( t_config* , int , t_bloque* , int );
 int buscar_bloque_libre_fat(t_bloque* );
-
-
+int* obtener_lista_bloques_archivo(t_config* , t_bloque* , int ,int );
+uint32_t obtener_bloque_siguiente(int , t_bloque* );
+char* leer_datos_bloque_archivo(t_config* , int );
+void escribir_archivo(char* , int , int , char* , int , t_bloque* );
 
 #endif
 
