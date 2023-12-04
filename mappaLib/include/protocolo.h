@@ -36,6 +36,22 @@ typedef enum
 	MOTIVOX
 }interrupt_code;
 
+typedef enum
+{
+	LIBRE,
+	OCUPADO,
+	FIN,
+	RESERVADO
+}bloque_code;
+
+
+typedef struct
+{
+	bloque_code codigo_bloque;
+	int numero_bloque_siguiente;
+}t_bloque;
+
+
 typedef struct
 {
 	interrupt_code motivo;

@@ -103,6 +103,8 @@ int abrir_archivo(char* nombre_archivo){ // o deberia revisar el path? creo q si
 	char* path = convertir_path_fcb(nombre_archivo);
 	if (path == NULL) {
 		log_info(logger, "Archivo: %s no existe", nombre_archivo);
+		//t_config* archivo_fcb = config_create(path); // ¿cuando creo el archivo?
+		//archivo_fcb = crear_archivo_fcb(nombre_archivo);
 		free(path);
 		return 0;
 	} else {
@@ -113,11 +115,15 @@ int abrir_archivo(char* nombre_archivo){ // o deberia revisar el path? creo q si
 	}
 }
 
-void leer_archivo(char* nombre_archivo, int direccion_fisica){
+void leer_archivo(char* nombre_archivo, int direccion_fisica, int puntero){
 	// establecer el puntero a partir de la direccion_fisica
-	// se establece en el puntero
+	// creo que el puntero pasaria por parametro, hay que ubicarlo en el primer byte del bloque a leer
+	char* path = convertir_path_fcb(nombre_archivo);
+	char* buffer;
+	t_config* archivo_fcb = config_create(path);
+	t_bloque bloque_correspondiente = buscar_bloque(archivo_fcb, puntero);
 
-
+	buffer =  leer_datos_bloque_archivo(archivo_fcb, bloque_correspondiente);
 
 	// se guarda la info leida y se envia a memoria empaquetada
 	// memoria hace un handshake
@@ -133,6 +139,37 @@ void leer_archivo(char* nombre_archivo, int direccion_fisica){
 //
 //	}
 //}
+
+int buscar_bloque (t_config* config ,t_config* archivo_fcb, int puntero, t_bloque* tabla_fat){
+	// tiene que buscar en el puntero de ese bloque
+	int tamanio_archivo = config_get_int_value(archivo_fcb, "TAMANIO_ARCHIVO")
+	int tamanio_bloque = config_get_int_value(config, "TAM_BLOQUE");
+	t_bloque* bloques_archivo = obtener_lista_bloques_archivo(archivo_fcb, tabla_fat, tamanio_archivo, tamanio_bloque);
+	int bloque_puntero = (puntero / tamanio_bloque) + 1; // porq la division me va a dar la parte entera y por ejemplo si me da el bloque 2.3, seria 0.3 del tercero
+	// ahora ubico el puntero
+
+	return bloque_puntero; // retorna el numero de bloque en donde esta el puntero (ya que me interesa el leer el bloque entero)
+}
+
+int  obtener_lista_bloques_archivo(t_config* archivo_fcb, t_bloque* tabla_fat, tamanio_archivo, tamanio_bloque) {
+	int primer_bloque = config_get_string_value(archivo_fcb, "PRIMER_BLOQUE");
+
+	int cantidad_bloques_archivo = tamanio_archivo / tamanio_bloque;
+	int lista_bloques_archivo[cantidad_bloques_archivo -1];
+	int bloque_actual = primer_bloque;
+	int bloque_siguiente;
+	t_bloque* aux_fat = tabla_fat;
+	int i = 1;
+	lista_bloques_archivo[0] = bloque_actual;
+	while(i < cantidad_bloques_archivo){
+		bloque_siguiente = obtener_bloque_siguiente(bloque_actual,tabla_fat);
+		lista_bloques_archivo[i] = bloque_siguiente;
+		i++;
+	}
+
+	return lista_bloques_archivo;
+}
+
 
 // todo tengo que ver como obtiene el tamanio a cambiar
 void truncar_archivo(t_config* config, t_config* archivo_fcb, int tamanio_a_cambiar, t_bloque* tabla_fat) { // SUPUSE QUE EL TAMAÑO PUEDE SER NEGATIVO SI SE REDUZCO EL ARCHIVO
