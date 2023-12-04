@@ -21,8 +21,6 @@ int main(void)
 		return EXIT_FAILURE;
 	}
 
-	enviar_mensaje("Hola, soy el Kernel!", fd_cpu_dispatch);
-	enviar_mensaje("Hola, soy el Kernel!", fd_cpu_interrupt);
 	enviar_mensaje("Hola, soy el Kernel!", fd_filesystem);
 	enviar_mensaje("Hola, soy el Kernel!", fd_memoria);
 

@@ -105,6 +105,9 @@ char* motivo_to_string(t_motivo_exit estado_exit){
 		case EXIT_CONSOLA:
 			return "EXIT_CONSOLA";
 			break;
+		case INTERRUPT:
+			return "INTERRUPT";
+			break;
 		default:
 			return "DESCONOCIDO";
 	}

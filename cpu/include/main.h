@@ -18,7 +18,7 @@ typedef struct {
 t_config_cpu config_cpu;
 
 sem_t sem_nuevo_proceso;
-sem_t sem_ciclo_de_instrucciones;
+sem_t sem_ciclo_instruccion;
 sem_t sem_interrupcion;
 
 t_instruccion* recibir_instruccion();
@@ -39,5 +39,7 @@ void ejecutar_exit(t_pcb* pcb);
 void ejecutar_sleep(t_pcb* pcb, char* param1);
 void ejecutar_signal(t_pcb* pcb, char* param1);
 void ejecutar_jnz(t_pcb* pcb, char* param1, char* param2);
+void check_interrupt();
+void* ciclo_de_intruccion(void *arg);
 
 #endif
