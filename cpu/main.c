@@ -15,7 +15,7 @@ int main(void) {
 	fd_memoria = crear_conexion(logger, config_cpu.ip_memoria, config_cpu.puerto_memoria);
 	send_handshake_cpu_memoria(fd_memoria);
 	tam_pagina = recv_tam_pagina(fd_memoria);
-	log_info(logger, "Herramientas para traduccion recibidas");
+	log_info(logger, "tamanio de pagina recibido: %d", tam_pagina);
 //	liberar_conexion(fd_memoria);
 
 	pthread_t *hilo_dispatch = malloc(sizeof(pthread_t));
@@ -116,7 +116,7 @@ void fetch(t_pcb* pcb){
 t_instruccion* solicitar_instruccion(int pid, int program_counter){
 	t_instruccion* instruccion_recibida = malloc(sizeof(t_instruccion));
 	send_solicitar_instruccion(fd_memoria, pid, program_counter);
-
+	log_info(logger, "Solicitud de instruccion enviada");
 //	int cod_op = recibir_operacion(fd_memoria);
 
 //	instruccion_recibida = recv_proxima_instruccion(fd_memoria);

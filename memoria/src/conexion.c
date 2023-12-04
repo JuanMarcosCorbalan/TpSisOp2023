@@ -30,7 +30,7 @@ static void procesar_cliente(void* void_args){
 				break;
 			case HANDSHAKE_CPU_MEMORIA:
 				send_tam_pagina(cliente_fd, tam_pagina);
-				log_info(logger, "Herramientas para traduccion de direcciones enviadas a CPU");
+				log_info(logger, "tamanio de pagina %d enviado a cpu", tam_pagina);
 				break;
 			case DATOS_PROCESO_NEW:
 				t_datos_proceso* datos_proceso = recv_datos_proceso(cliente_fd);
@@ -39,6 +39,7 @@ static void procesar_cliente(void* void_args){
 			case SOLICITAR_INSTRUCCION:
 				//t_proceso_instrucciones* pruebita = list_get(proceso_instrucciones, 0);
 				//t_instruccion* pruebita2 = list_get(pruebita->instrucciones, 0);
+				log_info(logger, "Solicitud de instruccion recibida");
 				procesar_pedido_instruccion(cliente_fd, proceso_instrucciones);
 				break;
 			case MARCO:
@@ -161,7 +162,9 @@ void iniciar_proceso_memoria(char* path, int size, int pid, int socket_kernel, t
 }
 
 void procesar_pedido_instruccion(int socket_cpu, t_list* proceso_instrucciones){
+	printf("Entro aca");
 	t_solicitud_instruccion* solicitud_instruccion = recv_solicitar_instruccion(socket_cpu);
+	printf("Entro aca");
 
 	t_proceso_instrucciones* pruebita = list_get(proceso_instrucciones, 0);
 	t_instruccion* pruebita2 = list_get(pruebita->instrucciones, 0);
