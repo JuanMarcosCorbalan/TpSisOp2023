@@ -114,8 +114,8 @@ void send_tdp(int fd, t_tdp* tdp);
 t_tdp* recv_tdp(int fd);
 
 //HANDSHAKE CPU MEMORIA
-void send_handshake_cpu_memoria(int fd_memoria);
-void recv_handshake_cpu_memoria(int fd_cpu);
+void send_handshake_cpu_memoria(int fd_memoria, int valor);
+int recv_handshake_cpu_memoria(int fd_cpu);
 
 void send_tam_pagina(int fd, int tam_pag);
 int recv_tam_pagina(int fd);

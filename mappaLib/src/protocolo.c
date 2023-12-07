@@ -422,10 +422,13 @@ void send_tam_pagina(int fd, int tam_pag){
 
 int recv_tam_pagina(int fd){
 	t_list* paquete = recibir_paquete(fd);
+	int tam_pagina = 0;
 
 	int* tam_pag = list_get(paquete, 0);
+	tam_pagina = *tam_pag;
+	free(tam_pag);
 	list_destroy(paquete);
-	return *tam_pag;
+	return tam_pagina;
 }
 //SEND_RECURSO_WAIT
 
@@ -446,15 +449,21 @@ char* recv_recurso_wait(int dispatch_cliente_fd){
 }
 
 //HANDSHAKE CPU MEMORIA
-void send_handshake_cpu_memoria(int fd_memoria){
+void send_handshake_cpu_memoria(int fd_memoria, int valor){
 	t_paquete* paquete = crear_paquete(HANDSHAKE_CPU_MEMORIA);
+	agregar_a_paquete(paquete, &valor, sizeof(int));
 	enviar_paquete(paquete, fd_memoria);
 	eliminar_paquete(paquete);
 }
 
-void recv_handshake_cpu_memoria(int fd_cpu){
+int recv_handshake_cpu_memoria(int fd_cpu){
 	t_list* paquete = recibir_paquete(fd_cpu);
+
+	int* valor = list_get(paquete, 0);
+
 	list_destroy(paquete);
+
+	return *valor;
 }
 
 //SOLICITU DE MARCO

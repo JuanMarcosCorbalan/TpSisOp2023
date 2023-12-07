@@ -12,7 +12,7 @@ void* espacio_usuario;
 char* algoritmo_reemplazo;
 t_list* paginas_en_memoria;
 int contador_instante = 0;
-
+int valor_aux = 0;
 int inicializado = 0;
 
 static void procesar_cliente(void* void_args){
@@ -29,8 +29,9 @@ static void procesar_cliente(void* void_args){
 				recibir_mensaje(logger, cliente_fd);
 				break;
 			case HANDSHAKE_CPU_MEMORIA:
+				int recibir_cpu = recv_handshake_cpu_memoria(cliente_fd);
 				send_tam_pagina(cliente_fd, tam_pagina);
-				log_info(logger, "tamanio de pagina %d enviado a cpu", tam_pagina);
+				log_info(logger, "tamanio de pagina %d enviado a cpu socket %d", tam_pagina, cliente_fd);
 				break;
 			case DATOS_PROCESO_NEW:
 				t_datos_proceso* datos_proceso = recv_datos_proceso(cliente_fd);
@@ -132,7 +133,7 @@ void iniciar_proceso_memoria(char* path, int size, int pid, int socket_kernel, t
 	proceso_instr->instrucciones = generar_instrucciones(rutaCompleta);
 
 	list_add(proceso_instrucciones, proceso_instr);
-	free(proceso_instr);
+	//free(proceso_instr);
 	//TABLA DE PAGINAS
 
 	t_tdp* tdp = malloc(sizeof(t_tdp));
@@ -154,23 +155,26 @@ void iniciar_proceso_memoria(char* path, int size, int pid, int socket_kernel, t
 
 	list_add(tablas_de_paginas, tdp);
 	log_info(logger, "Tabla de paginas creada. PID: %d - Tamaño: %d\n", pid, cant_paginas); //log obligatorio
-	free(tdp);
-	list_destroy(paginas);
+	//free(tdp);
+	//list_destroy(paginas);
 	//t_proceso_instrucciones* pruebita = list_get(proceso_instrucciones, 0);
 	//t_instruccion* pruebita2 = list_get(pruebita->instrucciones, 0);
 	//free(proceso_instr);
 }
 
+
+
 void procesar_pedido_instruccion(int socket_cpu, t_list* proceso_instrucciones){
-	printf("Entro aca");
+
 	t_solicitud_instruccion* solicitud_instruccion = recv_solicitar_instruccion(socket_cpu);
-	printf("Entro aca");
-
-	t_proceso_instrucciones* pruebita = list_get(proceso_instrucciones, 0);
-	t_instruccion* pruebita2 = list_get(pruebita->instrucciones, 0);
-
-	t_instruccion* instruccion_a_enviar = buscar_instruccion(solicitud_instruccion->pid, solicitud_instruccion->program_counter - 1, proceso_instrucciones);
-	sleep(retardo_respuesta);
+	bool _encontrar_pid(void* t) {
+		return (((t_proceso_instrucciones*)t)->pid == solicitud_instruccion->pid);
+	}
+	t_proceso_instrucciones* proceso = list_find(proceso_instrucciones, _encontrar_pid);
+	//t_proceso_instrucciones* proceso = list_get(proceso_instrucciones, 0);
+	//t_instruccion* instruccion_a_enviar = buscar_instruccion(solicitud_instruccion->pid, solicitud_instruccion->program_counter - 1, proceso_instrucciones);
+	t_instruccion* instruccion_a_enviar = list_get(proceso->instrucciones, solicitud_instruccion->program_counter - 1);
+	sleep(1);
 	send_proxima_instruccion(socket_cpu, instruccion_a_enviar);
 }
 
