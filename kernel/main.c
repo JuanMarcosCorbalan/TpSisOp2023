@@ -161,6 +161,28 @@ void procesar_respuesta_cpu(){
 			sem_post(&sem_proceso_exec);
 		break;
 		}
+		case FOPEN:
+			t_peticion peticion_solicitada = recv_peticion(fd_cpu_dispatch);
+			t_pcb* pcb_actualizado = recv_pcb(fd_cpu_dispatch);
+			char* nombre_archivo = recv_nombre_archivo(fd_cpu_dispatch);
+			char modo_apertura = recv_modo_apertura(fd_cpu_dispatch);
+			log_info(logger, "PID: %d - Abrir Archivo: %s", pcb_actualizado->pid, nombre_archivo);
+			// necesito primero verificar si existe el archivo o no. podria simplemente decirle al fs que lo abra y este lo crea si no existe
+			if(!archivo_abierto(nombre_archivo)){
+				send_fopen(fd_filesystem, pcb_actualizado, peticion_solicitada); // envia la solicitud a fs para que abra o cree el archivo
+			}
+		break;
+		case FCLOSE:
+		break;
+		case FSEEK:
+		break;
+		case FTRUNCATE:
+		break;
+		case FREAD:
+		break;
+		case FWRITE:
+		break;
+
 	}
 }
 
@@ -281,6 +303,17 @@ t_config* iniciar_config(void)
 	}
 
 	return nuevo_config;
+}
+
+void generar_conexion_fs() {
+	pthread_t conexion_filesystem;
+
+	pthread_create(&conexion_filesystem, NULL, (void*) procesar_conexion_fs, (void*) &fd_filesystem);
+	pthread_detach(conexion_filesystem);
+}
+
+void procesar_conexion_fs(){
+
 }
 
 void terminar_programa(int conexion, int conexion2, int conexion3, int conexion4, t_log* logger, t_config* config)

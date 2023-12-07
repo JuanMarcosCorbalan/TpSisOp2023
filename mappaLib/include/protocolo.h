@@ -21,11 +21,13 @@ typedef enum
 	EJECUTAR_PCB,
 	PCB_ACTUALIZADO,
 	RECURSO_WAIT,
-	CREAR_ARCHIVO,
-	ABRIR_ARCHIVO,
-	TRUNCAR_ARCHIVO,
-	LEER_ARCHIVO,
-	ESCRIBIR_ARCHIVO
+	PETICION,
+	FOPEN,
+	FCLOSE,
+	FSEEK,
+	FTRUNCATE,
+	FREAD,
+	FWRITE
 }op_code;
 
 typedef enum
@@ -35,22 +37,6 @@ typedef enum
 	MOTIVO3,
 	MOTIVOX
 }interrupt_code;
-
-typedef enum
-{
-	LIBRE,
-	OCUPADO,
-	FIN,
-	RESERVADO
-}bloque_code;
-
-
-typedef struct
-{
-	bloque_code codigo_bloque;
-	int numero_bloque_siguiente;
-}t_bloque;
-
 
 typedef struct
 {
@@ -76,6 +62,14 @@ typedef struct
 	int pid;
 	int program_counter;
 } t_solicitud_instruccion;
+
+typedef struct {
+	char* nombre_archivo;
+	char* modo_apertura;
+	uint32_t posicion;
+	int direccion_logica;
+	uint32_t tamanio;
+} t_peticion;
 
 t_paquete* crear_paquete(op_code codigo_operacion);
 void* serializar_paquete(t_paquete* paquete, int bytes);
@@ -123,5 +117,18 @@ t_pcb* recv_pcb_actualizado(int fd);
 // RECURSO_WAIT
 void send_recurso_wait(int dispatch_cliente_fd, char* recurso);
 char* recv_recurso_wait(int dispatch_cliente_fd);
+
+// INFORMACION_ARCHIVO_BLOQUES
+void send_datos_archivo_bloques(int , char*,  int);
+
+// FUNCIONES PARA FS
+void send_fopen(int socket, t_pcb* pcb ,t_peticion* peticion);
+void send_fclose(int socket, t_pcb* pcb ,t_peticion* peticion);
+void send_fseek(int socket, t_pcb* pcb ,t_peticion* peticion);
+void send_ftruncate(int socket, t_pcb* pcb ,t_peticion* peticion);
+void send_fread(int socket, t_pcb* pcb ,t_peticion* peticion);
+void send_fwrite(int socket, t_pcb* pcb ,t_peticion* peticion);
+
+
 
 #endif

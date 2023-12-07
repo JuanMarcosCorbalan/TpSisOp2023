@@ -389,3 +389,112 @@ char* recv_recurso_wait(int dispatch_cliente_fd){
 
 	return recurso;
 }
+
+// SEND_PETICION_FS
+}
+
+void send_fopen(int socket, t_pcb* pcb ,t_peticion* peticion){
+	t_paquete* paquete = crear_paquete(FOPEN);
+	agregar_a_paquete(paquete, &pcb, sizeof(t_pcb));
+	agregar_a_paquete(paquete, &(peticion->nombre_archivo), strlen(peticion->nombre_archivo) + 1);
+	agregar_a_paquete(paquete, &(peticion->modo_apertura), sizeof(char));
+	enviar_paquete(paquete, socket);
+
+	eliminar_paquete(paquete);
+}
+
+void send_fclose(int socket, t_pcb* pcb ,t_peticion* peticion){
+	t_paquete* paquete = crear_paquete(FCLOSE);
+	agregar_a_paquete(paquete, &pcb, sizeof(t_pcb));
+	agregar_a_paquete(paquete, &(peticion->nombre_archivo), strlen(peticion->nombre_archivo) + 1);
+	enviar_paquete(paquete, socket);
+
+	eliminar_paquete(paquete);
+}
+
+void send_fseek(int socket, t_pcb* pcb ,t_peticion* peticion){
+	t_paquete* paquete = crear_paquete(FSEEK);
+	agregar_a_paquete(paquete, &pcb, sizeof(t_pcb));
+	agregar_a_paquete(paquete, &(peticion->nombre_archivo), strlen(peticion->nombre_archivo) + 1);
+	agregar_a_paquete(paquete, &(peticion->posicion), sizeof(uint32_t));
+	enviar_paquete(paquete, socket);
+
+	eliminar_paquete(paquete);
+}
+
+void send_ftruncate(int socket, t_pcb* pcb ,t_peticion* peticion){
+	t_paquete* paquete = crear_paquete(FTRUNCATE);
+	agregar_a_paquete(paquete, &pcb, sizeof(t_pcb));
+	agregar_a_paquete(paquete, &(peticion->nombre_archivo), strlen(peticion->nombre_archivo) + 1);
+	agregar_a_paquete(paquete, &(peticion->tamanio), sizeof(uint32_t));
+	enviar_paquete(paquete, socket);
+
+	eliminar_paquete(paquete);
+}
+
+void send_fread(int socket, t_pcb* pcb ,t_peticion* peticion){
+	t_paquete* paquete = crear_paquete(FREAD);
+	agregar_a_paquete(paquete, &pcb, sizeof(t_pcb));
+	agregar_a_paquete(paquete, &(peticion->nombre_archivo), strlen(peticion->nombre_archivo) + 1);
+	agregar_a_paquete(paquete, &(peticion->direccion_logica), sizeof(int));
+	enviar_paquete(paquete, socket);
+
+	eliminar_paquete(paquete);
+}
+
+void send_fwrite(int socket, t_pcb* pcb ,t_peticion* peticion){
+	t_paquete* paquete = crear_paquete(FWRITE);
+	agregar_a_paquete(paquete, &pcb, sizeof(t_pcb));
+	agregar_a_paquete(paquete, &(peticion->nombre_archivo), strlen(peticion->nombre_archivo) + 1);
+	agregar_a_paquete(paquete, &(peticion->direccion_logica), sizeof(char));
+	enviar_paquete(paquete, socket);
+
+	eliminar_paquete(paquete);
+}
+
+void send_peticion(int socket, t_pcb* pcb ,t_peticion* peticion){
+	agregar_a_paquete(paquete, &pcb, sizeof(t_pcb));
+	t_paquete* paquete = crear_paquete(PETICION);
+	agregar_a_paquete(paquete, &peticion, sizeof(t_peticion));
+	enviar_paquete(paquete, socket);
+
+	eliminar_paquete(paquete);
+}
+
+char* recv_nombre_archivo(int socket) {
+	t_list* paquete = recibir_paquete(socket);
+	char* nombre_archivo = list_get(paquete, 1);
+	return nombre_archivo;
+}
+
+char recv_modo_apertura(int socket){
+	t_list* paquete = recibir_paquete(socket);
+	char modo_apertura = list_get(paquete, 2);
+	return modo_apertura;
+}
+
+uint32_t recv_posicion(int socket) {
+	t_list* paquete = recibir_paquete(socket);
+	uint32_t posicion = list_get(paquete, 2);
+	return posicion;
+}
+
+uint32_t recv_tamanio(int socket) {
+	t_list* paquete = recibir_paquete(socket);
+	uint32_t tamanio = list_get(paquete, 2);
+	return tamanio;
+}
+
+int recv_dir_logica(int socket) {
+	t_list* paquete = recibir_paquete(socket);
+	uint32_t direccion_logica = list_get(paquete, 2);
+	return direccion_logica;
+}
+
+t_peticion recv_peticion(int socket){
+	t_list* paquete = recibir_paquete(socket);
+	t_peticion peticion = list_get(paquete, 1);
+
+	return peticion;
+}
+

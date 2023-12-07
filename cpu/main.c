@@ -243,27 +243,50 @@ void ejecutar_exit(t_pcb* pcb){
 
 
 // envia a kernel el nombre del archivo y el modo de apertura W, R, E
-void ejecutar_fopen(t_pcb* pcb, char* param1, char param2){
+void ejecutar_fopen(t_pcb* pcb, char* param1, char* param2){
+	t_peticion* peticion;
+	peticion->nombre_archivo = param1;
+	peticion->modo_apertura = param2;
+	send_fopen(dispatch_cliente_fd, pcb, peticion);
 }
 
 // solicita el cierre del archivo con el nombre del mismo
-void ejecutar_fclose(t_pcb* pcb, char* param1){ /
+void ejecutar_fclose(t_pcb* pcb, char* param1){
+	t_peticion* peticion;
+	peticion->nombre_archivo = param1;
+	send_fclose(dispatch_cliente_fd, pcb, peticion);
 }
 
 // solicita al kernel actualizar el puntero del archivo a la posición pasada por parámetro
-void ejecutar_fseek(t_pcb* pcb,char* param1, uint32_t* param2){
+void ejecutar_fseek(t_pcb* pcb,char* param1, char* param2){
+	t_peticion* peticion;
+	peticion->nombre_archivo = param1;
+	peticion->posicion = (uint32_t)strtoul(param2, NULL, 10);
+	send_fseek(dispatch_cliente_fd, pcb, peticion);
 }
 
 //  solicita al Kernel que se lea del archivo indicado y se escriba en la dirección física de Memoria la información leída.
 void ejecutar_fread(t_pcb* pcb, char* param1, char* param2){
+	t_peticion* peticion;
+	peticion->nombre_archivo = param1;
+	peticion->direccion_logica = atoi(param2);
+	send_fread(dispatch_cliente_fd, pcb, peticion);
 }
 
 //  solicita al Kernel que se escriba en el archivo indicado la información que es obtenida a partir de la dirección física de Memoria.
 void ejecutar_fwrite(t_pcb* pcb, char* param1, char* param2){
+	t_peticion* peticion;
+	peticion->nombre_archivo = param1;
+	peticion->direccion_logica = atoi(param2);
+	send_fwrite(dispatch_cliente_fd, pcb, peticion);
 }
 
 // solicita al Kernel que se modifique el tamaño del archivo al indicado por parámetro.
-void ejecutar_ftruncate(t_pcb* pcb, char* param1, uint32_t* param2){
+void ejecutar_ftruncate(t_pcb* pcb, char* param1, char* param2){
+	t_peticion* peticion;
+	peticion->nombre_archivo = param1;
+	peticion->tamanio = (uint32_t)strtoul(param2, NULL, 10);
+	send_ftruncate(dispatch_cliente_fd, pcb, peticion);
 }
 
 t_config* iniciar_config(void)

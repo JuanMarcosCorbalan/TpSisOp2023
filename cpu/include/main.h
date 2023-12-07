@@ -35,5 +35,12 @@ void ejecutar_sum(t_pcb* pcb, char* param1, char* param2);
 void ejecutar_sub(t_pcb* pcb, char* param1, char* param2);
 void ejecutar_wait(t_pcb* pcb, char* param1);
 void ejecutar_exit(t_pcb* pcb);
+void ejecutar_fopen(t_pcb* pcb, char* param1, char* param2);
+void ejecutar_fclose(t_pcb* pcb, char* param1);
+void ejecutar_fseek(t_pcb* pcb,char* param1, char* param2);
+void ejecutar_fread(t_pcb* pcb, char* param1, char* param2);
+void ejecutar_fwrite(t_pcb* pcb, char* param1, char* param2);
+void ejecutar_ftruncate(t_pcb* pcb, char* param1, char* param2);
 
+	}
 #endif
