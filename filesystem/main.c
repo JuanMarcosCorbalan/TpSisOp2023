@@ -113,9 +113,10 @@ void realizar_operacion(t_operacion* operacion){
 		}
 		break;
 	case TRUNCAR_ARCHIVO_FS:
-			truncar_archivo(operacion->nombre, operacion->tamanio, path_fat);
+		truncar_archivo(operacion->nombre, operacion->tamanio, path_fat);
 		break;
 	case LEER_ARCHIVO_FS:
+
 		break;
 	case ESCRIBIR_ARCHIVO_FS:
 		break;
