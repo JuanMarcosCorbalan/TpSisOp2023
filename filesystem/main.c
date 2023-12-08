@@ -9,8 +9,8 @@ int main(void) {
 	char* ip;
 	char* puerto_escucha;
 	char* puerto_memoria;
-	int fd_memoria = 0;
-	int fd_cliente = 0;
+//	int fd_memoria = 0;
+//	int fd_cliente = 0;
 	FILE* archivo_bloques;
 	FILE* archivo_fat;
 
@@ -100,10 +100,12 @@ void procesar_conexion(){
 	}
 }
 
+// los valores de todo llegan por la operacion, aca se trata como si ya tuviera los valores, y mensajes de respuesta
 void realizar_operacion(t_operacion* operacion){
 	codigo_operacion_fs operacion_fs = operacion -> cod_op;
 	switch(operacion_fs){
 	case ABRIR_ARCHIVO_FS:
+		log_info(logger, "fopen con nombre_archivo: %s", operacion->nombre);
 		int resultado = abrir_archivo(operacion->nombre);
 		if(resultado == 0){
 			enviar_mensaje("Archivo no existente, se creara el archivo", socket_cliente);
@@ -114,15 +116,22 @@ void realizar_operacion(t_operacion* operacion){
 		break;
 	case TRUNCAR_ARCHIVO_FS:
 		truncar_archivo(operacion->nombre, operacion->tamanio, path_fat);
+		enviar_mensaje("Archivo truncado", socket_cliente);
 		break;
 	case LEER_ARCHIVO_FS:
-
+		leer_archivo(operacion->nombre,operacion->dir_fisica,operacion->puntero,path_fat);
 		break;
 	case ESCRIBIR_ARCHIVO_FS:
+		 escribir_archivo(operacion->nombre, operacion->dir_fisica, operacion->puntero,operacion->buffer_escritura,sizeof(operacion->buffer_escritura), path_fat);
 		break;
 	case INICIAR_PROCESO_FS:
+		log_info(logger, "iniciar_proceso con cantidad_bloques_swap: %d", operacion->cantidad_bloques_swap);
+		uint32_t* lista_bloques_reservados = reservar_bloques_swap(operacion->cantidad_bloques_swap);
+		send_bloques_reservados(socket_cliente, lista_bloques_reservados, sizeof(uint32_t) * operacion->cantidad_bloques_swap);
 		break;
 	case FINALIZAR_PROCESO_FS:
+		log_info(logger, "finalizar_proceso con cantidad de bloques a liberar: %ld", operacion->bloques_ocupados_swap.cantidad_bloques_a_liberar);
+		liberar_bloques_swap(operacion->bloques_ocupados_swap);
 		break;
 	}
 }
@@ -154,9 +163,9 @@ int abrir_archivo(char* nombre_archivo){ // o deberia revisar el path? creo q si
 	}
 }
 
-void procesar_F_READ(char* nombre_archivo, int direccion_fisica, int puntero, char* path_fat, int fd_memoria){
-	// establecer el puntero a partir de la direccion_fisica
-	// creo que el puntero pasaria por parametro, hay que ubicarlo en el primer byte del bloque a leer
+void leer_archivo(char* nombre_archivo, int direccion_fisica, int puntero, char* path_fat){
+
+	// El puntero pasaria por parametro, hay que ubicarlo en el primer byte del bloque a leer
 	char* path = convertir_path_fcb(nombre_archivo);
 	char* buffer_leido;
 	char* buffer_mensaje;
@@ -349,6 +358,8 @@ void asignar_bloques_a_archivo(const char* path_fat, t_config* archivo_fcb,  int
     int tamanio_archivo = config_get_int_value(archivo_fcb, "TAMANIO_ARCHIVO");
 	int cantidad_bloques_archivo = tamanio_archivo / tamanio_bloque;
 	int nuevo_tamanio = tamanio_archivo + tamanio_a_agregar;
+    FILE* archivo_fat = fopen(path_fat, "r+b");
+
 	// Obtener la lista de bloques asignados actualmente
     uint32_t* lista_bloques_actuales = obtener_bloques_asignados(path_fat, archivo_fcb);
 
@@ -370,7 +381,7 @@ void asignar_bloques_a_archivo(const char* path_fat, t_config* archivo_fcb,  int
         bloque_asignar_desde = config_get_int_value(archivo_fcb, "BLOQUE_INICIAL");
     }
     // Buscar el primer bloque libre
-    uint32_t bloque_libre = buscar_primer_bloque_libre(path_fat);
+    uint32_t bloque_libre = buscar_primer_bloque_libre_fat(archivo_fat);
 
     if(bloque_asignar_desde == 0) {
     	char bloque_libre_str[12];  // Suficientemente grande para contener el valor máximo de un uint32_t
@@ -386,7 +397,6 @@ void asignar_bloques_a_archivo(const char* path_fat, t_config* archivo_fcb,  int
     }
 
     // Asignar bloques al archivo actualizando la tabla FAT
-    FILE* archivo_fat = fopen(path_fat, "r+b");
 
     if (archivo_fat == NULL) {
         perror("Error al abrir el archivo FAT para lectura y escritura binaria");
@@ -404,7 +414,7 @@ void asignar_bloques_a_archivo(const char* path_fat, t_config* archivo_fcb,  int
         lista_bloques_actuales[i] = bloque_libre;
 
         // Buscar el siguiente bloque libre
-        bloque_libre = buscar_primer_bloque_libre(path_fat);
+        bloque_libre = buscar_primer_bloque_libre_fat(archivo_fat);
 
         if (bloque_libre == -1) {
             // Manejar el caso en que no hay más bloques libres
@@ -412,7 +422,7 @@ void asignar_bloques_a_archivo(const char* path_fat, t_config* archivo_fcb,  int
             break;
         }
 
-        log_info(logger,"Acceso FAT - Entrada: %s");
+        log_info(logger,"Acceso FAT - Entrada: %d", bloque_libre);
 
         bloque_asignar_desde = bloque_libre;  // Actualizar el bloque desde el cual asignar en la siguiente iteración
     }
@@ -494,6 +504,8 @@ void desasignar_bloques_a_archivo(const char* path_fat, t_config* archivo_fcb, i
     config_save(archivo_fcb);
 }
 
+
+
 bool archivo_sin_bloques(t_config* archivo_fcb){
 	int primer_bloque = config_get_int_value(archivo_fcb, "PRIMER_BLOQUE");
 	if(primer_bloque == 0){
@@ -501,8 +513,8 @@ bool archivo_sin_bloques(t_config* archivo_fcb){
 	} else return false;
 }
 
-uint32_t buscar_primer_bloque_libre(const char* path_fat) {
-    FILE* archivo_fat = fopen(path_fat, "rb");
+uint32_t buscar_primer_bloque_libre_fat(FILE* archivo_fat) {
+//    FILE* archivo_fat = fopen(path_fat, "rb"); siempre que la use ya va a estar abierto el archivo
 
     if (archivo_fat == NULL) {
         perror("Error al abrir el archivo FAT para lectura binaria");
@@ -614,6 +626,75 @@ uint32_t obtener_siguiente_bloque_fat(char* path_fat, uint32_t bloque_actual) {
 // primero deberia crear el archivo de bloques en caso de que no este en el path, es un archivo binario
 void crear_archivo_bloques(char* path){
 	FILE* archivo_bloques = fopen(path,"wb+");
-
+	// deberia setear todas las entradas, tanto de swap como de fat en 0;
 };
+
+uint32_t* reservar_bloques_swap(int cantidad_bloques_solicitados){
+	uint32_t* bloques_reservados = malloc(cantidad_bloques_solicitados * sizeof(uint32_t));
+	char* path_archivo_bloques = config_get_string_value(config, "PATH_BLOQUES");
+	int tamanio_bloque = config_get_int_value(config, "TAM_BLOQUE");
+	FILE* archivo_bloques = fopen(path_archivo_bloques, "wb+") ;
+	uint32_t bloque_actual = 0;
+	uint32_t i = 0;
+	while(cantidad_bloques_solicitados != 0) {
+		bloque_actual = buscar_primer_bloque_libre_swap(archivo_bloques);
+		fwrite("\0", sizeof(uint32_t), tamanio_bloque, archivo_bloques);
+		bloques_reservados[i] = bloque_actual;
+		cantidad_bloques_solicitados--;
+	}
+	fclose(archivo_bloques);
+	return bloques_reservados;
+}
+void liberar_bloques_swap(t_bloques_swap lista_bloques_a_liberar){
+	size_t longitud_lista = lista_bloques_a_liberar.cantidad_bloques_a_liberar;
+	char* path_archivo_bloques = config_get_string_value(config, "PATH_BLOQUES");
+	int tamanio_bloque = config_get_int_value(config, "TAM_BLOQUE");
+
+	FILE* archivo_bloques = fopen(path_archivo_bloques, "wb+") ;
+	int i = 0;
+	// comienza al principio de swap
+	uint32_t bloque_a_liberar = 0;
+	while(longitud_lista != 0) {
+		bloque_a_liberar = lista_bloques_a_liberar.array_bloques[i];
+		// liberar_bloque
+		// tengo que ubicar el puntero al principio del bloque que se quiere liberar
+		fseek(archivo_bloques, bloque_a_liberar * sizeof(uint32_t), SEEK_SET);
+		fwrite("0", sizeof(uint32_t), tamanio_bloque, archivo_bloques);
+		i++;
+		longitud_lista--;
+	}
+	free(lista_bloques_a_liberar.array_bloques);
+
+	fclose(archivo_bloques);
+}
+
+uint32_t buscar_primer_bloque_libre_swap(FILE* archivo_bloques) {
+
+    if (archivo_bloques == NULL) {
+        perror("Error al abrir el archivo FAT para lectura binaria");
+        return -1; // Otra forma de indicar un error
+    }
+
+    uint32_t bloque_actual = 0;
+    fseek(archivo_bloques, bloque_actual * sizeof(uint32_t), SEEK_SET);
+
+    while (fread(&bloque_actual, sizeof(uint32_t), 1, archivo_bloques) == 1) { // no se como hacer para que no pase del tamanio de la swap (y que asigne bloques de FAT)
+        // asumo que siempre va a haber un bloque libre
+    	if (bloque_actual == 0) {
+            // Encontramos un bloque libre
+            return bloque_actual;
+        }
+
+        fseek(archivo_bloques, bloque_actual * sizeof(uint32_t), SEEK_SET);
+    }
+
+    fclose(archivo_bloques);
+
+    // No se encontraron bloques libres
+    return -1; // Otra forma de indicar que no hay bloques libres
+}
+
+
+
+
 
