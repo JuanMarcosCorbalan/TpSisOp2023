@@ -27,7 +27,9 @@ typedef enum
 	FSEEK,
 	FTRUNCATE,
 	FREAD,
-	FWRITE
+	FWRITE,
+	INICIARPROCESO,
+	FINALIZARPROCESO
 }op_code;
 
 typedef enum
@@ -128,6 +130,16 @@ void send_fseek(int socket, t_pcb* pcb ,t_peticion* peticion);
 void send_ftruncate(int socket, t_pcb* pcb ,t_peticion* peticion);
 void send_fread(int socket, t_pcb* pcb ,t_peticion* peticion);
 void send_fwrite(int socket, t_pcb* pcb ,t_peticion* peticion);
+
+
+char* recv_nombre_archivo(int socket);
+char recv_modo_apertura(int socket);
+uint32_t recv_posicion(int socket);
+uint32_t recv_tamanio(int socket);
+int recv_dir_logica(int socket);
+t_peticion* recv_peticion(int socket);
+
+void send_bloques_reservados(int socket, uint32_t* lista_bloques_reservados, int tamanio);
 
 
 
