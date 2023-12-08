@@ -13,7 +13,7 @@ int main(void) {
 	sem_init(&sem_nuevo_proceso, 0, 1);
 	sem_init(&sem_ciclo_de_instrucciones, 0, 0);
 	fd_memoria = crear_conexion(logger, config_cpu.ip_memoria, config_cpu.puerto_memoria);
-	send_handshake_cpu_memoria(fd_memoria, 1);
+	send_handshake_cpu_memoria(fd_memoria);
 	log_info(logger, "handshake con memoria socket %d", fd_memoria);
 	tam_pagina = recv_tam_pagina(fd_memoria);
 	log_info(logger, "tamanio de pagina recibido: %d de socket %d", tam_pagina, fd_memoria);
@@ -119,9 +119,9 @@ t_instruccion* solicitar_instruccion(int pid, int program_counter){
 	log_info(logger, "Solicitud de instruccion enviada");
 //	int cod_op = recibir_operacion(fd_memoria);
 
-	t_instruccion* instruccion_recibida = recv_proxima_instruccion(fd_memoria);
+	//t_instruccion* instruccion_recibida = recv_proxima_instruccion(fd_memoria);
 	log_info(logger, "Instruccion recibida");
-	//instruccion_recibida = recibir_instruccion();
+	t_instruccion* instruccion_recibida = recibir_instruccion();
 
 	return instruccion_recibida;
 }

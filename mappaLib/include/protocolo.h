@@ -114,7 +114,7 @@ void send_tdp(int fd, t_tdp* tdp);
 t_tdp* recv_tdp(int fd);
 
 //HANDSHAKE CPU MEMORIA
-void send_handshake_cpu_memoria(int fd_memoria, int valor);
+void send_handshake_cpu_memoria(int fd_memoria);
 int recv_handshake_cpu_memoria(int fd_cpu);
 
 void send_tam_pagina(int fd, int tam_pag);
@@ -126,7 +126,7 @@ char* recv_recurso_wait(int dispatch_cliente_fd);
 
 //SOLICITUD DE MARCO
 void send_solicitud_marco(int dispatch_cliente_fd, int pid, int numero_pagina);// cpu
-void recv_solicitud_marco(int dispatch_cliente_fd, int* pid, int* numero_pagina); //kernel
+void* recv_solicitud_marco(int dispatch_cliente_fd, int* pid, int* numero_pagina); //kernel
 
 void send_marco (int dispatch_cliente_fd, int marco); //kernel
 int recv_marco (int dispatch_cliente_fd); //cpu
@@ -137,10 +137,11 @@ t_pcb* recv_pcb_pf(int fd_cpu_dispatch, int* numero_pagina);
 
 //NUMERO DE PAGINA
 void send_numero_pagina(int pid, int numero_pagina, int fd_memoria);
-void recv_numero_pagina(int* pid, int* numero_pagina, int fd_kernel);
+void* recv_numero_pagina(int* pid, int* numero_pagina, int fd_kernel);
 
 //PAGINA CARGADA
-void recv_pagina_cargada(int fd_memoria);
+void send_pagina_cargada(int fd_kernel);
+int recv_pagina_cargada(int fd_memoria);
 
 //SOLICITUD DE LECTURA
 void send_solicitud_lectura(int direccion_fisica, int fd_memoria);
@@ -152,6 +153,6 @@ uint32_t recv_valor_leido(int fd_memoria);
 
 //SOLICITUD DE ESCRITURA
 void send_solicitud_escritura(int direccion_fisica, uint32_t valor, int fd_memoria);
-void recv_solicitud_escritura(int* direccion_fisica, uint32_t* valor, int fd_cpu);
+void* recv_solicitud_escritura(int* direccion_fisica, uint32_t* valor, int fd_cpu);
 
 #endif

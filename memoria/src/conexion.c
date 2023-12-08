@@ -49,7 +49,7 @@ static void procesar_cliente(void* void_args){
 			case CARGAR_PAGINA:
 				int* pid;
 				int* numero_pagina;
-				recv_numero_pagina(pid, numero_pagina, cliente_fd);
+				void* recibir = recv_numero_pagina(pid, numero_pagina, cliente_fd);
 				cargar_pagina(*pid, *numero_pagina);
 				//mandar respuesta a kernel
 				enviar_operacion(PAGINA_CARGADA, cliente_fd);
@@ -171,7 +171,7 @@ void procesar_pedido_instruccion(int socket_cpu, t_list* proceso_instrucciones){
 		return (((t_proceso_instrucciones*)t)->pid == solicitud_instruccion->pid);
 	}
 	t_proceso_instrucciones* proceso = list_find(proceso_instrucciones, _encontrar_pid);
-	//t_proceso_instrucciones* proceso = list_get(proceso_instrucciones, 0);
+
 	//t_instruccion* instruccion_a_enviar = buscar_instruccion(solicitud_instruccion->pid, solicitud_instruccion->program_counter - 1, proceso_instrucciones);
 	t_instruccion* instruccion_a_enviar = list_get(proceso->instrucciones, solicitud_instruccion->program_counter - 1);
 	sleep(1);
@@ -252,13 +252,13 @@ char* inicializar_bitmap_marcos(void){
 void procesar_solicitud_marco(int fd_cpu){
 	int* pid = malloc(sizeof(int));
 	int* numero_pagina = malloc(sizeof(int));;
-	recv_solicitud_marco(fd_cpu, pid, numero_pagina);
+	void* recibir = recv_solicitud_marco(fd_cpu, pid, numero_pagina);
 
 	//buscar proceso en tdps
-	int _encontrar_pid(t_tdp *t) {
-		return t->pid == *pid;
+	bool _encontrar_pid(void* t) {
+		return (((t_tdp*)t)->pid == *pid);
 	}
-	t_tdp* tdp = list_find(tablas_de_paginas, (void*) _encontrar_pid);
+	t_tdp* tdp = list_find(tablas_de_paginas, _encontrar_pid);
 
 	//buscar pagina en tdp
 	t_pagina* pagina = list_get(tdp->paginas, *numero_pagina);

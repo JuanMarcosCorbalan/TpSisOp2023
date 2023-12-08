@@ -449,9 +449,10 @@ char* recv_recurso_wait(int dispatch_cliente_fd){
 }
 
 //HANDSHAKE CPU MEMORIA
-void send_handshake_cpu_memoria(int fd_memoria, int valor){
+void send_handshake_cpu_memoria(int fd_memoria){
 	t_paquete* paquete = crear_paquete(HANDSHAKE_CPU_MEMORIA);
-	agregar_a_paquete(paquete, &valor, sizeof(int));
+	int ok = 1;
+	agregar_a_paquete(paquete, &ok, sizeof(int));
 	enviar_paquete(paquete, fd_memoria);
 	eliminar_paquete(paquete);
 }
@@ -459,11 +460,11 @@ void send_handshake_cpu_memoria(int fd_memoria, int valor){
 int recv_handshake_cpu_memoria(int fd_cpu){
 	t_list* paquete = recibir_paquete(fd_cpu);
 
-	int* valor = list_get(paquete, 0);
+	int* ok = list_get(paquete, 0);
 
 	list_destroy(paquete);
 
-	return *valor;
+	return *ok;
 }
 
 //SOLICITU DE MARCO
@@ -476,13 +477,14 @@ void send_solicitud_marco(int fd, int pid, int numero_pagina){
 	eliminar_paquete(paquete);
 }
 
-void recv_solicitud_marco(int fd, int* pid, int* numero_pagina){
+void* recv_solicitud_marco(int fd, int* pid, int* numero_pagina){
 	t_list* paquete = recibir_paquete(fd);
 
 	pid = list_get(paquete, 0);
 	numero_pagina = list_get(paquete, 1);
 
 	list_destroy(paquete);
+	return pid;
 }
 
 void send_marco (int fd, int marco){
@@ -528,17 +530,29 @@ void send_numero_pagina(int pid, int numero_pagina, int fd_memoria){
 	enviar_paquete(paquete, fd_memoria);
 	eliminar_paquete(paquete);
 }
-void recv_numero_pagina(int* pid, int* numero_pagina, int fd_kernel){
+void* recv_numero_pagina(int* pid, int* numero_pagina, int fd_kernel){
 	t_list* paquete = recibir_paquete(fd_kernel);
 	pid = list_get(paquete, 0);
 	numero_pagina = list_get(paquete, 1);
 	list_destroy(paquete);
+	return pid;
+}
+void send_pagina_cargada(int fd_kernel){
+	t_paquete* paquete = crear_paquete(PAGINA_CARGADA);
 
+	int ok = 1;
+	agregar_a_paquete(paquete, &ok, sizeof(int));
+
+	enviar_paquete(paquete, fd_kernel);
+	eliminar_paquete(paquete);
 }
 
 // PAGINA CARGADA
-void recv_pagina_cargada(int fd_memoria){
-	recibir_operacion(fd_memoria);
+int recv_pagina_cargada(int fd_memoria){
+	t_list* paquete = recibir_paquete(fd_memoria);
+	int* ok = list_get(paquete, 0);
+	list_destroy(paquete);
+	return *ok;
 }
 
 //SOLICITUD DE LECTURA DE MEMORIA
@@ -588,11 +602,12 @@ void send_solicitud_escritura(int direccion_fisica, uint32_t valor, int fd_memor
 	eliminar_paquete(paquete);
 }
 
-void recv_solicitud_escritura(int* direccion_fisica, uint32_t* valor, int fd_cpu){
+void* recv_solicitud_escritura(int* direccion_fisica, uint32_t* valor, int fd_cpu){
 	t_list* paquete = recibir_paquete(fd_cpu);
 
 	direccion_fisica = list_get(paquete, 0);
 	valor = list_get(paquete, 1);
 
 	list_destroy(paquete);
+	return valor;
 }
