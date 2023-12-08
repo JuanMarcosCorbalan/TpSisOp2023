@@ -12,8 +12,8 @@ void* espacio_usuario;
 char* algoritmo_reemplazo;
 t_list* paginas_en_memoria;
 int contador_instante = 0;
-int valor_aux = 0;
 int inicializado = 0;
+int fd_filesystem = 0;
 
 static void procesar_cliente(void* void_args){
 	t_procesar_cliente_args* args = (t_procesar_cliente_args*) void_args;
@@ -48,9 +48,9 @@ static void procesar_cliente(void* void_args){
 				break;
 			case CARGAR_PAGINA:
 				int* pid;
-				int* numero_pagina;
-				void* recibir = recv_numero_pagina(pid, numero_pagina, cliente_fd);
-				cargar_pagina(*pid, *numero_pagina);
+				int* desplazamiento;
+				int numero_pagina = recv_numero_pagina(pid, desplazamiento, cliente_fd);
+				cargar_pagina(*pid, numero_pagina, *desplazamiento);
 				//mandar respuesta a kernel
 				enviar_operacion(PAGINA_CARGADA, cliente_fd);
 				break;
@@ -82,23 +82,7 @@ static void procesar_cliente(void* void_args){
 
 int experar_clientes(t_log* logger, int server_socket, t_config* config){
 	if(inicializado != 1){
-		proceso_instrucciones = list_create();
-		tam_pagina = atoi(config_get_string_value(config, "TAM_PAGINA"));
-		tam_memoria = atoi(config_get_string_value(config, "TAM_MEMORIA"));
-		retardo_respuesta = atoi(config_get_string_value(config, "RETARDO_RESPUESTA"));
-		algoritmo_reemplazo = config_get_string_value(config, "ALGORITMO_REEMPLAZO");
-		cant_marcos = tam_memoria / tam_pagina;
-		bitmap_marcos = inicializar_bitmap_marcos();
-
-		paginas_en_memoria = list_create();
-
-		espacio_usuario = malloc(tam_memoria);
-
-		memset(espacio_usuario, 0, tam_memoria);
-
-		tablas_de_paginas = list_create();
-		log_info(logger, "MEMORIA LISTO...");
-		inicializado = 1;
+		inicializar_variables(logger, config);
 	}
 
 	int cliente_socket = esperar_cliente(logger, server_socket);
@@ -114,6 +98,31 @@ int experar_clientes(t_log* logger, int server_socket, t_config* config){
 	}
 
 	return 0;
+}
+
+void inicializar_variables(t_log* logger, t_config* config){
+	proceso_instrucciones = list_create();
+	tam_pagina = atoi(config_get_string_value(config, "TAM_PAGINA"));
+	tam_memoria = atoi(config_get_string_value(config, "TAM_MEMORIA"));
+	retardo_respuesta = atoi(config_get_string_value(config, "RETARDO_RESPUESTA"));
+	algoritmo_reemplazo = config_get_string_value(config, "ALGORITMO_REEMPLAZO");
+	cant_marcos = tam_memoria / tam_pagina;
+	bitmap_marcos = inicializar_bitmap_marcos();
+
+	paginas_en_memoria = list_create();
+
+	espacio_usuario = malloc(tam_memoria);
+
+	memset(espacio_usuario, 0, tam_memoria);
+
+	tablas_de_paginas = list_create();
+
+	char* ip_fs = config_get_string_value(config, "IP_FILESYSTEM");
+	char* puerto_fs = config_get_string_value(config, "PUERTO_FILESYSTEM");
+	fd_filesystem = crear_conexion(logger, ip_fs, puerto_fs);
+
+	log_info(logger, "MEMORIA LISTO...");
+	inicializado = 1;
 }
 
 void iniciar_proceso_memoria(char* path, int size, int pid, int socket_kernel, t_log* logger){
@@ -140,13 +149,14 @@ void iniciar_proceso_memoria(char* path, int size, int pid, int socket_kernel, t
 	t_list* paginas = list_create();
 
 	int cant_paginas = size / tam_pagina;
-
+	send_solicitud_bloques_swap(fd_filesystem, cant_paginas);
+	uint32_t* bloques = recv_lista_bloques_reservados(fd_filesystem);
 	for(int i = 1; i < cant_paginas; i++){
 		t_pagina* pag = malloc(sizeof(t_pagina));
 		pag->marco = -1;
 		pag->bit_presencia = 0;
 		pag->bit_modificado = 0;
-		// pag->pos_swap = ??//TODO preguntarle a fs
+		pag->pos_swap = bloques[i];
 		list_add(paginas, pag);
 		free(pag);
 	}
@@ -269,9 +279,7 @@ void procesar_solicitud_marco(int fd_cpu){
 
 }
 
-void cargar_pagina(int pid, int numero_pagina){
-	//TODO Decirle a fs que me traiga la pagina
-
+void cargar_pagina(int pid, int numero_pagina, int desplazamiento){
 	//ver si la memoria esta llena (bitmap de marcos)
 	bool flag_memoria_llena = true;
 	int marco;
@@ -281,6 +289,18 @@ void cargar_pagina(int pid, int numero_pagina){
 			break;
 		}
 	}
+	//buscar proceso en tdps
+	bool _encontrar_pid(void* t) {
+		return (((t_tdp*)t)->pid == pid);
+	}
+	t_tdp* tdp = list_find(tablas_de_paginas, _encontrar_pid);
+
+	//buscar pagina en tdp
+	t_pagina* pagina = list_get(tdp->paginas, numero_pagina);
+	//decirle a fs que me traiga lo que esta en el bloque
+	send_solicitud_valor_en_bloque(fd_filesystem, pagina->pos_swap);
+	uint32_t valor = recv_valor_en_bloque(fd_filesystem);
+
 	//en ese caso, ejecutar algoritmo de reemplazo
 	if(flag_memoria_llena){
 		//algoritmo de reemplazo
@@ -288,14 +308,15 @@ void cargar_pagina(int pid, int numero_pagina){
 	}else{
 		//sino - cargar pagina (asignarle un marco si no tiene y cambiarle el bit de presencia a 1)
 
-		//TODO delegar a otra funcion "
-		//pagina->marco = marco;
-		//pagina->bit_presencia = 1;
-		//pagina->instante_de_referencia = contador_instante;
+		pagina->marco = marco;
+		pagina->bit_presencia = 1;
+		pagina->instante_de_referencia = contador_instante;
 		bitmap_marcos[marco] = '1';
-		//list_add(paginas_en_memoria, pagina);
+		list_add(paginas_en_memoria, pagina);
+		int direccion = marco * tam_pagina + desplazamiento;
+		escribir_espacio_usuario(direccion, valor);
 	}
-
+	contador_instante++;
 }
 
 void realizar_reemplazo(int pid, int numero_pagina){ //TODO

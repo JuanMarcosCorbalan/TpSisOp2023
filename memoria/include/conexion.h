@@ -14,6 +14,7 @@
 #define MAX_LINE_LENGTH 100
 
 
+
 typedef struct {
     int fd_cliente;
     t_log* logger;
@@ -26,6 +27,7 @@ typedef struct {
 } t_proceso_instrucciones;
 
 int experar_clientes(t_log* logger, int server_socket, t_config* config);
+void inicializar_variables(t_log* logger, t_config* config);
 t_list* generar_instrucciones(char* path);
 codigo_instruccion instruccion_to_enum(char* instruccion);
 void iniciar_proceso_memoria(char* path, int size, int pid, int socket_kernel, t_log* logger);
@@ -36,7 +38,7 @@ t_instruccion* buscar_instruccion(int pid, int program_counter, t_list* proceso_
 char* inicializar_bitmap_marcos(void);
 void procesar_solicitud_marco(int fd_cpu);
 
-void cargar_pagina(int pid, int numero_pagina);
+void cargar_pagina(int pid, int numero_pagina, int desplazamiento);
 void realizar_reemplazo(int pid, int numero_pagina);
 
 

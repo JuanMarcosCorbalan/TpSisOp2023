@@ -226,12 +226,13 @@ int solicitar_direccion_fisica(int direccion_logica, int pid){
 	if(marco == -1){
 		log_info(logger, "Page Fault PID: %d - Pagina: %d", pid, numero_pagina); //log ob
 		//iniciar acciones page fault
-		send_pcb_pf(pcb, numero_pagina, dispatch_cliente_fd);
+		send_pcb_pf(pcb, numero_pagina, desplazamiento, dispatch_cliente_fd);
 		//TODO mandar interrupcion para que no actualice el program counter
 		return marco;
 	}
 	log_info(logger,  "PID: %d - OBTENER MARCO - Página: %d - Marco: %d", pid, numero_pagina, marco); //log ob
-	return marco+desplazamiento;
+	int direccion_fisica = marco*tam_pagina + desplazamiento;
+	return direccion_fisica;
 }
 
 void ejecutar_mov_in(t_pcb* pcb, char* param1, char* param2){

@@ -29,7 +29,9 @@ typedef enum
 	PCB_PF,
 	CARGAR_PAGINA,
 	PAGINA_CARGADA,
-	VALOR_LEIDO
+	VALOR_LEIDO,
+	SOLICITUD_BLOQUES_SWAP,
+	VALOR_EN_BLOQUE
 }op_code;
 
 typedef enum
@@ -120,6 +122,13 @@ int recv_handshake_cpu_memoria(int fd_cpu);
 void send_tam_pagina(int fd, int tam_pag);
 int recv_tam_pagina(int fd);
 
+//SOLICITAR BLOQUES SWAP
+void send_solicitud_bloques_swap(int fd_filesystem, int cant_paginas);
+int recv_solicitud_bloques_swap(int fd_memoria);
+
+uint32_t* recv_lista_bloques_reservados(int socket);
+
+
 // RECURSO_WAIT
 void send_recurso_wait(int dispatch_cliente_fd, char* recurso);
 char* recv_recurso_wait(int dispatch_cliente_fd);
@@ -132,12 +141,12 @@ void send_marco (int dispatch_cliente_fd, int marco); //kernel
 int recv_marco (int dispatch_cliente_fd); //cpu
 
 //PAGE FAULT CPU A KERNEL
-void send_pcb_pf(t_pcb* pcb, int numero_pagina, int dispatch_cliente_fd);
-t_pcb* recv_pcb_pf(int fd_cpu_dispatch, int* numero_pagina);
+void send_pcb_pf(t_pcb* pcb, int numero_pagina, int desplazamiento, int dispatch_cliente_fd);
+t_pcb* recv_pcb_pf(int fd_cpu_dispatch, int* numero_pagina, int* desplazamiento);
 
 //NUMERO DE PAGINA
-void send_numero_pagina(int pid, int numero_pagina, int fd_memoria);
-void* recv_numero_pagina(int* pid, int* numero_pagina, int fd_kernel);
+void send_numero_pagina(int pid, int numero_pagina, int desplazamiento, int fd_memoria);
+int recv_numero_pagina(int* pid, int* desplazamiento, int fd_kernel);
 
 //PAGINA CARGADA
 void send_pagina_cargada(int fd_kernel);
@@ -154,5 +163,12 @@ uint32_t recv_valor_leido(int fd_memoria);
 //SOLICITUD DE ESCRITURA
 void send_solicitud_escritura(int direccion_fisica, uint32_t valor, int fd_memoria);
 void* recv_solicitud_escritura(int* direccion_fisica, uint32_t* valor, int fd_cpu);
+
+//SOLICITUD DE VALOR EN BLOQUE
+void send_solicitud_valor_en_bloque(int fd_filesystem, int direccion_bloque);
+int recv_solicitud_valor_en_bloque(int fd_memoria);
+
+void send_valor_en_bloque(int fd_memoria, uint32_t valor);
+uint32_t recv_valor_en_bloque(int fd_filesystem);
 
 #endif

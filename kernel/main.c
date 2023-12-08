@@ -164,11 +164,12 @@ void procesar_respuesta_cpu(){
 		case PCB_PF:
 			//recibir pcb y num de pag
 			int* numero_pagina;
-			t_pcb* pcb = recv_pcb_pf(fd_cpu_dispatch, numero_pagina);
+			int* desplazamiento;
+			t_pcb* pcb = recv_pcb_pf(fd_cpu_dispatch, numero_pagina, desplazamiento);
 			//pasar proceso a bloqueado
 			execute_a_bloqueado(pcb);
 			//enviar num de pag a memoria y cargarla
-			send_numero_pagina(pcb->pid, *numero_pagina, fd_memoria);
+			send_numero_pagina(pcb->pid, *numero_pagina, *desplazamiento, fd_memoria);
 			//esperar respuesta de memoria
 			recv_pagina_cargada(fd_memoria);
 			//pasar proceso a ready
