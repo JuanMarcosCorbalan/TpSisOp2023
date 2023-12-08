@@ -54,8 +54,18 @@ typedef struct {
 	t_registros_generales_cpu registros_generales_cpu;
 	t_motivo_exit motivo_exit;
 //	t_archivos_abiertos archivos_abiertos;
-//	t_list recursos_asignados;
+	t_list* recursos_asignados;
 } t_pcb;
+
+typedef struct {
+	char* nombre_recurso;
+	int instancias;
+} t_recurso_asignado;
+
+//typedef struct {
+//	int pid;
+//	int instancias;
+//}t_pid_instancias_recurso;
 
 typedef enum {
 	SET,

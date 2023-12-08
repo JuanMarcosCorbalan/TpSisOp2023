@@ -303,8 +303,46 @@ void send_pcb(t_pcb* pcb, int socket){
 
 	agregar_a_paquete(paquete, &(pcb->motivo_exit), sizeof(t_motivo_exit));
 
+	empaquetar_recursos(paquete, pcb->recursos_asignados);
+
 	enviar_paquete(paquete, socket);
 	eliminar_paquete(paquete);
+}
+
+void empaquetar_recursos(t_paquete* paquete, t_list* lista_de_recursos){
+	int cantidad_recursos = list_size(lista_de_recursos);
+	agregar_a_paquete(paquete, &(cantidad_recursos), sizeof(int));
+	for(int i = 0; i<cantidad_recursos; i++){
+		t_recurso_asignado* recurso_asignado = list_get(lista_de_recursos, i);
+		agregar_a_paquete(paquete, recurso_asignado->nombre_recurso, strlen(recurso_asignado->nombre_recurso) + 1);
+		agregar_a_paquete(paquete, &(recurso_asignado->instancias), sizeof(int));
+	}
+}
+
+t_list* desempaquetar_recursos(t_list* paquete, int comienzo){
+	t_list* recursos = list_create();
+	int* cantidad_recursos = list_get(paquete, comienzo);
+	int i = comienzo + 1;
+
+	while(i - comienzo - 1 < (*cantidad_recursos* 2)){
+		t_recurso_asignado* recurso_asignado = malloc(sizeof(t_recurso_asignado));
+		char* nombre = list_get(paquete, i);
+		recurso_asignado->nombre_recurso = malloc(strlen(nombre) + 1);
+		strcpy(recurso_asignado->nombre_recurso, nombre);
+		free(nombre);
+		i++;
+
+		int* instancia = list_get(paquete, i);
+		recurso_asignado->instancias = *instancia;
+		free(instancia);
+		i++;
+
+		list_add(recursos, recurso_asignado);
+		free(recurso_asignado->nombre_recurso);
+	}
+
+	free(cantidad_recursos);
+	return recursos;
 }
 
 t_pcb* recv_pcb(int socket){
@@ -346,6 +384,9 @@ t_pcb* recv_pcb(int socket){
 	t_motivo_exit* motivo_exit = list_get(paquete, 8);
 	pcb->motivo_exit = *motivo_exit;
 	free(motivo_exit);
+
+	t_list* recursos = desempaquetar_recursos(paquete, 9);
+	pcb->recursos_asignados = recursos;
 
 	list_destroy(paquete);
 	return pcb;
