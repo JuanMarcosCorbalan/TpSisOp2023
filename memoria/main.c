@@ -10,22 +10,10 @@ int main() {
 	puerto_escucha = config_get_string_value(config, "PUERTO_ESCUCHA");
 
 	int server_fd = iniciar_servidor(puerto_escucha);
-	log_info(logger, "MEMORIA LISTO...");
+	log_info(logger, "MODULO MEMORIA LISTO.");
     while (experar_clientes(logger, server_fd));
 
     return 0;
-}
-
-t_config* iniciar_config(void)
-{
-	t_config* nuevo_config = config_create("./memoria.config");
-
-	if(nuevo_config == NULL){
-		printf("No se pudo leer el config\n");
-		exit(2);
-	}
-
-	return nuevo_config;
 }
 
 void liberar_proceso(int server_fd)

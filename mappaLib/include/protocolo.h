@@ -20,7 +20,10 @@ typedef enum
 	DATOS_PROCESO_NEW,
 	EJECUTAR_PCB,
 	PCB_ACTUALIZADO,
-	RECURSO_WAIT
+	ATENDER_WAIT,
+	ATENDER_SIGNAL,
+	CAMBIAR_ESTADO,
+	ATENDER_SLEEP
 }op_code;
 
 typedef enum
@@ -67,8 +70,8 @@ void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio);
 void eliminar_paquete(t_paquete* paquete);
 void send_datos_proceso(char* path, int size_proceso, int pid, int fd);
 t_datos_proceso* recv_datos_proceso(int fd);
-void send_interrupcion(t_interrupt* interrupcion, int fd);
-t_interrupt* recv_interrupcion(int fd);
+void send_interrupcion(t_motivo_exit motivo, int fd);
+t_motivo_exit recv_interrupcion(int fd);
 void enviar_mensaje(char* mensaje, int socket_cliente);
 void recibir_mensaje(t_log* logger, int socket_cliente);
 
@@ -100,7 +103,18 @@ void send_pcb_actualizado(int fd, t_pcb* pcb);
 t_pcb* recv_pcb_actualizado(int fd);
 
 // RECURSO_WAIT
-void send_recurso_wait(int dispatch_cliente_fd, char* recurso);
-char* recv_recurso_wait(int dispatch_cliente_fd);
+void send_recurso_wait(char* recurso, int dispatch_cliente_fd);
+char* recv_recurso(int dispatch_cliente_fd);
+
+// RECURSO_SIGNAL
+void send_recurso_signal(char* recurso, int dispatch_cliente_fd);
+
+// CAMBIAR_ESTADO
+void send_cambiar_estado(estado estado, int fd_modulo);
+estado recv_cambiar_estado(int fd_modulo);
+
+//SLEEP
+void send_sleep(int tiempo_bloqueado, int fd_modulo);
+int recv_sleep(int fd_modulo);
 
 #endif
