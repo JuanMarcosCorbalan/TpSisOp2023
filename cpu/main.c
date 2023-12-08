@@ -4,6 +4,7 @@ int fd_memoria = 0;
 int dispatch_cliente_fd = 0;
 int interrupt_cliente_fd = 0;
 bool flag_hay_interrupcion = false;
+int tam_pagina = 0;
 t_log* logger;
 t_pcb* pcb;
 
@@ -15,6 +16,11 @@ int main(void) {
 	sem_init(&sem_interrupcion, 0, 0);
 	fd_memoria = crear_conexion(logger, config_cpu.ip_memoria, config_cpu.puerto_memoria);
 	enviar_mensaje("Hola, soy el CPU!", fd_memoria);
+	send_handshake_cpu_memoria(fd_memoria);
+	log_info(logger, "handshake con memoria socket %d", fd_memoria);
+	tam_pagina = recv_tam_pagina(fd_memoria);
+	log_info(logger, "tamanio de pagina recibido: %d de socket %d", tam_pagina, fd_memoria);
+//	liberar_conexion(fd_memoria);
 
 	pthread_t *hilo_dispatch = malloc(sizeof(pthread_t));
 	pthread_t *hilo_interrupt = malloc(sizeof(pthread_t));
@@ -23,7 +29,6 @@ int main(void) {
 	pthread_create(hilo_dispatch, NULL, &ejecutar_pcb, NULL);
 	pthread_create(hilo_interrupt, NULL, &ejecutar_interrupcion, NULL);
 	pthread_create(hilo_cilo_instruccion, NULL, &ciclo_de_intruccion, NULL);
-
 	pthread_join(*hilo_dispatch, NULL);
 	pthread_join(*hilo_interrupt, NULL);
 	pthread_join(*hilo_cilo_instruccion, NULL);
@@ -161,6 +166,24 @@ void decode(t_instruccion* instruccion, t_pcb* pcb){
 	case EXIT:
 		ejecutar_exit(pcb);
 		break;
+	case MOV_IN:
+		ejecutar_mov_in(pcb, instruccion->param1, instruccion->param2);
+		break;
+	case MOV_OUT:
+		ejecutar_mov_out(pcb, instruccion->param1, instruccion->param2);
+		break;
+	}
+}
+
+void cambiar_valor_registro(t_pcb* pcb, char* registro, uint32_t nuevo_valor){
+	if(strcmp(registro, "AX") == 0){
+		pcb->registros_generales_cpu.ax = nuevo_valor;
+	} else if(strcmp(registro, "BX") == 0){
+		pcb->registros_generales_cpu.bx = nuevo_valor;
+	} else if(strcmp(registro, "CX") == 0){
+		pcb->registros_generales_cpu.cx = nuevo_valor;
+	} else if(strcmp(registro, "DX") == 0){
+		pcb->registros_generales_cpu.dx = nuevo_valor;
 	}
 }
 
@@ -296,6 +319,59 @@ void check_interrupt(){
 	} else {
 		sem_post(&sem_ciclo_instruccion);
 	}
+}
+
+int solicitar_direccion_fisica(int direccion_logica, int pid){
+	int numero_pagina = floor(direccion_logica / tam_pagina);
+	int desplazamiento =  direccion_logica - numero_pagina * tam_pagina;
+	send_solicitud_marco(fd_memoria, pid, numero_pagina);
+	int marco = recv_marco(fd_memoria);
+	if(marco == -1){
+		log_info(logger, "Page Fault PID: %d - Pagina: %d", pid, numero_pagina); //log ob
+		//iniciar acciones page fault
+		send_pcb_pf(pcb, numero_pagina, desplazamiento, dispatch_cliente_fd);
+		//TODO mandar interrupcion para que no actualice el program counter
+		return marco;
+	}
+	log_info(logger,  "PID: %d - OBTENER MARCO - Página: %d - Marco: %d", pid, numero_pagina, marco); //log ob
+	int direccion_fisica = marco*tam_pagina + desplazamiento;
+	return direccion_fisica;
+}
+
+void ejecutar_mov_in(t_pcb* pcb, char* param1, char* param2){
+	int direccion_logica = atoi(param2);
+	int direccion_fisica = solicitar_direccion_fisica(direccion_logica, pcb->pid);
+	if(direccion_fisica == -1){
+		return;
+	}
+
+	send_solicitud_lectura(direccion_fisica, fd_memoria);
+	uint32_t valor = recv_valor_leido(fd_memoria);
+
+	cambiar_valor_registro(pcb, param1, valor);
+}
+
+void ejecutar_mov_out(t_pcb* pcb, char* param1, char* param2){
+	char* registro = param2;
+	int direccion_logica = atoi(param1);
+	int direccion_fisica = solicitar_direccion_fisica(direccion_logica, pcb->pid);
+	if(direccion_fisica == -1){
+		return;
+	}
+
+	uint32_t valor;
+
+	if(strcmp(registro, "AX") == 0){
+		valor = pcb->registros_generales_cpu.ax;
+	} else if(strcmp(registro, "BX") == 0){
+		valor = pcb->registros_generales_cpu.bx;
+	} else if(strcmp(registro, "CX") == 0){
+		valor = pcb->registros_generales_cpu.cx;
+	} else if(strcmp(registro, "DX") == 0){
+		valor = pcb->registros_generales_cpu.dx;
+	}
+
+	send_solicitud_escritura(direccion_fisica, valor, fd_memoria);
 }
 
 t_config* iniciar_config(void)

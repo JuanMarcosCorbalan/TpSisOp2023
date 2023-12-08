@@ -23,7 +23,19 @@ typedef enum
 	ATENDER_WAIT,
 	ATENDER_SIGNAL,
 	CAMBIAR_ESTADO,
-	ATENDER_SLEEP
+	ATENDER_SLEEP,
+	TDP,
+	HANDSHAKE_CPU_MEMORIA,
+	RECURSO_WAIT,
+	LEER_MEMORIA,
+	ESCRIBIR_MEMORIA,
+	MARCO,
+	PCB_PF,
+	CARGAR_PAGINA,
+	PAGINA_CARGADA,
+	VALOR_LEIDO,
+	SOLICITUD_BLOQUES_SWAP,
+	VALOR_EN_BLOQUE
 }op_code;
 
 typedef enum
@@ -75,6 +87,7 @@ t_motivo_exit recv_interrupcion(int fd);
 void enviar_mensaje(char* mensaje, int socket_cliente);
 void recibir_mensaje(t_log* logger, int socket_cliente);
 
+void enviar_operacion(op_code codigo_operacion, int socket_cliente);
 int recibir_operacion(int socket_cliente);
 
 void crear_buffer(t_paquete* paquete);
@@ -102,6 +115,24 @@ t_pcb* recv_ejecutar_pcb(int fd);
 void send_pcb_actualizado(int fd, t_pcb* pcb);
 t_pcb* recv_pcb_actualizado(int fd);
 
+//TDP
+void send_tdp(int fd, t_tdp* tdp);
+t_tdp* recv_tdp(int fd);
+
+//HANDSHAKE CPU MEMORIA
+void send_handshake_cpu_memoria(int fd_memoria);
+int recv_handshake_cpu_memoria(int fd_cpu);
+
+void send_tam_pagina(int fd, int tam_pag);
+int recv_tam_pagina(int fd);
+
+//SOLICITAR BLOQUES SWAP
+void send_solicitud_bloques_swap(int fd_filesystem, int cant_paginas);
+int recv_solicitud_bloques_swap(int fd_memoria);
+
+uint32_t* recv_lista_bloques_reservados(int socket);
+
+
 // RECURSO_WAIT
 void send_recurso_wait(char* recurso, int dispatch_cliente_fd);
 char* recv_recurso(int dispatch_cliente_fd);
@@ -116,5 +147,43 @@ estado recv_cambiar_estado(int fd_modulo);
 //SLEEP
 void send_sleep(int tiempo_bloqueado, int fd_modulo);
 int recv_sleep(int fd_modulo);
+
+//SOLICITUD DE MARCO
+void send_solicitud_marco(int dispatch_cliente_fd, int pid, int numero_pagina);// cpu
+void* recv_solicitud_marco(int dispatch_cliente_fd, int* pid, int* numero_pagina); //kernel
+
+void send_marco (int dispatch_cliente_fd, int marco); //kernel
+int recv_marco (int dispatch_cliente_fd); //cpu
+
+//PAGE FAULT CPU A KERNEL
+void send_pcb_pf(t_pcb* pcb, int numero_pagina, int desplazamiento, int dispatch_cliente_fd);
+t_pcb* recv_pcb_pf(int fd_cpu_dispatch, int* numero_pagina, int* desplazamiento);
+
+//NUMERO DE PAGINA
+void send_numero_pagina(int pid, int numero_pagina, int desplazamiento, int fd_memoria);
+int recv_numero_pagina(int* pid, int* desplazamiento, int fd_kernel);
+
+//PAGINA CARGADA
+void send_pagina_cargada(int fd_kernel);
+int recv_pagina_cargada(int fd_memoria);
+
+//SOLICITUD DE LECTURA
+void send_solicitud_lectura(int direccion_fisica, int fd_memoria);
+int recv_solicitud_lectura(int fd_cpu);
+
+//ENVIAR VALOR LEIDO
+void send_valor_leido(uint32_t valor, int fd_cpu);
+uint32_t recv_valor_leido(int fd_memoria);
+
+//SOLICITUD DE ESCRITURA
+void send_solicitud_escritura(int direccion_fisica, uint32_t valor, int fd_memoria);
+void* recv_solicitud_escritura(int* direccion_fisica, uint32_t* valor, int fd_cpu);
+
+//SOLICITUD DE VALOR EN BLOQUE
+void send_solicitud_valor_en_bloque(int fd_filesystem, int direccion_bloque);
+int recv_solicitud_valor_en_bloque(int fd_memoria);
+
+void send_valor_en_bloque(int fd_memoria, uint32_t valor);
+uint32_t recv_valor_en_bloque(int fd_filesystem);
 
 #endif

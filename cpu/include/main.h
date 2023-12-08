@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <math.h>
 #include "../../mappaLib/include/sockets.h"
 #include "../../mappaLib/include/protocolo.h"
 #include "../../mappaLib/include/utils.h"
@@ -16,6 +17,7 @@ typedef struct {
 } t_config_cpu;
 
 t_config_cpu config_cpu;
+
 
 sem_t sem_nuevo_proceso;
 sem_t sem_ciclo_instruccion;
@@ -31,6 +33,7 @@ void fetch(t_pcb* pcb);
 t_instruccion* solicitar_instruccion(int pid, int program_counter);
 void decode(t_instruccion* instruccion, t_pcb* pcb);
 void leer_config();
+void cambiar_valor_registro(t_pcb* pcb, char* registro, uint32_t nuevo_valor);
 void ejecutar_set(t_pcb* pcb, char* param1, char* param2);
 void ejecutar_sum(t_pcb* pcb, char* param1, char* param2);
 void ejecutar_sub(t_pcb* pcb, char* param1, char* param2);
@@ -41,5 +44,7 @@ void ejecutar_signal(t_pcb* pcb, char* param1);
 void ejecutar_jnz(t_pcb* pcb, char* param1, char* param2);
 void check_interrupt();
 void* ciclo_de_intruccion(void *arg);
+void ejecutar_mov_in(t_pcb* pcb, char* param1, char* param2);
+void ejecutar_mov_out(t_pcb* pcb, char* param1, char* param2);
 
 #endif

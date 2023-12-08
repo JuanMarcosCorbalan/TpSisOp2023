@@ -55,6 +55,29 @@ t_list* recibir_paquete(int socket_cliente)
 	return valores;
 }
 
+void enviar_operacion(op_code codigo_operacion, int socket_cliente){
+	t_paquete* paquete = crear_paquete(codigo_operacion);
+	enviar_paquete(paquete, socket_cliente);
+	eliminar_paquete(paquete);
+}
+
+//void paquete(int conexion)
+//{
+//	char* leido;
+//	t_paquete* paquete = crear_paquete();
+//
+//	leido = readline("> ");
+//	while(strcmp(leido, "")){
+//		agregar_a_paquete(paquete, leido, strlen(leido) +1);
+//		leido = readline("> ");
+//	}
+//
+//	enviar_paquete(paquete, conexion);
+//
+//	free(leido);
+//	eliminar_paquete(paquete);
+//}
+
 void leer_consola(t_log* logger)
 {
 	char* leido;
@@ -368,9 +391,44 @@ t_pcb* recv_pcb_actualizado(int fd){
 
 	return pcb;
 }
+// TDP
+void send_tdp(int fd, t_tdp* tdp){
+	t_paquete* paquete = crear_paquete(TDP);
+	agregar_a_paquete(paquete, tdp, sizeof(t_tdp));
+	enviar_paquete(paquete, fd);
+	eliminar_paquete(paquete);
+}
 
-//RECURSO_WAIT
+t_tdp* recv_tdp(int fd){
+	t_list* paquete = recibir_paquete(fd);
+	t_tdp* tdp = list_get(paquete, 0);
 
+	list_destroy(paquete);
+
+	return tdp;
+}
+
+//HANDSHAKE CPU MEMORIA
+void send_tam_pagina(int fd, int tam_pag){
+	t_paquete* paquete = crear_paquete(HANDSHAKE_CPU_MEMORIA);
+
+	agregar_a_paquete(paquete, &tam_pag, sizeof(int));
+	enviar_paquete(paquete, fd);
+	eliminar_paquete(paquete);
+}
+
+int recv_tam_pagina(int fd){
+	t_list* paquete = recibir_paquete(fd);
+	int tam_pagina = 0;
+
+	int* tam_pag = list_get(paquete, 0);
+	tam_pagina = *tam_pag;
+	free(tam_pag);
+	list_destroy(paquete);
+	return tam_pagina;
+}
+
+//SEND_RECURSO_WAIT
 void send_recurso_wait(char* recurso, int dispatch_cliente_fd){
 	t_paquete* paquete = crear_paquete(ATENDER_WAIT);
 	agregar_a_paquete(paquete, recurso, strlen(recurso) + 1);
@@ -426,4 +484,243 @@ int recv_sleep(int fd_modulo){
 	free(tiempo_bloqueado_ptr);
 	list_destroy(paquete);
 	return tiempo_bloqueado;
+}
+
+//HANDSHAKE CPU MEMORIA
+void send_handshake_cpu_memoria(int fd_memoria){
+	t_paquete* paquete = crear_paquete(HANDSHAKE_CPU_MEMORIA);
+	int ok = 1;
+	agregar_a_paquete(paquete, &ok, sizeof(int));
+	enviar_paquete(paquete, fd_memoria);
+	eliminar_paquete(paquete);
+}
+
+int recv_handshake_cpu_memoria(int fd_cpu){
+	t_list* paquete = recibir_paquete(fd_cpu);
+
+	int* ok = list_get(paquete, 0);
+
+	list_destroy(paquete);
+
+	return *ok;
+}
+
+//SOLICITAR BLOQUES SWAP
+void send_solicitud_bloques_swap(int fd_filesystem, int cant_paginas){
+	t_paquete* paquete = crear_paquete(SOLICITUD_BLOQUES_SWAP);
+
+	agregar_a_paquete(paquete, &cant_paginas, sizeof(int));
+	enviar_paquete(paquete, fd_filesystem);
+	eliminar_paquete(paquete);
+}
+
+int recv_solicitud_bloques_swap(int fd_memoria){
+	t_list* paquete = recibir_paquete(fd_memoria);
+
+	int* cant_paginas = list_get(paquete, 0);
+
+	list_destroy(paquete);
+
+	return *cant_paginas;
+}
+
+/*void send_bloques_reservados(int socket, uint32_t* lista_bloques_reservados, int tamanio){
+	t_paquete* paquete = crear_paquete(INICIARPROCESO);
+	agregar_a_paquete(paquete, &lista_bloques_reservados, tamanio);
+	enviar_paquete(paquete, socket);
+
+	eliminar_paquete(paquete);
+}*/
+
+uint32_t* recv_lista_bloques_reservados(int socket){
+	t_list* paquete = recibir_paquete(socket);
+	uint32_t* lista_bloques_reservados = list_get(paquete, 0);
+
+	list_destroy(paquete);
+	return lista_bloques_reservados;
+}
+
+//SOLICITU DE MARCO
+void send_solicitud_marco(int fd, int pid, int numero_pagina){
+	t_paquete* paquete = crear_paquete(MARCO);
+
+	agregar_a_paquete(paquete, &pid, sizeof(int));
+	agregar_a_paquete(paquete, &numero_pagina, sizeof(int));
+
+	enviar_paquete(paquete, fd);
+	eliminar_paquete(paquete);
+}
+
+void* recv_solicitud_marco(int fd, int* pid, int* numero_pagina){
+	t_list* paquete = recibir_paquete(fd);
+
+	pid = list_get(paquete, 0);
+	numero_pagina = list_get(paquete, 1);
+
+	list_destroy(paquete);
+	return pid;
+}
+
+void send_marco (int fd, int marco){
+	t_paquete* paquete = crear_paquete(MARCO);
+
+	agregar_a_paquete(paquete, &marco, sizeof(int));
+	enviar_paquete(paquete, fd);
+	eliminar_paquete(paquete);
+}
+int recv_marco (int fd){
+	t_list* paquete = recibir_paquete(fd);
+
+	int* marco = list_get(paquete, 0);
+	list_destroy(paquete);
+	return *marco;
+}
+
+//PAGE FAULT CPU A KERNEL
+void send_pcb_pf(t_pcb* pcb, int numero_pagina, int desplazamiento, int dispatch_cliente_fd){
+	t_paquete* paquete = crear_paquete(PCB_PF);
+
+	agregar_a_paquete(paquete, pcb, sizeof(t_pcb));
+	agregar_a_paquete(paquete, &numero_pagina, sizeof(int));
+	agregar_a_paquete(paquete, &desplazamiento, sizeof(int));
+	enviar_paquete(paquete, dispatch_cliente_fd);
+	eliminar_paquete(paquete);
+}
+t_pcb* recv_pcb_pf(int fd_cpu_dispatch, int* numero_pagina, int* desplazamiento){
+	t_list* paquete = recibir_paquete(fd_cpu_dispatch);
+	t_pcb* pcb = list_get(paquete, 0);
+	numero_pagina = list_get(paquete, 1);
+	desplazamiento = list_get(paquete, 2);
+	list_destroy(paquete);
+
+	return pcb;
+}
+//NUMERO DE PAGINA
+void send_numero_pagina(int pid, int numero_pagina, int desplazamiento, int fd_memoria){
+	t_paquete* paquete = crear_paquete(CARGAR_PAGINA);
+
+	agregar_a_paquete(paquete, &pid, sizeof(int));
+	agregar_a_paquete(paquete, &numero_pagina, sizeof(int));
+	agregar_a_paquete(paquete, &desplazamiento, sizeof(int));
+
+	enviar_paquete(paquete, fd_memoria);
+	eliminar_paquete(paquete);
+}
+int recv_numero_pagina(int* pid, int* desplazamiento, int fd_kernel){
+	t_list* paquete = recibir_paquete(fd_kernel);
+	pid = list_get(paquete, 0);
+	int* numero_pagina = list_get(paquete, 1);
+	desplazamiento = list_get(paquete, 2);
+	list_destroy(paquete);
+	return *numero_pagina;
+}
+void send_pagina_cargada(int fd_kernel){
+	t_paquete* paquete = crear_paquete(PAGINA_CARGADA);
+
+	int ok = 1;
+	agregar_a_paquete(paquete, &ok, sizeof(int));
+
+	enviar_paquete(paquete, fd_kernel);
+	eliminar_paquete(paquete);
+}
+
+// PAGINA CARGADA
+int recv_pagina_cargada(int fd_memoria){
+	t_list* paquete = recibir_paquete(fd_memoria);
+	int* ok = list_get(paquete, 0);
+	list_destroy(paquete);
+	return *ok;
+}
+
+//SOLICITUD DE LECTURA DE MEMORIA
+void send_solicitud_lectura(int direccion_fisica, int fd_memoria){
+	t_paquete* paquete = crear_paquete(LEER_MEMORIA);
+
+	agregar_a_paquete(paquete, &direccion_fisica, sizeof(int));
+
+	enviar_paquete(paquete, fd_memoria);
+	eliminar_paquete(paquete);
+}
+
+int recv_solicitud_lectura(int fd_cpu){
+	t_list* paquete = recibir_paquete(fd_cpu);
+	int* direccion_fisica = list_get(paquete, 0);
+
+	list_destroy(paquete);
+	return *direccion_fisica;
+}
+
+
+// ENVIAR VALOR LEIDO
+void send_valor_leido(uint32_t valor, int fd_cpu){
+	t_paquete* paquete = crear_paquete(VALOR_LEIDO);
+
+	agregar_a_paquete(paquete, &valor, sizeof(uint32_t));
+
+	enviar_paquete(paquete, fd_cpu);
+	eliminar_paquete(paquete);
+}
+
+uint32_t recv_valor_leido(int fd_memoria){
+	t_list* paquete = recibir_paquete(fd_memoria);
+	uint32_t* valor = list_get(paquete, 0);
+
+	list_destroy(paquete);
+	return *valor;
+}
+
+//SOLICITUD DE ESCRITURA
+void send_solicitud_escritura(int direccion_fisica, uint32_t valor, int fd_memoria){
+	t_paquete* paquete = crear_paquete(ESCRIBIR_MEMORIA);
+
+	agregar_a_paquete(paquete, &direccion_fisica, sizeof(int));
+	agregar_a_paquete(paquete, &valor, sizeof(uint32_t));
+
+	enviar_paquete(paquete, fd_memoria);
+	eliminar_paquete(paquete);
+}
+
+void* recv_solicitud_escritura(int* direccion_fisica, uint32_t* valor, int fd_cpu){
+	t_list* paquete = recibir_paquete(fd_cpu);
+
+	direccion_fisica = list_get(paquete, 0);
+	valor = list_get(paquete, 1);
+
+	list_destroy(paquete);
+	return valor;
+}
+
+//SOLICITUD DE VALOR EN BLOQUE
+void send_solicitud_valor_en_bloque(int fd_filesystem, int direccion_bloque){
+	t_paquete* paquete = crear_paquete(VALOR_EN_BLOQUE);
+
+	agregar_a_paquete(paquete, &direccion_bloque, sizeof(int));
+
+	enviar_paquete(paquete, fd_filesystem);
+	eliminar_paquete(paquete);
+}
+
+int recv_solicitud_valor_en_bloque(int fd_memoria){
+	t_list* paquete = recibir_paquete(fd_memoria);
+	int* direccion_bloque = list_get(paquete, 0);
+
+	list_destroy(paquete);
+	return *direccion_bloque;
+}
+
+void send_valor_en_bloque(int fd_memoria, uint32_t valor){
+	t_paquete* paquete = crear_paquete(VALOR_EN_BLOQUE);
+
+	agregar_a_paquete(paquete, &valor, sizeof(uint32_t));
+
+	enviar_paquete(paquete, fd_memoria);
+	eliminar_paquete(paquete);
+}
+
+uint32_t recv_valor_en_bloque(int fd_filesystem){
+	t_list* paquete = recibir_paquete(fd_filesystem);
+	uint32_t* valor = list_get(paquete, 0);
+
+	list_destroy(paquete);
+	return *valor;
 }

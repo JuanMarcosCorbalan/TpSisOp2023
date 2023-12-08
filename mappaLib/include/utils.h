@@ -66,6 +66,8 @@ typedef enum {
 	WAIT,
 	SIGNAL,
 	EXIT,
+	MOV_IN,
+	MOV_OUT
 } codigo_instruccion;
 
 typedef struct {
@@ -80,6 +82,21 @@ typedef struct
 	char* path;
 	int size;
 }t_datos_proceso;
+
+typedef struct
+{
+	int pid;
+	t_list* paginas;
+} t_tdp;
+
+typedef struct
+{
+	int marco;
+	int bit_presencia;
+	int bit_modificado;
+	int pos_swap;
+	int instante_de_referencia;
+}t_pagina;
 
 //t_list* datos_procesos;
 void imprimirPrueba();

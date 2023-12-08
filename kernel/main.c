@@ -15,7 +15,6 @@ int main(void)
 {
 	logger = iniciar_logger();
 	config = iniciar_config();
-
 	if(!conectar_modulos(logger, config, &fd_cpu_dispatch, &fd_cpu_interrupt, &fd_filesystem, &fd_memoria)){
 		terminar_programa(fd_cpu_dispatch, fd_cpu_interrupt, fd_filesystem, fd_memoria, logger, config);
 		return EXIT_FAILURE;
@@ -299,6 +298,7 @@ void planificador_largo_plazo(){
 	pthread_detach(hilo_respuesta_cpu);
 	pthread_detach(hilo_blocked);
 	pthread_detach(hilo_exit);
+
 }
 
 void procesar_vuelta_blocked(){
@@ -351,8 +351,22 @@ void procesar_respuesta_cpu(){
 				atender_signal(pcb_actualizado, recurso_signal);
 				free(recurso_signal);
 				break;
+			case PCB_PF:
+				//recibir pcb y num de pag
+				int* numero_pagina;
+				int* desplazamiento;
+				t_pcb* pcb = recv_pcb_pf(fd_cpu_dispatch, numero_pagina, desplazamiento);
+				//pasar proceso a bloqueado
+				execute_a_bloqueado(pcb);
+				//enviar num de pag a memoria y cargarla
+				send_numero_pagina(pcb->pid, *numero_pagina, *desplazamiento, fd_memoria);
+				//esperar respuesta de memoria
+				recv_pagina_cargada(fd_memoria);
+				//pasar proceso a ready
+				bloqueado_a_ready(pcb);
+				break;
 			}
-		break;
+			break;
 		}
 	}
 }
@@ -466,6 +480,31 @@ void pasar_a_ready(t_pcb* pcb){
 	list_add(procesos_en_ready, pcb);
 	log_cola_ready();
 	pthread_mutex_unlock(&mutex_ready_list);
+}
+
+void execute_a_bloqueado(t_pcb* pcb){
+	pthread_mutex_lock(&mutex_cola_exec);
+	t_pcb* pcb_exec = queue_pop(procesos_en_exec);
+	pthread_mutex_unlock(&mutex_cola_exec);
+	if (pcb->pid == pcb_exec->pid){
+		pthread_mutex_lock(&mutex_blocked_list);
+		list_add(procesos_en_blocked, pcb);
+		pthread_mutex_unlock(&mutex_blocked_list);
+		cambiar_estado(pcb_exec, BLOCKED);
+	}
+	else{
+		log_info(logger, "Error. No debería haber llegado aca (execute_a_bloqueado)");
+	}
+}
+
+void bloqueado_a_ready(t_pcb* pcb){
+	pthread_mutex_lock(&mutex_blocked_list);
+
+	if(list_remove_element(procesos_en_blocked, pcb)){
+		pasar_a_ready(pcb);
+	}
+	pthread_mutex_unlock(&mutex_blocked_list);
+
 }
 
 void planificador_corto_plazo(){
@@ -662,6 +701,9 @@ void inicializar_variables() {
 	procesos_en_exit = list_create();
 	lista_recursos = inicializar_recursos();
 
+
+
+
 	pthread_mutex_init(&mutex_cola_new, NULL);
 	pthread_mutex_init(&mutex_ready_list, NULL);
 	pthread_mutex_init(&mutex_cola_exec, NULL);
@@ -669,6 +711,8 @@ void inicializar_variables() {
 	pthread_mutex_init(&mutex_lista_blocked, NULL);
 	pthread_mutex_init(&mutex_lista_blocked_sleep, NULL);
 	pthread_mutex_init(&mutex_lista_exit, NULL);
+	pthread_mutex_init(&mutex_logger, NULL);
+	pthread_mutex_init(&mutex_blocked_list, NULL);
 
 	inicializar_semaforos();
 }

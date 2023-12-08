@@ -37,6 +37,8 @@ t_list* procesos_en_blocked_sleep;
 t_list* procesos_en_exit;
 t_list* lista_recursos;
 
+t_list* tablas_de_paginas;
+
 pthread_t* hilo_largo_plazo;
 pthread_t* hilo_corto_plazo;
 
@@ -47,6 +49,8 @@ pthread_mutex_t mutex_planificacion_activa;
 pthread_mutex_t mutex_lista_blocked;
 pthread_mutex_t mutex_lista_blocked_sleep;
 pthread_mutex_t mutex_lista_exit;
+pthread_mutex_t mutex_logger;
+pthread_mutex_t mutex_blocked_list;
 
 sem_t sem_multiprogramacion;
 sem_t sem_procesos_new;
@@ -59,6 +63,8 @@ sem_t sem_procesos_blocked_sleep;
 
 int asignador_pid;
 int asignador_iid;
+
+
 
 t_log* iniciar_logger(void);
 t_config* iniciar_config(void);
@@ -75,6 +81,7 @@ void* iniciar_consola();
 void iniciar_planificacion();
 void detener_planificacion();
 void pasar_a_ready(t_pcb* proceso);
+void execute_a_bloqueado(t_pcb* pcb);
 void planificador_largo_plazo();
 void planificar_procesos_ready();
 void planificador_corto_plazo();
@@ -96,7 +103,6 @@ void actualizar_multiprogramacion(char *args[]);
 void listar_estados_proceso();
 t_pcb* pcb_copy_function(t_pcb* original);
 t_list* queue_to_list_copy(t_queue* original);
-
 void procesar_cambio_estado(t_pcb* pcb, estado nuevo_estado);
 void procesar_exit();
 t_list* inicializar_recursos();
@@ -108,5 +114,6 @@ void atender_sleep(t_pcb* pcb, int retardo_bloqueo);
 void atender_signal(t_pcb* pcb, char* recurso);
 void procesar_sleep(void* args);
 void recurso_destroy(t_recurso* recurso);
+void bloqueado_a_ready(t_pcb* pcb);
 
 #endif
