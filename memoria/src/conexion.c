@@ -71,15 +71,16 @@ static void procesar_cliente(void* void_args){
 				break;
 			case -1:
 				log_error(logger, "El cliente se desconecto.");
-				break;
+				return;
 			default:
 				log_warning(logger,"Operacion desconocida. No quieras meter la pata");
-				break;
+				return;
 			}
 	}
 }
 
 int experar_clientes(t_log* logger, int server_socket){
+	config = iniciar_config();
 	if(inicializado != 1){
 		inicializar_variables(logger, config);
 	}
@@ -118,9 +119,9 @@ void inicializar_variables(t_log* logger, t_config* config){
 
 	char* ip_fs = config_get_string_value(config, "IP_FILESYSTEM");
 	char* puerto_fs = config_get_string_value(config, "PUERTO_FILESYSTEM");
-	fd_filesystem = crear_conexion(logger, ip_fs, puerto_fs);
+//	fd_filesystem = crear_conexion(logger, ip_fs, puerto_fs);
 
-	log_info(logger, "MEMORIA LISTO...");
+//	log_info(logger, "MEMORIA LISTO...");
 	inicializado = 1;
 }
 
@@ -180,7 +181,8 @@ void procesar_pedido_instruccion(int socket_cpu, t_list* proceso_instrucciones){
 
 	t_instruccion* instruccion_a_enviar = buscar_instruccion(solicitud_instruccion->pid, solicitud_instruccion->program_counter - 1, proceso_instrucciones);
 
-	sleep(retardo_respuesta/1000);
+//	sleep(retardo_respuesta/1000);
+	usleep(retardo_respuesta * 1000);
 	send_proxima_instruccion(socket_cpu, instruccion_a_enviar);
 }
 
@@ -249,6 +251,10 @@ codigo_instruccion instruccion_to_enum(char* instruccion){
 		return SLEEP;
 	} else if(strcmp(instruccion, "SIGNAL") == 0){
 		return SIGNAL;
+	} else if(strcmp(instruccion, "MOV_OUT") == 0){
+		return MOV_OUT;
+	} else if(strcmp(instruccion, "MOV_IN") == 0){
+		return MOV_IN;
 	}
 
 	return EXIT_FAILURE;

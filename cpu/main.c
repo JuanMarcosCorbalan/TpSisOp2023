@@ -4,7 +4,7 @@ int fd_memoria = 0;
 int dispatch_cliente_fd = 0;
 int interrupt_cliente_fd = 0;
 bool flag_hay_interrupcion = false;
-int tam_pagina = 0;
+int tam_pagina = 16;
 t_log* logger;
 t_pcb* pcb;
 
@@ -16,10 +16,10 @@ int main(void) {
 	sem_init(&sem_interrupcion, 0, 0);
 	fd_memoria = crear_conexion(logger, config_cpu.ip_memoria, config_cpu.puerto_memoria);
 	enviar_mensaje("Hola, soy el CPU!", fd_memoria);
-	send_handshake_cpu_memoria(fd_memoria);
-	log_info(logger, "handshake con memoria socket %d", fd_memoria);
-	tam_pagina = recv_tam_pagina(fd_memoria);
-	log_info(logger, "tamanio de pagina recibido: %d de socket %d", tam_pagina, fd_memoria);
+//	send_handshake_cpu_memoria(fd_memoria);
+//	log_info(logger, "handshake con memoria socket %d", fd_memoria);
+//	tam_pagina = recv_tam_pagina(fd_memoria);
+//	log_info(logger, "tamanio de pagina recibido: %d de socket %d", tam_pagina, fd_memoria);
 //	liberar_conexion(fd_memoria);
 
 	pthread_t *hilo_dispatch = malloc(sizeof(pthread_t));
@@ -324,8 +324,8 @@ void check_interrupt(){
 int solicitar_direccion_fisica(int direccion_logica, int pid){
 	int numero_pagina = floor(direccion_logica / tam_pagina);
 	int desplazamiento =  direccion_logica - numero_pagina * tam_pagina;
-	send_solicitud_marco(fd_memoria, pid, numero_pagina);
-	int marco = recv_marco(fd_memoria);
+//	send_solicitud_marco(fd_memoria, pid, numero_pagina);
+	int marco = -1;//recv_marco(fd_memoria);
 	if(marco == -1){
 		log_info(logger, "Page Fault PID: %d - Pagina: %d", pid, numero_pagina); //log ob
 		//iniciar acciones page fault
