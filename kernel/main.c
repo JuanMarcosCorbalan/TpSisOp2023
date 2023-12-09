@@ -159,20 +159,30 @@ void procesar_respuesta_cpu(){
 			pcb_destroy(pcb_actualizado);
 			sem_post(&sem_multiprogramacion);
 			sem_post(&sem_proceso_exec);
-		break;
-		}
+			break;
 		case FOPEN:
-			t_peticion peticion_solicitada = recv_peticion(fd_cpu_dispatch);
-			t_pcb* pcb_actualizado = recv_pcb(fd_cpu_dispatch);
+			t_peticion* peticion_solicitada = recv_peticion(fd_cpu_dispatch);
+			t_pcb* pcb_actualizado_fopen = recv_pcb(fd_cpu_dispatch);
 			char* nombre_archivo = recv_nombre_archivo(fd_cpu_dispatch);
 			char modo_apertura = recv_modo_apertura(fd_cpu_dispatch);
 			log_info(logger, "PID: %d - Abrir Archivo: %s", pcb_actualizado->pid, nombre_archivo);
 			// necesito primero verificar si existe el archivo o no. podria simplemente decirle al fs que lo abra y este lo crea si no existe
-			if(!archivo_abierto(nombre_archivo)){
-				send_fopen(fd_filesystem, pcb_actualizado, peticion_solicitada); // envia la solicitud a fs para que abra o cree el archivo
+			t_archivo_abierto_global* archivo_encontrado = list_find(tabla_global_archivos_abiertos, buscar_por_nombre, nombre_archivo);
+			if (archivo_encontrado != NULL) {
+			    // El archivo fue encontrado
+				if(srtcmp(archivo_encontrado->modo_apertura_actual == "W") == 0) {
+					// si el modo de apertura actual es WRITE, se debe encolar el fopen hasta que termine el fopen en escritura
+					// esto sucede tanto si se quiere abrir en lectura como en escritura
+				} else {
+					// el modo de apertura es de READ, por ende puede entrar
+				}
+			} else {
+			    // El archivo no fue encontrado
+
 			}
-		break;
+			break;
 		case FCLOSE:
+
 		break;
 		case FSEEK:
 		break;
@@ -183,7 +193,63 @@ void procesar_respuesta_cpu(){
 		case FWRITE:
 		break;
 
+		}
 	}
+}
+
+///////////////////////////////////// MANEJO DE LOCKS /////////////////////////////////
+
+// Función para inicializar un lock
+void inicializar_lock(t_lock* lock) {
+    pthread_mutex_init(&lock->mutex, NULL);
+    pthread_cond_init(&lock->cond, NULL);
+    lock->participantes = 0;
+    lock->encolados = 0;
+}
+
+// Función para bloquear un lock en modo lectura
+void bloquear_lectura(t_lock* lock) {
+    pthread_mutex_lock(&lock->mutex);
+    // Esperar si hay un lock de escritura o alguien más encolado
+    while (lock->participantes == -1 || lock->encolados > 0) {
+        pthread_cond_wait(&lock->cond, &lock->mutex);
+    }
+    // Ingresar al lock de lectura
+    lock->participantes++;
+    pthread_mutex_unlock(&lock->mutex);
+}
+
+// Función para bloquear un lock en modo escritura
+void bloquear_escritura(t_lock* lock) {
+    pthread_mutex_lock(&lock->mutex);
+    // Esperar si hay un lock de escritura o alguien más encolado
+    while (lock->participantes != 0) {
+        lock->encolados++;
+        pthread_cond_wait(&lock->cond, &lock->mutex);
+        lock->encolados--;
+    }
+    // Ingresar al lock de escritura
+    lock->participantes = -1;  // Marcador para lock de escritura
+    pthread_mutex_unlock(&lock->mutex);
+}
+
+// Función para desbloquear un lock
+void desbloquear(t_lock* lock) {
+    pthread_mutex_lock(&lock->mutex);
+    // Reducir la cantidad de participantes o liberar el lock de escritura
+    if (lock->participantes > 0) {
+        lock->participantes--;
+    } else if (lock->participantes == -1) {
+        lock->participantes = 0;
+    }
+    // Despertar a threads en espera
+    pthread_cond_broadcast(&lock->cond);
+    pthread_mutex_unlock(&lock->mutex);
+}
+
+bool buscar_por_nombre(void* elemento, void* nombre_buscado) {
+    t_archivo_abierto_global* archivo = (t_archivo_abierto_global*)elemento;
+    return strcmp(archivo->nombre_archivo, (char*)nombre_buscado) == 0;
 }
 
 void planificar_procesos_ready() {
@@ -312,9 +378,66 @@ void generar_conexion_fs() {
 	pthread_detach(conexion_filesystem);
 }
 
-void procesar_conexion_fs(){
-
-}
+// procesar conexion de fs es cuando ya se envia todo para que pase y el filesystem devuelve una respuesta (segun la operacion realizada)
+//void procesar_conexion_fs(void* void_args) {
+//	int* args = (int*) void_args;
+//	int cliente_socket = *args;
+//
+//	op_code cop;
+//	while (cliente_socket != -1) {
+//		cop = recibir_operacion(cliente_socket);
+//		if (cop == -1) {
+//			log_info(logger, "El cliente se desconecto de %s server", server_name);
+//			return;
+//		}
+//		t_pcb* pcb_block_fs = safe_pcb_remove(cola_block_fs, &mutex_cola_block_fs);
+//		pthread_mutex_lock(&mutex_cola_block_fs);
+//		int cant_pcbs_block_fs = list_size(cola_block_fs);
+//		pthread_mutex_unlock(&mutex_cola_block_fs);
+//		log_info(logger, "saque el proceso %d de la cola de bloqueados del fs, quedan %d", pcb_block_fs->contexto_de_ejecucion->pid, cant_pcbs_block_fs);
+//		switch(cop){
+//		case FIN_FOPEN:
+//			recv_fin_f_open(cliente_socket);
+//			log_info(logger, "el fs termino de abrir un archivo del proceso %d", pcb_block_fs->contexto_de_ejecucion->pid);
+//			sem_post(&fin_f_open);
+//			break;
+//		case FIN_FTRUNCATE:
+//				recv_fin_f_truncate(cliente_socket);
+//				log_info(logger, "el fs termino de truncar un archivo del proceso %d", pcb_block_fs->contexto_de_ejecucion->pid);
+//				safe_pcb_add(cola_block, pcb_block_fs, &mutex_cola_block_fs);
+//				sem_post(&sem_block_return);
+//				break;
+//		case FIN_FREAD:
+//			recv_fin_f_read(cliente_socket);
+//			fs_mem_op_count--;
+//			if(fs_mem_op_count == 0){
+//				sem_post(&ongoing_fs_mem_op);
+//			}
+//			log_info(logger, "el fs termino de leer un archivo del proceso %d, fs_mem_op_count: %d", pcb_block_fs->contexto_de_ejecucion->pid, fs_mem_op_count);
+//			// manejo fin f_read...
+//			safe_pcb_add(cola_block, pcb_block_fs, &mutex_cola_block_fs);
+//			sem_post(&sem_block_return);
+//			break;
+//		case FIN_FWRITE:
+//			recv_fin_f_write(cliente_socket);
+//			fs_mem_op_count--;
+//			if(fs_mem_op_count == 0){
+//				sem_post(&ongoing_fs_mem_op);
+//			}
+//			log_info(logger, "el fs termino de escribir un archivo del proceso %d, fs_mem_op_count: %d", pcb_block_fs->contexto_de_ejecucion->pid, fs_mem_op_count);
+//
+//			// manejo fin f_write...
+//			safe_pcb_add(cola_block, pcb_block_fs, &mutex_cola_block_fs);
+//			sem_post(&sem_block_return);
+//			break;
+//
+//		default:
+//			log_error(logger, "Codigo de operacion no reconocido en la comunicacion con fs");
+//			log_info(logger, "el numero del cop es: %d", cop);
+//			return;
+//		}
+//	}
+//}
 
 void terminar_programa(int conexion, int conexion2, int conexion3, int conexion4, t_log* logger, t_config* config)
 {

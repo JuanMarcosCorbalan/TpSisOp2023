@@ -29,7 +29,12 @@ typedef enum
 	FREAD,
 	FWRITE,
 	INICIARPROCESO,
-	FINALIZARPROCESO
+	FINALIZARPROCESO,
+	LEER_MEMORIA,
+	FIN_FOPEN,
+	FIN_FWRITE,
+	FIN_FREAD,
+	FIN_FTRUNCATE,
 }op_code;
 
 typedef enum
@@ -67,7 +72,7 @@ typedef struct
 
 typedef struct {
 	char* nombre_archivo;
-	char* modo_apertura;
+	char modo_apertura;
 	uint32_t posicion;
 	int direccion_logica;
 	uint32_t tamanio;
@@ -140,6 +145,10 @@ int recv_dir_logica(int socket);
 t_peticion* recv_peticion(int socket);
 
 void send_bloques_reservados(int socket, uint32_t* lista_bloques_reservados, int tamanio);
+char* recv_parametros_fopen(int socket);
+t_list* recv_parametros(int socket);
+void send_solicitud_lectura(int, int);
+uint32_t* recv_valor_leido(int fd_memoria);
 
 
 

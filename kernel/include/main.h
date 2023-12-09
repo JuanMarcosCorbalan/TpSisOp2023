@@ -39,6 +39,8 @@ sem_t sem_procesos_exit;
 int asignador_pid;
 int asignador_iid;
 
+t_list* tabla_global_archivos_abiertos;
+
 t_log* iniciar_logger(void);
 t_config* iniciar_config(void);
 bool conectar_modulos(t_log* logger, t_config* config, int* fd_cpu_dispatch, int* fd_cpu_interrupt, int* fd_filesystem, int* fd_memoria);
@@ -63,5 +65,7 @@ t_list* obtener_lista_pid(t_list* lista);
 bool comparar_por_prioridad(void *pcb1, void *pcb2);
 void cambiar_estado(t_pcb* pcb, estado estado);
 void pcb_destroy(t_pcb* pcb);
+bool buscar_por_nombre(void* elemento, void* nombre_buscado);
+
 
 #endif

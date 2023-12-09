@@ -21,10 +21,15 @@ typedef enum {
 	INVALID_WRITE
 } estado;
 
+//typedef struct {
+//	int fd;
+//	uint32_t f_pointer;
+//} t_archivos_abiertos;
+
 typedef struct {
-	int fd;
-	uint32_t f_pointer;
-} t_archivos_abiertos;
+	char* nombre_archivo;
+	char modo_apertura;
+}t_archivo_abierto;
 
 typedef struct {
 	uint32_t ax;
@@ -40,8 +45,7 @@ typedef struct {
 	int prioridad;
 	estado estado;
 	t_registros_generales_cpu registros_generales_cpu;
-//	t_archivos_abiertos archivos_abiertos;
-
+	t_archivo_abierto* archivos_abiertos;
 } t_pcb;
 
 typedef enum {
@@ -79,6 +83,22 @@ typedef struct
 	int tamanio_archivo; // en bytes
 	int bloque_inicial; // tambien en bytes
 }t_fcb;
+
+typedef struct
+{
+	char* nombre_archivo;
+	char modo_apertura_actual;
+	int cantidad_accesos;
+}t_archivo_abierto_global;
+
+// Estructura para representar un lock
+typedef struct {
+    pthread_mutex_t mutex;  // Mutex para la exclusión mutua
+    pthread_cond_t cond;    // Condición para sincronizar los threads
+    int participantes;      // Número de participantes en el lock
+    int encolados;          // Número de threads encolados esperando
+} t_lock;
+
 
 //t_list* datos_procesos;
 void imprimirPrueba();

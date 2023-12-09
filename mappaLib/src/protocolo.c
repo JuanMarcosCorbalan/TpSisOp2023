@@ -474,7 +474,7 @@ t_peticion* recv_peticion(int socket){
 //	pcb->pid = *pid;
 //	free(pid);
 
-	char* nombre_archivo = list_get(paquete, 1);
+	char** nombre_archivo = list_get(paquete, 1);
 	peticion->nombre_archivo = *nombre_archivo;
 	free(nombre_archivo);
 
@@ -497,58 +497,6 @@ t_peticion* recv_peticion(int socket){
 	list_destroy(paquete);
 	return peticion;
 }
-
-//char* recv_nombre_archivo(int socket) {
-//	t_list* paquete = recibir_paquete(socket);
-//	char* nombre_archivo = list_get(paquete, 1);
-//	list_destroy(paquete);
-//
-//	return nombre_archivo;
-//}
-//
-//char recv_modo_apertura(int socket){
-//	t_list* paquete = recibir_paquete(socket);
-//	char modo_apertura = list_get(paquete, 2);
-//	list_destroy(paquete);
-//
-//	return modo_apertura;
-//}
-//
-//uint32_t recv_posicion(int socket) {
-//	t_list* paquete = recibir_paquete(socket);
-//	uint32_t posicion = list_get(paquete, 2);
-//	list_destroy(paquete);
-//
-//	return posicion;
-//}
-//
-//uint32_t recv_tamanio(int socket) {
-//	t_list* paquete = recibir_paquete(socket);
-//	uint32_t tamanio = list_get(paquete, 2);
-//	list_destroy(paquete);
-//
-//	return tamanio;
-//}
-//
-//int recv_dir_logica(int socket) {
-//	t_list* paquete = recibir_paquete(socket);
-//	uint32_t direccion_logica = list_get(paquete, 0);
-//	list_destroy(paquete);
-//
-//	return direccion_logica;
-//}
-//
-//t_peticion* recv_peticion(int socket){
-//	t_list* paquete = recibir_paquete(socket);
-//	t_peticion peticion = list_get(paquete, 1);
-//	list_destroy(paquete);
-//
-//
-//
-//	return peticion;
-//}
-
-//
 void send_bloques_reservados(int socket, uint32_t* lista_bloques_reservados, int tamanio){
 	t_paquete* paquete = crear_paquete(INICIARPROCESO);
 	agregar_a_paquete(paquete, &lista_bloques_reservados, tamanio);
@@ -565,5 +513,44 @@ uint32_t* recv_lista_bloques_reservados(int socket){
 	return lista_bloques_reservados;
 }
 
+char* recv_parametros_fopen(int socket){
+	t_list* paquete = recibir_paquete(socket);
+	char* nombre_archivo = list_get(paquete, 0);
 
+	return nombre_archivo;
+}
+
+t_list* recv_parametros(int socket){
+	t_list* paquete = recibir_paquete(socket);
+	t_list* parametros = paquete;
+
+	return parametros;
+}
+
+
+//SOLICITUD DE LECTURA DE MEMORIA
+void send_solicitud_lectura(int direccion_fisica, int fd_memoria){
+	t_paquete* paquete = crear_paquete(LEER_MEMORIA);
+
+	agregar_a_paquete(paquete, &direccion_fisica, sizeof(int));
+
+	enviar_paquete(paquete, fd_memoria);
+	eliminar_paquete(paquete);
+}
+
+int recv_solicitud_lectura(int fd_cpu){
+	t_list* paquete = recibir_paquete(fd_cpu);
+	int* direccion_fisica = list_get(paquete, 0);
+
+	list_destroy(paquete);
+	return *direccion_fisica;
+}
+
+uint32_t* recv_valor_leido(int fd_memoria){
+	t_list* paquete = recibir_paquete(fd_memoria);
+	uint32_t* valor = list_get(paquete, 0);
+
+	list_destroy(paquete);
+	return valor;
+}
 
