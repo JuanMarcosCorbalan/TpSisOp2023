@@ -329,7 +329,6 @@ t_list* desempaquetar_recursos(t_list* paquete, int comienzo){
 		char* nombre = list_get(paquete, i);
 		recurso_asignado->nombre_recurso = malloc(strlen(nombre) + 1);
 		strcpy(recurso_asignado->nombre_recurso, nombre);
-		free(nombre);
 		i++;
 
 		int* instancia = list_get(paquete, i);
@@ -338,7 +337,7 @@ t_list* desempaquetar_recursos(t_list* paquete, int comienzo){
 		i++;
 
 		list_add(recursos, recurso_asignado);
-		free(recurso_asignado->nombre_recurso);
+//		free(recurso_asignado->nombre_recurso);
 	}
 
 	free(cantidad_recursos);

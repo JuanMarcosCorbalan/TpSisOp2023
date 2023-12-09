@@ -115,14 +115,7 @@ void agregar_recurso(char* recurso, t_pcb* pcb);
 void quitar_recurso(char* recurso, t_pcb* pcb);
 t_list* iniciar_recursos_en_proceso();
 void liberar_recursos(t_pcb* proceso);
-bool hay_procesos_bloqueados_por_recursos();
-t_list* procesos_bloqueados_totales();
-t_list* procesos_bloqueados_por_recursos();
 t_pcb* buscar_proceso_en_list(int pid, t_list* lista);
-t_pcb* quien_necesitaba_el_recurso(char* recurso_necesitado);
-t_recurso* que_recurso_esta_disponible();
-void procesar_liberacion_recursos();
 t_pcb* buscar_proceso_a_finalizar(int target_pid);
-char* buscar_recurso_a_liberar(t_pcb* proceso);
 
 #endif
