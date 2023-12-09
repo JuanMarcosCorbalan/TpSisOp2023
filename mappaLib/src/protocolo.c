@@ -350,6 +350,8 @@ t_pcb* recv_pcb(int socket){
 	pcb->registros_generales_cpu.dx = *dx;
 	free(dx);
 
+	t_list* archivos_abiertos = list_get(paquete, 8);
+	pcb->archivos_abiertos_proceso = *archivos_abiertos
 	list_destroy(paquete);
 	return pcb;
 }

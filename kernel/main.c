@@ -161,7 +161,7 @@ void procesar_respuesta_cpu(){
 			sem_post(&sem_proceso_exec);
 			break;
 		case FOPEN:
-			t_peticion* peticion_solicitada = recv_peticion(fd_cpu_dispatch);
+			t_peticion* peticion_fopen = recv_peticion(fd_cpu_dispatch);
 			t_pcb* pcb_actualizado_fopen = recv_pcb(fd_cpu_dispatch);
 			char* nombre_archivo = recv_nombre_archivo(fd_cpu_dispatch);
 			char modo_apertura = recv_modo_apertura(fd_cpu_dispatch);
@@ -170,11 +170,23 @@ void procesar_respuesta_cpu(){
 			t_archivo_abierto_global* archivo_encontrado = list_find(tabla_global_archivos_abiertos, buscar_por_nombre, nombre_archivo);
 			if (archivo_encontrado != NULL) {
 			    // El archivo fue encontrado
-				if(srtcmp(archivo_encontrado->modo_apertura_actual == "W") == 0) {
-					// si el modo de apertura actual es WRITE, se debe encolar el fopen hasta que termine el fopen en escritura
-					// esto sucede tanto si se quiere abrir en lectura como en escritura
+				if (strcmp(archivo_encontrado->modo_apertura_actual, "W") == 0) {
+				    // El archivo está abierto en modo escritura, encolar la petición
+				    list_push_con_mutex(&cola_peticiones_fopen, peticion_solicitada, &lock_lectura_escritura);
+				    // bloquear_escritura(&lock_lectura_escritura);
+				    // encolar_peticion(&cola_peticiones_fopen, peticion_solicitada);
+				    // desbloquear(&lock_lectura_escritura);
+				} else if (strcmp(modo_apertura, "W") == 0) {
+				    // esta en modo lectura
+					// Se solicita abrir en modo escritura, bloquear acceso hasta que termine el modo escritura actual
+				     bloquear_escritura(&lock_lectura_escritura);
+
+				     desbloquear(&lock_lectura_escritura);
 				} else {
-					// el modo de apertura es de READ, por ende puede entrar
+				    // El archivo está abierto en modo lectura, se solicita modo lectura permitir el acceso
+				    bloquear_lectura(&lock_lectura_escritura);
+				    // Realizar operaciones de lectura
+				    desbloquear(&lock_lectura_escritura);
 				}
 			} else {
 			    // El archivo no fue encontrado
@@ -182,9 +194,16 @@ void procesar_respuesta_cpu(){
 			}
 			break;
 		case FCLOSE:
-
 		break;
 		case FSEEK:
+			t_peticion* peticion_fseek = recv_peticion(fd_cpu_dispatch);
+			t_pcb* pcb_actualizado_fseek = recv_pcb(fd_cpu_dispatch);
+			char* nombre_archivo_fseek = peticion_fseek -> nombre_archivo;
+			uint32_t nuevo_puntero = peticion_fseek->posicion;
+			// tengo que ubicar el puntero en base a la peticion
+			t_archivo_abierto_proceso archivo = list_find(pcb_actualizado_fseek->archivos_abiertos_proceso, buscar_por_nombre, nombre_archivo_fseek);
+			archivo->puntero = nuevo_puntero;
+			// despues tengo que mandar el contexto de ejecucion a cpu
 		break;
 		case FTRUNCATE:
 		break;

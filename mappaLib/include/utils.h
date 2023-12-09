@@ -28,8 +28,8 @@ typedef enum {
 
 typedef struct {
 	char* nombre_archivo;
-	char modo_apertura;
-}t_archivo_abierto;
+	uint32_t* puntero;
+}t_archivo_abierto_proceso;
 
 typedef struct {
 	uint32_t ax;
@@ -45,7 +45,7 @@ typedef struct {
 	int prioridad;
 	estado estado;
 	t_registros_generales_cpu registros_generales_cpu;
-	t_archivo_abierto* archivos_abiertos;
+	t_list* archivos_abiertos_proceso;
 } t_pcb;
 
 typedef enum {

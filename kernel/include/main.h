@@ -29,6 +29,7 @@ pthread_mutex_t mutex_ready_list;
 pthread_mutex_t mutex_cola_new;
 pthread_mutex_t mutex_cola_exec;
 pthread_mutex_t mutex_logger;
+pthread_rwlock_t lock_lectura_escritura;
 
 sem_t sem_multiprogramacion;
 sem_t sem_procesos_new;
@@ -39,6 +40,7 @@ sem_t sem_procesos_exit;
 int asignador_pid;
 int asignador_iid;
 
+t_list cola_peticiones_fopen;
 t_list* tabla_global_archivos_abiertos;
 
 t_log* iniciar_logger(void);
@@ -66,6 +68,10 @@ bool comparar_por_prioridad(void *pcb1, void *pcb2);
 void cambiar_estado(t_pcb* pcb, estado estado);
 void pcb_destroy(t_pcb* pcb);
 bool buscar_por_nombre(void* elemento, void* nombre_buscado);
+void inicializar_lock(t_lock* lock);
+void bloquear_lectura(t_lock* lock);
+void bloquear_escritura(t_lock* lock);
+void desbloquear(t_lock* lock);
 
 
 #endif
