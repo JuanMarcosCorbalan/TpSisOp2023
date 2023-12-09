@@ -29,6 +29,7 @@ typedef enum
 	RECURSO_WAIT,
 	LEER_MEMORIA,
 	ESCRIBIR_MEMORIA,
+	SOLICITUD_MARCO,
 	MARCO,
 	PCB_PF,
 	CARGAR_PAGINA,
@@ -150,18 +151,18 @@ int recv_sleep(int fd_modulo);
 
 //SOLICITUD DE MARCO
 void send_solicitud_marco(int dispatch_cliente_fd, int pid, int numero_pagina);// cpu
-void* recv_solicitud_marco(int dispatch_cliente_fd, int* pid, int* numero_pagina); //kernel
+pid_y_numpag* recv_solicitud_marco(int dispatch_cliente_fd); //memoria
 
-void send_marco (int dispatch_cliente_fd, int marco); //kernel
+void send_marco (int dispatch_cliente_fd, int marco); //MEMORIA
 int recv_marco (int dispatch_cliente_fd); //cpu
 
 //PAGE FAULT CPU A KERNEL
-void send_pcb_pf(t_pcb* pcb, int numero_pagina, int desplazamiento, int dispatch_cliente_fd);
-t_pcb* recv_pcb_pf(int fd_cpu_dispatch, int* numero_pagina, int* desplazamiento);
+void send_pcb_pf(int numero_pagina, int desplazamiento, int dispatch_cliente_fd);
+numpag_despl* recv_pcb_pf(int fd_cpu_dispatch);
 
 //NUMERO DE PAGINA
 void send_numero_pagina(int pid, int numero_pagina, int desplazamiento, int fd_memoria);
-int recv_numero_pagina(int* pid, int* desplazamiento, int fd_kernel);
+pid_numpag_despl* recv_numero_pagina(int fd_kernel);
 
 //PAGINA CARGADA
 void send_pagina_cargada(int fd_kernel);
@@ -177,7 +178,7 @@ uint32_t recv_valor_leido(int fd_memoria);
 
 //SOLICITUD DE ESCRITURA
 void send_solicitud_escritura(int direccion_fisica, uint32_t valor, int fd_memoria);
-void* recv_solicitud_escritura(int* direccion_fisica, uint32_t* valor, int fd_cpu);
+direccion_y_valor* recv_solicitud_escritura(int fd_cpu);
 
 //SOLICITUD DE VALOR EN BLOQUE
 void send_solicitud_valor_en_bloque(int fd_filesystem, int direccion_bloque);

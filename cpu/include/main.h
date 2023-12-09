@@ -24,12 +24,14 @@ sem_t sem_ciclo_instruccion;
 sem_t sem_interrupcion;
 
 t_instruccion* recibir_instruccion();
+int recibir_marco();
 void* ejecutar_ciclo_instruccion(void *arg);
 t_config* iniciar_config(void);
 void* ejecutar_pcb(void *arg);
 void ejecutar_instrucciones(t_pcb* pcb);
 void* ejecutar_interrupcion(void *arg);
 void fetch(t_pcb* pcb);
+int solicitar_direccion_fisica(t_pcb* pcb, int direccion_logica);
 t_instruccion* solicitar_instruccion(int pid, int program_counter);
 void decode(t_instruccion* instruccion, t_pcb* pcb);
 void leer_config();

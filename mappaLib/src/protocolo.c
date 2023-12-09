@@ -542,23 +542,23 @@ uint32_t* recv_lista_bloques_reservados(int socket){
 
 //SOLICITU DE MARCO
 void send_solicitud_marco(int fd, int pid, int numero_pagina){
-	t_paquete* paquete = crear_paquete(MARCO);
+	t_paquete* paquete = crear_paquete(SOLICITUD_MARCO);
+	pid_y_numpag* valores = malloc(sizeof(pid_y_numpag));
 
-	agregar_a_paquete(paquete, &pid, sizeof(int));
-	agregar_a_paquete(paquete, &numero_pagina, sizeof(int));
-
+	valores->pid = pid;
+	valores->numero_pagina = numero_pagina;
+	agregar_a_paquete(paquete, valores, sizeof(pid_y_numpag));
 	enviar_paquete(paquete, fd);
+	free(valores);
 	eliminar_paquete(paquete);
 }
 
-void* recv_solicitud_marco(int fd, int* pid, int* numero_pagina){
+pid_y_numpag* recv_solicitud_marco(int fd){
 	t_list* paquete = recibir_paquete(fd);
-
-	pid = list_get(paquete, 0);
-	numero_pagina = list_get(paquete, 1);
+	pid_y_numpag* valores = list_get(paquete, 0);
 
 	list_destroy(paquete);
-	return pid;
+	return valores;
 }
 
 void send_marco (int fd, int marco){
@@ -577,23 +577,25 @@ int recv_marco (int fd){
 }
 
 //PAGE FAULT CPU A KERNEL
-void send_pcb_pf(t_pcb* pcb, int numero_pagina, int desplazamiento, int dispatch_cliente_fd){
+void send_pcb_pf(int numero_pagina, int desplazamiento, int dispatch_cliente_fd){
 	t_paquete* paquete = crear_paquete(PCB_PF);
 
-	agregar_a_paquete(paquete, pcb, sizeof(t_pcb));
 	agregar_a_paquete(paquete, &numero_pagina, sizeof(int));
 	agregar_a_paquete(paquete, &desplazamiento, sizeof(int));
 	enviar_paquete(paquete, dispatch_cliente_fd);
 	eliminar_paquete(paquete);
 }
-t_pcb* recv_pcb_pf(int fd_cpu_dispatch, int* numero_pagina, int* desplazamiento){
+numpag_despl* recv_pcb_pf(int fd_cpu_dispatch){
 	t_list* paquete = recibir_paquete(fd_cpu_dispatch);
-	t_pcb* pcb = list_get(paquete, 0);
-	numero_pagina = list_get(paquete, 1);
-	desplazamiento = list_get(paquete, 2);
+	numpag_despl* ret = malloc(sizeof(numpag_despl));
+
+	int* num_pag = list_get(paquete, 0);
+	ret->numero_pagina = *num_pag;
+	int* despl = list_get(paquete, 1);
+	ret->desplazamiento = *despl;
 	list_destroy(paquete);
 
-	return pcb;
+	return ret;
 }
 //NUMERO DE PAGINA
 void send_numero_pagina(int pid, int numero_pagina, int desplazamiento, int fd_memoria){
@@ -606,13 +608,18 @@ void send_numero_pagina(int pid, int numero_pagina, int desplazamiento, int fd_m
 	enviar_paquete(paquete, fd_memoria);
 	eliminar_paquete(paquete);
 }
-int recv_numero_pagina(int* pid, int* desplazamiento, int fd_kernel){
+pid_numpag_despl* recv_numero_pagina(int fd_kernel){
 	t_list* paquete = recibir_paquete(fd_kernel);
-	pid = list_get(paquete, 0);
-	int* numero_pagina = list_get(paquete, 1);
-	desplazamiento = list_get(paquete, 2);
+	pid_numpag_despl* ret = malloc(sizeof(pid_numpag_despl));
+
+	int* pid = list_get(paquete, 0);
+	ret->pid = *pid;
+	int* numpag = list_get(paquete, 1);
+	ret->numero_pagina = *numpag;
+	int* despl = list_get(paquete, 2);
+	ret->desplazamiento = *despl;
 	list_destroy(paquete);
-	return *numero_pagina;
+	return ret;
 }
 void send_pagina_cargada(int fd_kernel){
 	t_paquete* paquete = crear_paquete(PAGINA_CARGADA);
@@ -680,14 +687,17 @@ void send_solicitud_escritura(int direccion_fisica, uint32_t valor, int fd_memor
 	eliminar_paquete(paquete);
 }
 
-void* recv_solicitud_escritura(int* direccion_fisica, uint32_t* valor, int fd_cpu){
+direccion_y_valor* recv_solicitud_escritura(int fd_cpu){
 	t_list* paquete = recibir_paquete(fd_cpu);
+	direccion_y_valor* ret = malloc(sizeof(direccion_y_valor));
 
-	direccion_fisica = list_get(paquete, 0);
-	valor = list_get(paquete, 1);
+	int* direccion = list_get(paquete, 0);
+	ret->direccion = *direccion;
+	uint32_t* valor = list_get(paquete, 1);
+	ret->valor = *valor;
 
 	list_destroy(paquete);
-	return valor;
+	return ret;
 }
 
 //SOLICITUD DE VALOR EN BLOQUE

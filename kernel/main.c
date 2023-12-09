@@ -322,6 +322,20 @@ void procesar_exit(){
 	}
 }
 
+int recibir_pagina_cargada(){
+	int ok;
+	while (true) {
+		int cod_op = recibir_operacion(fd_memoria);
+		switch (cod_op) {
+		case PAGINA_CARGADA:
+			ok = recv_pagina_cargada(fd_memoria);
+			break;
+		}
+
+		return ok;
+	}
+}
+
 void procesar_respuesta_cpu(){
 	while(PLANIFICACION_ACTIVA){
 		int cod_op = recibir_operacion(fd_cpu_dispatch);
@@ -353,17 +367,15 @@ void procesar_respuesta_cpu(){
 				break;
 			case PCB_PF:
 				//recibir pcb y num de pag
-				int* numero_pagina;
-				int* desplazamiento;
-				t_pcb* pcb = recv_pcb_pf(fd_cpu_dispatch, numero_pagina, desplazamiento);
+				numpag_despl* herramientas = recv_pcb_pf(fd_cpu_dispatch);
 				//pasar proceso a bloqueado
-				execute_a_bloqueado(pcb);
+				execute_a_bloqueado(pcb_actualizado);
 				//enviar num de pag a memoria y cargarla
-				send_numero_pagina(pcb->pid, *numero_pagina, *desplazamiento, fd_memoria);
+				send_numero_pagina(pcb_actualizado->pid, herramientas->numero_pagina, herramientas->desplazamiento, fd_memoria);
 				//esperar respuesta de memoria
-				recv_pagina_cargada(fd_memoria);
+				int pagina_cargada = recibir_pagina_cargada();
 				//pasar proceso a ready
-				bloqueado_a_ready(pcb);
+				bloqueado_a_ready(pcb_actualizado);
 				break;
 			}
 			break;

@@ -98,6 +98,31 @@ typedef struct
 	int instante_de_referencia;
 }t_pagina;
 
+typedef struct
+{
+	int pid;
+	int numero_pagina;
+} pid_y_numpag;
+
+typedef struct
+{
+	int numero_pagina;
+	int desplazamiento;
+} numpag_despl;
+
+typedef struct
+{
+	int pid;
+	int numero_pagina;
+	int desplazamiento;
+} pid_numpag_despl;
+
+typedef struct
+{
+	int direccion;
+	uint32_t valor;
+} direccion_y_valor;
+
 //t_list* datos_procesos;
 void imprimirPrueba();
 char* list_to_string(t_list *list);

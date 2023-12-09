@@ -321,26 +321,42 @@ void check_interrupt(){
 	}
 }
 
-int solicitar_direccion_fisica(int direccion_logica, int pid){
+int recibir_marco(){
+	int marco;
+	while (true) {
+		int cod_op = recibir_operacion(fd_memoria);
+		switch (cod_op) {
+		case MARCO:
+			marco = recv_marco(fd_memoria);
+			break;
+		}
+
+		return marco;
+	}
+}
+
+int solicitar_direccion_fisica(t_pcb* pcb, int direccion_logica){
 	int numero_pagina = floor(direccion_logica / tam_pagina);
 	int desplazamiento =  direccion_logica - numero_pagina * tam_pagina;
-//	send_solicitud_marco(fd_memoria, pid, numero_pagina);
-	int marco = -1;//recv_marco(fd_memoria);
+	send_solicitud_marco(fd_memoria, pcb->pid, numero_pagina);
+	int marco = recibir_marco();
+	//int marco = recv_marco(fd_memoria);
 	if(marco == -1){
-		log_info(logger, "Page Fault PID: %d - Pagina: %d", pid, numero_pagina); //log ob
+		log_info(logger, "Page Fault PID: %d - Pagina: %d", pcb->pid, numero_pagina); //log ob
 		//iniciar acciones page fault
-		send_pcb_pf(pcb, numero_pagina, desplazamiento, dispatch_cliente_fd);
+		send_pcb(pcb, dispatch_cliente_fd);
+		send_pcb_pf(numero_pagina, desplazamiento, dispatch_cliente_fd);
 		//TODO mandar interrupcion para que no actualice el program counter
 		return marco;
 	}
-	log_info(logger,  "PID: %d - OBTENER MARCO - Página: %d - Marco: %d", pid, numero_pagina, marco); //log ob
+	log_info(logger,  "PID: %d - OBTENER MARCO - Página: %d - Marco: %d", pcb->pid, numero_pagina, marco); //log ob
 	int direccion_fisica = marco*tam_pagina + desplazamiento;
 	return direccion_fisica;
 }
 
 void ejecutar_mov_in(t_pcb* pcb, char* param1, char* param2){
 	int direccion_logica = atoi(param2);
-	int direccion_fisica = solicitar_direccion_fisica(direccion_logica, pcb->pid);
+	int direccion_fisica = solicitar_direccion_fisica(pcb, direccion_logica);
 	if(direccion_fisica == -1){
 		return;
 	}
@@ -354,7 +370,7 @@ void ejecutar_mov_in(t_pcb* pcb, char* param1, char* param2){
 void ejecutar_mov_out(t_pcb* pcb, char* param1, char* param2){
 	char* registro = param2;
 	int direccion_logica = atoi(param1);
-	int direccion_fisica = solicitar_direccion_fisica(direccion_logica, pcb->pid);
+	int direccion_fisica = solicitar_direccion_fisica(pcb, direccion_logica);
 	if(direccion_fisica == -1){
 		return;
 	}

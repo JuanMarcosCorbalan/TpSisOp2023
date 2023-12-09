@@ -115,5 +115,5 @@ void atender_signal(t_pcb* pcb, char* recurso);
 void procesar_sleep(void* args);
 void recurso_destroy(t_recurso* recurso);
 void bloqueado_a_ready(t_pcb* pcb);
-
+int recibir_pagina_cargada();
 #endif
