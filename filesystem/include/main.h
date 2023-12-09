@@ -13,8 +13,24 @@
 // cosas para conexion
 int fd_memoria = 0;
 int fd_cliente = 0;
+int socket_servidor;
 int socket_cliente;
 char* path_fat;
+sem_t cantidad_operaciones;
+t_list* operaciones_pendientes;
+int RETARDO_ACCESO_BLOQUE;
+int RETARDO_ACCESO_FAT;
+t_config* config;
+
+int CANT_BLOQUES_TOTAL;
+int CANT_BLOQUES_SWAP;
+int cant_bloques_fat;
+int TAM_BLOQUE;
+int tamanio_fat;
+
+int tamanio_swap;
+int tamanio_archivo_bloques;
+pthread_mutex_t* mutex_operaciones_pendientes;
 
 typedef enum {
 	ABRIR_ARCHIVO_FS,
@@ -33,14 +49,13 @@ typedef struct {
 typedef struct{
 	codigo_operacion_fs cod_op;
 	char* nombre;
-	char* buffer_escritura;
+	uint32_t* buffer_escritura;
 	int tamanio;
 	int dir_fisica;
 	int puntero;
 	int cantidad_bloques_swap;
-	t_bloques_swap bloques_ocupados_swap;
+	t_bloques_swap* bloques_ocupados_swap;
 }t_operacion;
-
 
 t_config* iniciar_config(void);
 
@@ -61,14 +76,19 @@ void desasignar_bloques_a_archivo(const char* , t_config* , int , int);
 void asignar_bloques_a_archivo(const char* , t_config* ,  int , int);
 uint32_t* obtener_bloques_asignados(const char* , t_config* );
 char* leer_datos_bloque_archivo(t_config* , int );
-void escribir_archivo(char* , int , int , char* , int ,const char* );
+void escribir_archivo(char* , int , int ,uint32_t*, int ,const char* );
+void escribir_datos_bloque_archivo(t_config* archivo_fcb, int bloque_a_escribir, uint32_t* buffer_escritura);
 uint32_t buscar_primer_bloque_libre_fat(FILE*);
 uint32_t  buscar_bloque_en_fat (t_config* , int ,const char* );
 void procesar_conexion();
 uint32_t* reservar_bloques_swap(int );
-void liberar_bloques_swap(t_bloques_swap );
+void liberar_bloques_swap(t_bloques_swap* );
 uint32_t buscar_primer_bloque_libre_swap(FILE* );
-
+t_operacion* crear_operacion(codigo_operacion_fs cod_op, char* nombre_archivo, uint32_t* buffer_escritura, int tamanio, int dir_fisica, int puntero, int cantidad_bloques_solicitados_swap, t_bloques_swap* bloques_ocupados_swap);
+void atender_operaciones();
+void iniciar_atencion_operaciones();
+void realizar_operacion(t_operacion* operacion);
+void server_escuchar();
 
 #endif
 
