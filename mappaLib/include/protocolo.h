@@ -23,7 +23,8 @@ typedef enum
 	ATENDER_WAIT,
 	ATENDER_SIGNAL,
 	CAMBIAR_ESTADO,
-	ATENDER_SLEEP
+	ATENDER_SLEEP,
+	HANDSHAKE_CPU_MEMORIA
 }op_code;
 
 typedef enum
@@ -94,6 +95,9 @@ t_instruccion* recv_proxima_instruccion(int fd);
 void send_pcb(t_pcb* pcb, int socket);
 t_pcb* recv_pcb(int socket);
 
+void empaquetar_recursos(t_paquete* paquete, t_list* lista_de_recursos);
+t_list* desempaquetar_recursos(t_list* paquete, int comienzo);
+
 // EJECUTAR_PCB
 void send_ejecutar_pcb(int fd, t_pcb* pcb);
 t_pcb* recv_ejecutar_pcb(int fd);
@@ -116,5 +120,10 @@ estado recv_cambiar_estado(int fd_modulo);
 //SLEEP
 void send_sleep(int tiempo_bloqueado, int fd_modulo);
 int recv_sleep(int fd_modulo);
+
+void send_tam_pagina(int tam_pagina, int socket);
+int recv_tam_pagina(int fd);
+
+void free_recurso_asignado(void* elemento);
 
 #endif

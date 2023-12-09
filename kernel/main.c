@@ -7,6 +7,7 @@
 	int fd_memoria = 0;
 	t_log* logger;
 	t_config* config;
+	t_list* recursos_asignados;
 
 	bool PLANIFICACION_ACTIVA = false;
 	bool PLANIFICADOR_INICIADO = false;
@@ -24,6 +25,7 @@ int main(void)
 	enviar_mensaje("Hola, soy el Kernel!", fd_filesystem);
 	enviar_mensaje("Hola, soy el Kernel!", fd_memoria);
 
+	recursos_asignados = list_create();
 	inicializar_variables();
 
 	pthread_t *hilo_consola = malloc(sizeof(pthread_t));
@@ -210,48 +212,55 @@ bool is_pid_equal(void *element, int target_pid) {
     return (pcb->pid == target_pid);
 }
 
-void finalizar_proceso(char *args[]){
-////	char* motivo = "DESCONOCIDO";
-////	if(proceso_a_finalizar->estado == EXEC){
-////		// kernel envia señal de interrupcion a traves de interrupt a cpu y este tiene que devolverle
-////		// a kernel el contexto de ejecucion antes de liberar memoria
-////
-////		t_interrupt* nueva_interrupcion = crear_interrupcion(END_PROCESO);
-////		send_interrupcion(nueva_interrupcion,fd_cpu_interrupt);
-////		motivo = "INVALID_ALGO";
-////	} else {
-////		motivo = "SUCCESS";
-////	}
-////	// kernel tiene que pedirle a memoria que libere el espacio que ocupa el pcb
-////	// le va a pasar mediante un paquete a memoria el pid, el path y el size.
-////
-////	send_datos_proceso(path,size,proceso_a_finalizar->pid,fd_memoria);
-////	log_info(logger, "Finaliza el proceso %d - Motivo: %s", proceso_a_finalizar->pid, motivo);
-
-	int target_pid = atoi(args[1]);
-	t_pcb* pcb = buscar_proceso(target_pid);
-	switch(pcb->estado){
-	//TODO No funciona porque todavia no se iniciaron los planificadores.
-	case NEW:
-		if (queue_filter(procesos_en_new, (bool (*)(void *, int))is_pid_equal, target_pid)) {
-			printf("Se encontró un elemento con PID igual a %d en la cola.\n", target_pid);
-		} else {
-			printf("No hay elementos con PID igual a %d en la cola.\n", target_pid);
+bool hay_procesos_bloqueados_por_recursos(){
+	for(int i = 0; i<list_size(lista_recursos); i++){
+		t_recurso* recurso = list_get(lista_recursos, i);
+		if(!list_is_empty(recurso->cola_block_asignada)){
+			return true;
 		}
+	}
+	return false;
+}
 
-		pthread_mutex_lock(&mutex_cola_new);
-		t_pcb *removed_pcb = queue_find_and_remove(procesos_en_new, target_pid);
-		pthread_mutex_unlock(&mutex_cola_new);
+//TODO Solo busca procesos bloqueados por recursos.
+t_pcb* buscar_proceso_a_finalizar(int target_pid){
+	/* Busca primero en los bloqueados por recursos */
+	for(int i = 0; i<list_size(lista_recursos); i++){
+		t_recurso* recurso = list_get(lista_recursos, i);
+		t_pcb* pcb_buscado = list_get(recurso->cola_block_asignada, 0);
+		if(pcb_buscado->pid == target_pid){
+			recurso->instancias++;
+			return list_pop_con_mutex(recurso->cola_block_asignada, &recurso->mutex_asignado);
+		}
+	}
+}
 
-		removed_pcb->motivo_exit = EXIT_CONSOLA;
-		cambiar_estado(removed_pcb, EXIT_ESTADO);
-		list_push_con_mutex(procesos_en_exit, removed_pcb, &mutex_lista_exit);
-		sem_post(&sem_procesos_exit);
-		sem_post(&sem_procesos_new);
-	break;
-	case EXEC:
+void finalizar_proceso(char *args[]){
+	int target_pid = atoi(args[1]);
+	t_pcb* pcb_a_finalizar = buscar_proceso_a_finalizar(target_pid);
+	pcb_a_finalizar->motivo_exit = EXIT_CONSOLA;
+	list_push_con_mutex(procesos_en_exit, pcb_a_finalizar, &mutex_lista_exit);
+	sem_post(&sem_procesos_exit);
+}
 
-	break;
+void liberar_recursos(t_pcb* proceso){
+	t_recurso* recurso_buscado = NULL;
+
+	for(int i = 0; i<list_size(lista_recursos); i++){
+		t_recurso_asignado* recurso_asignado = list_get(proceso->recursos_asignados, i);
+//		log_warning(logger, "Recurso asignado: %s. Instancias: %d.", recurso_asignado->nombre_recurso, recurso_asignado->instancias);
+		if(recurso_asignado->instancias > 0){
+			recurso_buscado = buscar_recurso(recurso_asignado->nombre_recurso);
+			recurso_buscado->instancias ++;
+		}
+	}
+
+	if(recurso_buscado != NULL){
+		t_pcb* pcb2 = list_pop_con_mutex(recurso_buscado->cola_block_asignada, &recurso_buscado->mutex_asignado);
+		agregar_recurso(recurso_buscado->recurso, pcb2);
+
+		pasar_a_ready(pcb2);
+		sem_post(&sem_procesos_ready);
 	}
 }
 
@@ -271,9 +280,29 @@ t_pcb* crear_pcb(int prioridad){
 
 	pcb->motivo_exit = PROCESO_ACTIVO;
 
+	pcb->recursos_asignados = iniciar_recursos_en_proceso();
 	return pcb;
-
 }
+
+t_list* iniciar_recursos_en_proceso(){
+	t_list* lista = list_create();
+	char** recursos = config_get_array_value(config, "RECURSOS");
+	int cantidad_recursos = string_array_size(recursos);
+	for(int i = 0; i<cantidad_recursos; i++){
+		char* string = recursos[i];
+		t_recurso_asignado* recurso = malloc(sizeof(t_recurso_asignado));
+		recurso->nombre_recurso = malloc(sizeof(char) * strlen(string) + 1);
+		strcpy(recurso->nombre_recurso, string);
+		recurso->instancias = 0;
+		list_add(lista, recurso);
+//		log_warning(logger, "Se inicio %s con %d instancias.", recurso->nombre_recurso, recurso->instancias);
+	}
+
+	string_array_destroy(recursos);
+
+	return lista;
+}
+
 t_interrupt* crear_interrupcion(interrupt_code motivo){
 	t_interrupt* interrupcion = malloc(sizeof(t_interrupt));
 
@@ -316,9 +345,11 @@ void procesar_exit(){
 		t_pcb* pcb = list_pop_con_mutex(procesos_en_exit, &mutex_lista_exit);
 		char* motivo = motivo_to_string(pcb->motivo_exit);
 		log_info(logger, "Finaliza el proceso %d - Motivo: %s", pcb->pid, motivo);
+		sem_post(&sem_multiprogramacion);
+		liberar_recursos(pcb);
+
 		pcb_destroy(pcb);
 //		TODO Terminar proceso en memoria
-		sem_post(&sem_multiprogramacion);
 	}
 }
 
@@ -372,6 +403,7 @@ void procesar_sleep(void* args){
 	t_datos_hilo_sleep* datos = (t_datos_hilo_sleep*) args;
 	log_info(logger, "PID: %d - Bloqueado por: SLEEP", datos->pcb->pid);
 	sem_post(&sem_proceso_exec);
+//	log_info(logger, "Tiempo en sleep: %d", datos->retardo_bloqueo);
 	sleep(datos->retardo_bloqueo);
 	free(datos);
 	t_pcb* pcb2 = list_pop_con_mutex(procesos_en_blocked_sleep, &mutex_lista_blocked_sleep);
@@ -385,8 +417,6 @@ void atender_wait(t_pcb* pcb, char* recurso){
 		log_error(logger, "El recurso %s no existe", recurso);
 		pcb->motivo_exit = INVALID_RESOURCE;
 		procesar_cambio_estado(pcb, EXIT_ESTADO);
-		list_push_con_mutex(procesos_en_exit, pcb, &mutex_lista_exit);
-		sem_post(&sem_procesos_exit);
 		sem_post(&sem_proceso_exec);
 	} else {
 		recurso_buscado->instancias --;
@@ -396,6 +426,7 @@ void atender_wait(t_pcb* pcb, char* recurso){
 			list_push_con_mutex(recurso_buscado->cola_block_asignada, pcb, &recurso_buscado->mutex_asignado);
 			sem_post(&sem_proceso_exec);
 		} else {
+			agregar_recurso(recurso_buscado->recurso, pcb);
 			queue_push_con_mutex(procesos_en_exec, pcb, &mutex_cola_exec);
 			send_pcb(pcb, fd_cpu_dispatch);
 		}
@@ -406,21 +437,53 @@ void atender_signal(t_pcb* pcb, char* recurso){
 	t_recurso* recurso_buscado = buscar_recurso(recurso);
 	if(recurso_buscado->id == -1){
 		log_error(logger, "El recurso %s no existe", recurso);
-		pcb->estado = INVALID_RESOURCE;
-		list_push_con_mutex(procesos_en_exit, pcb, &mutex_lista_exit);
-		sem_post(&sem_procesos_exit);
+		pcb->motivo_exit = INVALID_RESOURCE;
+		procesar_cambio_estado(pcb, EXIT_ESTADO);
 		sem_post(&sem_proceso_exec);
 	} else {
 		recurso_buscado->instancias ++;
+		quitar_recurso(recurso_buscado->recurso, pcb);
 		log_info(logger, "PID: %d - Signal: %s - Instancias: %d", pcb->pid, recurso, recurso_buscado->instancias);
 		if(recurso_buscado->instancias <= 0){
 			t_pcb* pcb2 = list_pop_con_mutex(recurso_buscado->cola_block_asignada, &recurso_buscado->mutex_asignado);
+			agregar_recurso(recurso_buscado->recurso, pcb2);
 			list_push_con_mutex(procesos_en_blocked, pcb2, &mutex_lista_blocked);
 			sem_post(&sem_vuelta_blocked);
 		}
 		queue_push_con_mutex(procesos_en_exec, pcb, &mutex_lista_exit);
 		send_pcb(pcb, fd_cpu_dispatch);
 	}
+}
+
+void agregar_recurso(char* recurso, t_pcb* pcb){
+	char** recursos = config_get_array_value(config, "RECURSOS");
+	for(int i = 0; i<list_size(pcb->recursos_asignados); i++){
+		t_recurso_asignado* recurso_asignado = list_get(pcb->recursos_asignados, i);
+//		log_warning(logger, "Recurso asignado: %s. Instancias: %d.", recurso_asignado->nombre_recurso, recurso_asignado->instancias);
+		if(strcmp(recurso_asignado->nombre_recurso, recurso) == 0){
+			pthread_mutex_lock(&mutex_asignacion_recursos);
+			recurso_asignado->instancias ++;
+			pthread_mutex_unlock(&mutex_asignacion_recursos);
+//			log_warning(logger, "Se asigno el recurso: %s. Al PID: %d. Ahora tiene %d instancias.", recurso_asignado->nombre_recurso, pcb->pid, recurso_asignado->instancias);
+		}
+	}
+
+	string_array_destroy(recursos);
+}
+
+void quitar_recurso(char* recurso, t_pcb* pcb){
+	char** recursos = config_get_array_value(config, "RECURSOS");
+	for(int i = 0; i<list_size(pcb->recursos_asignados); i++){
+		t_recurso_asignado* recurso_asignado = list_get(pcb->recursos_asignados, i);
+		if(strcmp(recurso_asignado->nombre_recurso, recurso) == 0){
+			pthread_mutex_lock(&mutex_asignacion_recursos);
+			recurso_asignado->instancias --;
+			pthread_mutex_unlock(&mutex_asignacion_recursos);
+//			log_warning(logger, "Se quito el recurso: %s. Al PID: %d. Ahora tiene %d instancias.", recurso_asignado->nombre_recurso, pcb->pid, recurso_asignado->instancias);
+		}
+	}
+
+	string_array_destroy(recursos);
 }
 
 t_recurso* buscar_recurso(char* recurso) {
@@ -559,6 +622,16 @@ t_pcb* buscar_proceso(int pid) {
 	return pcb;
 }
 
+t_pcb* buscar_proceso_en_lista(t_list* lista, int pid){
+	for(int i = 0; i<list_size(lista); i++){
+		t_pcb* pcb_buscado = list_get(lista, i);
+		if(pcb_buscado->pid == pid){
+			return pcb_buscado;
+		}
+	}
+	return NULL;
+}
+
 t_pcb* buscar_proceso_en_list(int pid, t_list* lista) {
 	t_pcb* pcb_encontrado = malloc(sizeof(t_pcb));
 
@@ -669,6 +742,7 @@ void inicializar_variables() {
 	pthread_mutex_init(&mutex_lista_blocked, NULL);
 	pthread_mutex_init(&mutex_lista_blocked_sleep, NULL);
 	pthread_mutex_init(&mutex_lista_exit, NULL);
+	pthread_mutex_init(&mutex_asignacion_recursos, NULL);
 
 	inicializar_semaforos();
 }
@@ -683,6 +757,8 @@ void inicializar_semaforos() {
 	sem_init(&sem_vuelta_blocked, 0, 0);
 	sem_init(&sem_procesos_blocked, 0, 0);
 	sem_init(&sem_procesos_blocked_sleep, 0, 0);
+	sem_init(&sem_asignacion_recursos, 0, 0);
+	sem_init(&sem_vuelta_asignacion_recursos, 0, 0);
 }
 
 t_list* inicializar_recursos(){
