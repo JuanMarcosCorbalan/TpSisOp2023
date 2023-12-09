@@ -48,6 +48,8 @@ pthread_mutex_t mutex_lista_blocked;
 pthread_mutex_t mutex_lista_blocked_sleep;
 pthread_mutex_t mutex_lista_exit;
 pthread_mutex_t mutex_asignacion_recursos;
+pthread_mutex_t mutex_logger;
+pthread_mutex_t mutex_lectura_escritura;
 
 sem_t sem_multiprogramacion;
 sem_t sem_procesos_new;
@@ -62,6 +64,9 @@ sem_t sem_vuelta_asignacion_recursos;
 
 int asignador_pid;
 int asignador_iid;
+
+t_list cola_peticiones_fopen;
+t_list* tabla_global_archivos_abiertos;
 
 t_log* iniciar_logger(void);
 t_config* iniciar_config(void);
@@ -117,5 +122,10 @@ t_list* iniciar_recursos_en_proceso();
 void liberar_recursos(t_pcb* proceso);
 t_pcb* buscar_proceso_en_list(int pid, t_list* lista);
 t_pcb* buscar_proceso_a_finalizar(int target_pid);
+bool buscar_por_nombre(void* elemento, void* nombre_buscado);
+void inicializar_lock(t_lock* lock);
+void bloquear_lectura(t_lock* lock);
+void bloquear_escritura(t_lock* lock);
+void desbloquear(t_lock* lock);
 
 #endif
