@@ -36,7 +36,21 @@ typedef enum
 	PAGINA_CARGADA,
 	VALOR_LEIDO,
 	SOLICITUD_BLOQUES_SWAP,
-	VALOR_EN_BLOQUE
+	VALOR_EN_BLOQUE,
+	RECURSO_WAIT,
+	PETICION,
+	FOPEN,
+	FCLOSE,
+	FSEEK,
+	FTRUNCATE,
+	FREAD,
+	FWRITE,
+	INICIARPROCESO,
+	FINALIZARPROCESO,
+	FIN_FOPEN,
+	FIN_FWRITE,
+	FIN_FREAD,
+	FIN_FTRUNCATE,
 }op_code;
 
 typedef enum
@@ -71,6 +85,14 @@ typedef struct
 	int pid;
 	int program_counter;
 } t_solicitud_instruccion;
+
+typedef struct {
+	char* nombre_archivo;
+	char modo_apertura;
+	uint32_t posicion;
+	int direccion_logica;
+	uint32_t tamanio;
+} t_peticion;
 
 t_paquete* crear_paquete(op_code codigo_operacion);
 void* serializar_paquete(t_paquete* paquete, int bytes);
@@ -186,5 +208,32 @@ int recv_solicitud_valor_en_bloque(int fd_memoria);
 
 void send_valor_en_bloque(int fd_memoria, uint32_t valor);
 uint32_t recv_valor_en_bloque(int fd_filesystem);
+
+// INFORMACION_ARCHIVO_BLOQUES
+void send_datos_archivo_bloques(int , char*,  int);
+
+// FUNCIONES PARA FS
+void send_fopen(int socket, t_pcb* pcb ,t_peticion* peticion);
+void send_fclose(int socket, t_pcb* pcb ,t_peticion* peticion);
+void send_fseek(int socket, t_pcb* pcb ,t_peticion* peticion);
+void send_ftruncate(int socket, t_pcb* pcb ,t_peticion* peticion);
+void send_fread(int socket, t_pcb* pcb ,t_peticion* peticion);
+void send_fwrite(int socket, t_pcb* pcb ,t_peticion* peticion);
+
+
+char* recv_nombre_archivo(int socket);
+char recv_modo_apertura(int socket);
+uint32_t recv_posicion(int socket);
+uint32_t recv_tamanio(int socket);
+int recv_dir_logica(int socket);
+t_peticion* recv_peticion(int socket);
+
+void send_bloques_reservados(int socket, uint32_t* lista_bloques_reservados, int tamanio);
+char* recv_parametros_fopen(int socket);
+t_list* recv_parametros(int socket);
+void send_solicitud_lectura(int, int);
+uint32_t* recv_valor_leido(int fd_memoria);
+
+
 
 #endif

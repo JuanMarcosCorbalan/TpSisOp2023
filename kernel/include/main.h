@@ -51,6 +51,7 @@ pthread_mutex_t mutex_lista_blocked_sleep;
 pthread_mutex_t mutex_lista_exit;
 pthread_mutex_t mutex_logger;
 pthread_mutex_t mutex_blocked_list;
+pthread_rwlock_t lock_lectura_escritura;
 
 sem_t sem_multiprogramacion;
 sem_t sem_procesos_new;
@@ -64,7 +65,8 @@ sem_t sem_procesos_blocked_sleep;
 int asignador_pid;
 int asignador_iid;
 
-
+t_list cola_peticiones_fopen;
+t_list* tabla_global_archivos_abiertos;
 
 t_log* iniciar_logger(void);
 t_config* iniciar_config(void);
@@ -116,4 +118,10 @@ void procesar_sleep(void* args);
 void recurso_destroy(t_recurso* recurso);
 void bloqueado_a_ready(t_pcb* pcb);
 int recibir_pagina_cargada();
+bool buscar_por_nombre(void* elemento, void* nombre_buscado);
+void inicializar_lock(t_lock* lock);
+void bloquear_lectura(t_lock* lock);
+void bloquear_escritura(t_lock* lock);
+void desbloquear(t_lock* lock);
+
 #endif

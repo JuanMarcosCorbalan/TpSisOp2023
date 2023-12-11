@@ -379,6 +379,64 @@ void procesar_respuesta_cpu(){
 				break;
 			}
 			break;
+		/*	char* motivo = motivo_to_string(pcb_actualizado->estado);
+			log_info(logger, "Finaliza el proceso %d - Motivo: %s", pcb_actualizado->pid, motivo);
+			//TODO Terminar proceso en memoria
+			pcb_destroy(pcb_actualizado);
+			sem_post(&sem_multiprogramacion);
+			sem_post(&sem_proceso_exec);
+			break;
+		case FOPEN:
+			t_peticion* peticion_fopen = recv_peticion(fd_cpu_dispatch);
+			t_pcb* pcb_actualizado_fopen = recv_pcb(fd_cpu_dispatch);
+			char* nombre_archivo = recv_nombre_archivo(fd_cpu_dispatch);
+			char modo_apertura = recv_modo_apertura(fd_cpu_dispatch);
+			log_info(logger, "PID: %d - Abrir Archivo: %s", pcb_actualizado->pid, nombre_archivo);
+			// necesito primero verificar si existe el archivo o no. podria simplemente decirle al fs que lo abra y este lo crea si no existe
+			t_archivo_abierto_global* archivo_encontrado = list_find(tabla_global_archivos_abiertos, buscar_por_nombre, nombre_archivo);
+			if (archivo_encontrado != NULL) {
+			    // El archivo fue encontrado
+				if (strcmp(archivo_encontrado->modo_apertura_actual, "W") == 0) {
+				    // El archivo está abierto en modo escritura, encolar la petición
+				    list_push_con_mutex(&cola_peticiones_fopen, peticion_solicitada, &lock_lectura_escritura);
+				    // bloquear_escritura(&lock_lectura_escritura);
+				    // encolar_peticion(&cola_peticiones_fopen, peticion_solicitada);
+				    // desbloquear(&lock_lectura_escritura);
+				} else if (strcmp(modo_apertura, "W") == 0) {
+				    // esta en modo lectura
+					// Se solicita abrir en modo escritura, bloquear acceso hasta que termine el modo escritura actual
+				     bloquear_escritura(&lock_lectura_escritura);
+
+				     desbloquear(&lock_lectura_escritura);
+				} else {
+				    // El archivo está abierto en modo lectura, se solicita modo lectura permitir el acceso
+				    bloquear_lectura(&lock_lectura_escritura);
+				    // Realizar operaciones de lectura
+				    desbloquear(&lock_lectura_escritura);
+				}
+			} else {
+			    // El archivo no fue encontrado
+
+			}
+			break;
+		case FCLOSE:
+		break;
+		case FSEEK:
+			t_peticion* peticion_fseek = recv_peticion(fd_cpu_dispatch);
+			t_pcb* pcb_actualizado_fseek = recv_pcb(fd_cpu_dispatch);
+			char* nombre_archivo_fseek = peticion_fseek -> nombre_archivo;
+			uint32_t nuevo_puntero = peticion_fseek->posicion;
+			// tengo que ubicar el puntero en base a la peticion
+			t_archivo_abierto_proceso archivo = list_find(pcb_actualizado_fseek->archivos_abiertos_proceso, buscar_por_nombre, nombre_archivo_fseek);
+			archivo->puntero = nuevo_puntero;
+			// despues tengo que mandar el contexto de ejecucion a cpu
+		break;
+		case FTRUNCATE:
+		break;
+		case FREAD:
+		break;
+		case FWRITE:
+		break;*/
 		}
 	}
 }
@@ -474,6 +532,59 @@ void procesar_cambio_estado(t_pcb* pcb, estado nuevo_estado){
 		sem_post(&sem_procesos_exit);
 	break;
 	}
+///////////////////////////////////// MANEJO DE LOCKS /////////////////////////////////
+
+// Función para inicializar un lock
+void inicializar_lock(t_lock* lock) {
+    pthread_mutex_init(&lock->mutex, NULL);
+    pthread_cond_init(&lock->cond, NULL);
+    lock->participantes = 0;
+    lock->encolados = 0;
+}
+
+// Función para bloquear un lock en modo lectura
+void bloquear_lectura(t_lock* lock) {
+    pthread_mutex_lock(&lock->mutex);
+    // Esperar si hay un lock de escritura o alguien más encolado
+    while (lock->participantes == -1 || lock->encolados > 0) {
+        pthread_cond_wait(&lock->cond, &lock->mutex);
+    }
+    // Ingresar al lock de lectura
+    lock->participantes++;
+    pthread_mutex_unlock(&lock->mutex);
+}
+
+// Función para bloquear un lock en modo escritura
+void bloquear_escritura(t_lock* lock) {
+    pthread_mutex_lock(&lock->mutex);
+    // Esperar si hay un lock de escritura o alguien más encolado
+    while (lock->participantes != 0) {
+        lock->encolados++;
+        pthread_cond_wait(&lock->cond, &lock->mutex);
+        lock->encolados--;
+    }
+    // Ingresar al lock de escritura
+    lock->participantes = -1;  // Marcador para lock de escritura
+    pthread_mutex_unlock(&lock->mutex);
+}
+
+// Función para desbloquear un lock
+void desbloquear(t_lock* lock) {
+    pthread_mutex_lock(&lock->mutex);
+    // Reducir la cantidad de participantes o liberar el lock de escritura
+    if (lock->participantes > 0) {
+        lock->participantes--;
+    } else if (lock->participantes == -1) {
+        lock->participantes = 0;
+    }
+    // Despertar a threads en espera
+    pthread_cond_broadcast(&lock->cond);
+    pthread_mutex_unlock(&lock->mutex);
+}
+
+bool buscar_por_nombre(void* elemento, void* nombre_buscado) {
+    t_archivo_abierto_global* archivo = (t_archivo_abierto_global*)elemento;
+    return strcmp(archivo->nombre_archivo, (char*)nombre_buscado) == 0;
 }
 
 void planificar_procesos_ready() {
@@ -660,6 +771,74 @@ t_config* iniciar_config(void)
 
 	return nuevo_config;
 }
+
+void generar_conexion_fs() {
+	pthread_t conexion_filesystem;
+
+	//pthread_create(&conexion_filesystem, NULL, (void*) procesar_conexion_fs, (void*) &fd_filesystem);
+	pthread_detach(conexion_filesystem);
+}
+
+// procesar conexion de fs es cuando ya se envia todo para que pase y el filesystem devuelve una respuesta (segun la operacion realizada)
+//void procesar_conexion_fs(void* void_args) {
+//	int* args = (int*) void_args;
+//	int cliente_socket = *args;
+//
+//	op_code cop;
+//	while (cliente_socket != -1) {
+//		cop = recibir_operacion(cliente_socket);
+//		if (cop == -1) {
+//			log_info(logger, "El cliente se desconecto de %s server", server_name);
+//			return;
+//		}
+//		t_pcb* pcb_block_fs = safe_pcb_remove(cola_block_fs, &mutex_cola_block_fs);
+//		pthread_mutex_lock(&mutex_cola_block_fs);
+//		int cant_pcbs_block_fs = list_size(cola_block_fs);
+//		pthread_mutex_unlock(&mutex_cola_block_fs);
+//		log_info(logger, "saque el proceso %d de la cola de bloqueados del fs, quedan %d", pcb_block_fs->contexto_de_ejecucion->pid, cant_pcbs_block_fs);
+//		switch(cop){
+//		case FIN_FOPEN:
+//			recv_fin_f_open(cliente_socket);
+//			log_info(logger, "el fs termino de abrir un archivo del proceso %d", pcb_block_fs->contexto_de_ejecucion->pid);
+//			sem_post(&fin_f_open);
+//			break;
+//		case FIN_FTRUNCATE:
+//				recv_fin_f_truncate(cliente_socket);
+//				log_info(logger, "el fs termino de truncar un archivo del proceso %d", pcb_block_fs->contexto_de_ejecucion->pid);
+//				safe_pcb_add(cola_block, pcb_block_fs, &mutex_cola_block_fs);
+//				sem_post(&sem_block_return);
+//				break;
+//		case FIN_FREAD:
+//			recv_fin_f_read(cliente_socket);
+//			fs_mem_op_count--;
+//			if(fs_mem_op_count == 0){
+//				sem_post(&ongoing_fs_mem_op);
+//			}
+//			log_info(logger, "el fs termino de leer un archivo del proceso %d, fs_mem_op_count: %d", pcb_block_fs->contexto_de_ejecucion->pid, fs_mem_op_count);
+//			// manejo fin f_read...
+//			safe_pcb_add(cola_block, pcb_block_fs, &mutex_cola_block_fs);
+//			sem_post(&sem_block_return);
+//			break;
+//		case FIN_FWRITE:
+//			recv_fin_f_write(cliente_socket);
+//			fs_mem_op_count--;
+//			if(fs_mem_op_count == 0){
+//				sem_post(&ongoing_fs_mem_op);
+//			}
+//			log_info(logger, "el fs termino de escribir un archivo del proceso %d, fs_mem_op_count: %d", pcb_block_fs->contexto_de_ejecucion->pid, fs_mem_op_count);
+//
+//			// manejo fin f_write...
+//			safe_pcb_add(cola_block, pcb_block_fs, &mutex_cola_block_fs);
+//			sem_post(&sem_block_return);
+//			break;
+//
+//		default:
+//			log_error(logger, "Codigo de operacion no reconocido en la comunicacion con fs");
+//			log_info(logger, "el numero del cop es: %d", cop);
+//			return;
+//		}
+//	}
+//}
 
 void terminar_programa(int conexion, int conexion2, int conexion3, int conexion4, t_log* logger, t_config* config)
 {

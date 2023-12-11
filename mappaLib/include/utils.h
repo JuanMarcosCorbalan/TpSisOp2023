@@ -33,10 +33,15 @@ typedef enum{
 	INTERRUPT
 } t_motivo_exit;
 
+//typedef struct {
+//	int fd;
+//	uint32_t f_pointer;
+//} t_archivos_abiertos;
+
 typedef struct {
-	int fd;
-	uint32_t f_pointer;
-} t_archivos_abiertos;
+	char* nombre_archivo;
+	uint32_t* puntero;
+}t_archivo_abierto_proceso;
 
 typedef struct {
 	uint32_t ax;
@@ -55,6 +60,7 @@ typedef struct {
 	t_motivo_exit motivo_exit;
 //	t_archivos_abiertos archivos_abiertos;
 //	t_list recursos_asignados;
+	t_list* archivos_abiertos_proceso;
 } t_pcb;
 
 typedef enum {
@@ -67,7 +73,13 @@ typedef enum {
 	SIGNAL,
 	EXIT,
 	MOV_IN,
-	MOV_OUT
+	MOV_OUT,
+	F_OPEN,
+	F_CLOSE,
+	F_SEEK,
+	F_WRITE,
+	F_READ,
+	F_TRUNCATE
 } codigo_instruccion;
 
 typedef struct {
@@ -122,6 +134,29 @@ typedef struct
 	int direccion;
 	uint32_t valor;
 } direccion_y_valor;
+
+typedef struct
+{
+	char* nombre_archivo;
+	int tamanio_archivo; // en bytes
+	int bloque_inicial; // tambien en bytes
+}t_fcb;
+
+typedef struct
+{
+	char* nombre_archivo;
+	char modo_apertura_actual;
+	int cantidad_accesos;
+}t_archivo_abierto_global;
+
+// Estructura para representar un lock
+typedef struct {
+    pthread_mutex_t mutex;  // Mutex para la exclusión mutua
+    pthread_cond_t cond;    // Condición para sincronizar los threads
+    int participantes;      // Número de participantes en el lock
+    int encolados;          // Número de threads encolados esperando
+} t_lock;
+
 
 //t_list* datos_procesos;
 void imprimirPrueba();

@@ -48,5 +48,11 @@ void check_interrupt();
 void* ciclo_de_intruccion(void *arg);
 void ejecutar_mov_in(t_pcb* pcb, char* param1, char* param2);
 void ejecutar_mov_out(t_pcb* pcb, char* param1, char* param2);
+void ejecutar_fopen(t_pcb* pcb, char* param1, char* param2);
+void ejecutar_fclose(t_pcb* pcb, char* param1);
+void ejecutar_fseek(t_pcb* pcb,char* param1, char* param2);
+void ejecutar_fread(t_pcb* pcb, char* param1, char* param2);
+void ejecutar_fwrite(t_pcb* pcb, char* param1, char* param2);
+void ejecutar_ftruncate(t_pcb* pcb, char* param1, char* param2);
 
 #endif
