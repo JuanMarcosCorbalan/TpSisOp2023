@@ -1,0 +1,13 @@
+[INFO] 04:43:30:347 MEMORIA/(12046:12046): MODULO MEMORIA LISTO.
+[INFO] 04:43:52:421 MEMORIA/(12046:12046): Se conecto un cliente!
+[INFO] 04:43:52:421 MEMORIA/(12046:12048): Me llego el mensaje Hola, soy un File System!
+[INFO] 04:43:59:688 MEMORIA/(12046:12046): Se conecto un cliente!
+[INFO] 04:43:59:713 MEMORIA/(12046:12050): Me llego el mensaje Hola, soy el CPU!
+[INFO] 04:46:57:652 MEMORIA/(12046:12046): Se conecto un cliente!
+[INFO] 04:46:58:850 MEMORIA/(12046:12190): Me llego el mensaje Hola, soy el Kernel!
+[INFO] 04:47:25:831 MEMORIA/(12046:12190): Tabla de paginas creada. PID: 1 - Tamaño: 8
+
+[INFO] 04:47:45:497 MEMORIA/(12046:12050): Solicitud de instruccion recibida
+[INFO] 04:47:46:001 MEMORIA/(12046:12050): Solicitud de instruccion recibida
+[ERROR] 04:48:37:971 MEMORIA/(12046:12190): El cliente se desconecto.
+[ERROR] 04:49:08:224 MEMORIA/(12046:12050): El cliente se desconecto.
