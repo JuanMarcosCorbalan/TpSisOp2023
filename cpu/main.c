@@ -358,13 +358,11 @@ int solicitar_direccion_fisica(t_pcb* pcb, int direccion_logica){
 	int desplazamiento =  direccion_logica - numero_pagina * tam_pagina;
 	send_solicitud_marco(fd_memoria, pcb->pid, numero_pagina);
 	int marco = recibir_marco();
-	//int marco = recv_marco(fd_memoria);
 	if(marco == -1){
 		log_info(logger, "Page Fault PID: %d - Pagina: %d", pcb->pid, numero_pagina); //log ob
 		//iniciar acciones page fault
 		send_pcb(pcb, dispatch_cliente_fd);
 		send_pcb_pf(numero_pagina, desplazamiento, dispatch_cliente_fd);
-		//TODO mandar interrupcion para que no actualice el program counter
 		return marco;
 	}
 	log_info(logger,  "PID: %d - OBTENER MARCO - Página: %d - Marco: %d", pcb->pid, numero_pagina, marco); //log ob
@@ -376,11 +374,12 @@ void ejecutar_mov_in(t_pcb* pcb, char* param1, char* param2){
 	int direccion_logica = atoi(param2);
 	int direccion_fisica = solicitar_direccion_fisica(pcb, direccion_logica);
 	if(direccion_fisica == -1){
+		pcb->program_counter -= 1;
 		return;
 	}
 
-	send_solicitud_lectura(direccion_fisica, fd_memoria);
-	uint32_t valor = recv_valor_leido(fd_memoria);
+	send_solicitud_lectura_memoria(direccion_fisica, fd_memoria);
+	uint32_t valor = recv_valor_leido_memoria(fd_memoria);
 
 	cambiar_valor_registro(pcb, param1, valor);
 }
@@ -390,6 +389,7 @@ void ejecutar_mov_out(t_pcb* pcb, char* param1, char* param2){
 	int direccion_logica = atoi(param1);
 	int direccion_fisica = solicitar_direccion_fisica(pcb, direccion_logica);
 	if(direccion_fisica == -1){
+		pcb->program_counter -= 1;
 		return;
 	}
 
@@ -405,7 +405,12 @@ void ejecutar_mov_out(t_pcb* pcb, char* param1, char* param2){
 		valor = pcb->registros_generales_cpu.dx;
 	}
 
-	send_solicitud_escritura(direccion_fisica, valor, fd_memoria);
+	int numero_pagina = floor(direccion_logica / tam_pagina);
+	pid_y_numpag* pyn = malloc(sizeof(pid_y_numpag));
+	pyn->numero_pagina = numero_pagina;
+	pyn->pid = pcb->pid;
+	send_solicitud_escritura_memoria(direccion_fisica, valor, pyn, fd_memoria);
+	free(pyn);
 }
 
 

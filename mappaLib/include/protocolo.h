@@ -37,7 +37,6 @@ typedef enum
 	VALOR_LEIDO,
 	SOLICITUD_BLOQUES_SWAP,
 	VALOR_EN_BLOQUE,
-	RECURSO_WAIT,
 	PETICION,
 	FOPEN,
 	FCLOSE,
@@ -191,16 +190,16 @@ void send_pagina_cargada(int fd_kernel);
 int recv_pagina_cargada(int fd_memoria);
 
 //SOLICITUD DE LECTURA
-void send_solicitud_lectura(int direccion_fisica, int fd_memoria);
-int recv_solicitud_lectura(int fd_cpu);
+void send_solicitud_lectura_memoria(int direccion_fisica, int fd_memoria);
+int recv_solicitud_lectura_memoria(int fd_cpu);
 
 //ENVIAR VALOR LEIDO
-void send_valor_leido(uint32_t valor, int fd_cpu);
-uint32_t recv_valor_leido(int fd_memoria);
+void send_valor_leido_memoria(uint32_t valor, int fd_cpu);
+uint32_t recv_valor_leido_memoria(int fd_memoria);
 
 //SOLICITUD DE ESCRITURA
-void send_solicitud_escritura(int direccion_fisica, uint32_t valor, int fd_memoria);
-direccion_y_valor* recv_solicitud_escritura(int fd_cpu);
+void send_solicitud_escritura_memoria(int direccion_fisica, uint32_t valor, pid_y_numpag*, int fd_memoria);
+direccion_y_valor* recv_solicitud_escritura_memoria(int fd_cpu);
 
 //SOLICITUD DE VALOR EN BLOQUE
 void send_solicitud_valor_en_bloque(int fd_filesystem, int direccion_bloque);

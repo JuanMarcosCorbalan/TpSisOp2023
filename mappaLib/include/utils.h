@@ -131,6 +131,7 @@ typedef struct
 
 typedef struct
 {
+	pid_y_numpag* pyn;
 	int direccion;
 	uint32_t valor;
 } direccion_y_valor;

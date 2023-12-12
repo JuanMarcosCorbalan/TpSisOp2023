@@ -26,6 +26,8 @@ typedef struct {
 	t_list* instrucciones;
 } t_proceso_instrucciones;
 
+
+
 int experar_clientes(t_log* logger, int server_socket);
 void inicializar_variables(t_log* logger, t_config* config);
 t_list* generar_instrucciones(char* path);
@@ -38,11 +40,12 @@ t_config* iniciar_config(void);
 
 char* inicializar_bitmap_marcos(void);
 void procesar_solicitud_marco(int fd_cpu);
-
+t_pagina* buscar_pagina(int pid, int numero_pagina);
 void cargar_pagina(int pid, int numero_pagina, int desplazamiento);
-void realizar_reemplazo(int pid, int numero_pagina);
-
+void realizar_reemplazo(int marco, t_pagina* pagina, int direccion, uint32_t valor);
+void efectivizar_carga(int marco, t_pagina* pagina, int direccion, uint32_t valor);
+void descargar_pagina(t_pagina* pagina, int direccion);
 
 uint32_t leer_espacio_usuario(int direccion);
-void escribir_espacio_usuario(int direccion, uint32_t valor);
+void escribir_espacio_usuario(int direccion, uint32_t valor, int pid, int numero_pagina);
 #endif

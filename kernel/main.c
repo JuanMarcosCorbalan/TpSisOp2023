@@ -532,6 +532,7 @@ void procesar_cambio_estado(t_pcb* pcb, estado nuevo_estado){
 		sem_post(&sem_procesos_exit);
 	break;
 	}
+}
 ///////////////////////////////////// MANEJO DE LOCKS /////////////////////////////////
 
 // Función para inicializar un lock
@@ -974,3 +975,4 @@ void recurso_destroy(t_recurso* recurso) {
     pthread_mutex_destroy(&recurso->mutex_asignado);
     free(recurso);
 }
+

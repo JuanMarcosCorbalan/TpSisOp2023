@@ -15,6 +15,8 @@ int contador_instante = 0;
 int inicializado = 0;
 int fd_filesystem = 0;
 t_config* config;
+pthread_mutex_t mutex_memoria;
+
 
 static void procesar_cliente(void* void_args){
 	t_procesar_cliente_args* args = (t_procesar_cliente_args*) void_args;
@@ -55,15 +57,15 @@ static void procesar_cliente(void* void_args){
 				break;
 			case LEER_MEMORIA:
 				//recibir direccion
-				int direccion_fisica = recv_solicitud_lectura(cliente_fd);
+				int direccion_fisica = recv_solicitud_lectura_memoria(cliente_fd);
 				uint32_t dato = leer_espacio_usuario(direccion_fisica);
 				//mandar dato
-				send_valor_leido(dato, cliente_fd);
+				send_valor_leido_memoria(dato, cliente_fd);
 				break;
 			case ESCRIBIR_MEMORIA:
 				//recibir direccion y valor
-				direccion_y_valor* dyv = recv_solicitud_escritura(cliente_fd);
-				escribir_espacio_usuario(dyv->direccion, dyv->valor);
+				direccion_y_valor* dyv = recv_solicitud_escritura_memoria(cliente_fd);
+				escribir_espacio_usuario(dyv->direccion, dyv->valor, dyv->pyn->pid, dyv->pyn->numero_pagina);
 				break;
 			case -1:
 				log_error(logger, "El cliente se desconecto.");
@@ -112,6 +114,7 @@ void inicializar_variables(t_log* logger, t_config* config){
 	memset(espacio_usuario, 0, tam_memoria);
 
 	tablas_de_paginas = list_create();
+	pthread_mutex_init(&mutex_memoria, NULL);
 
 	char* ip_fs = config_get_string_value(config, "IP_FILESYSTEM");
 	char* puerto_fs = config_get_string_value(config, "PUERTO_FILESYSTEM");
@@ -293,6 +296,19 @@ void procesar_solicitud_marco(int fd_cpu){
 
 }
 
+t_pagina* buscar_pagina(int pid, int numero_pagina){
+	//buscar proceso en tdps
+	bool _encontrar_pid(void* t) {
+		return (((t_tdp*)t)->pid == pid);
+	}
+	t_tdp* tdp = list_find(tablas_de_paginas, _encontrar_pid);
+
+	//buscar pagina en tdp
+	t_pagina* pagina = list_get(tdp->paginas, numero_pagina);
+
+	return pagina;
+}
+
 void cargar_pagina(int pid, int numero_pagina, int desplazamiento){
 	//ver si la memoria esta llena (bitmap de marcos)
 	bool flag_memoria_llena = true;
@@ -303,61 +319,77 @@ void cargar_pagina(int pid, int numero_pagina, int desplazamiento){
 			break;
 		}
 	}
-	//buscar proceso en tdps
-	bool _encontrar_pid(void* t) {
-		return (((t_tdp*)t)->pid == pid);
-	}
-	t_tdp* tdp = list_find(tablas_de_paginas, _encontrar_pid);
+	t_pagina* pagina = buscar_pagina(pid, numero_pagina);
 
-	//buscar pagina en tdp
-	t_pagina* pagina = list_get(tdp->paginas, numero_pagina);
 	//decirle a fs que me traiga lo que esta en el bloque
 	send_solicitud_valor_en_bloque(fd_filesystem, pagina->pos_swap);
 	uint32_t valor = recv_valor_en_bloque(fd_filesystem);
-
+	int direccion = marco * tam_pagina + desplazamiento;
 	//en ese caso, ejecutar algoritmo de reemplazo
 	if(flag_memoria_llena){
 		//algoritmo de reemplazo
-		realizar_reemplazo(pid, numero_pagina);
+		realizar_reemplazo(marco, pagina, direccion, valor);
 	}else{
 		//sino - cargar pagina (asignarle un marco si no tiene y cambiarle el bit de presencia a 1)
-
-		pagina->marco = marco;
-		pagina->bit_presencia = 1;
-		pagina->instante_de_referencia = contador_instante;
-		bitmap_marcos[marco] = '1';
-		list_add(paginas_en_memoria, pagina);
-		int direccion = marco * tam_pagina + desplazamiento;
-		escribir_espacio_usuario(direccion, valor);
+		efectivizar_carga(marco, pagina, direccion, valor);
 	}
+	escribir_espacio_usuario(direccion, valor, pid, numero_pagina);
 	contador_instante++;
 }
 
-void realizar_reemplazo(int pid, int numero_pagina){ //TODO
+void efectivizar_carga(int marco, t_pagina* pagina, int direccion, uint32_t valor){
+	pagina->marco = marco;
+	pagina->bit_presencia = 1;
+	pagina->instante_de_referencia = contador_instante;
+	bitmap_marcos[marco] = '1';
+	list_add(paginas_en_memoria, pagina);
+}
+
+void descargar_pagina(t_pagina* pagina, int direccion){
+	bitmap_marcos[pagina->marco] = '0';
+	pagina->marco = -1;
+	pagina->bit_presencia = 0;
+	if(pagina->bit_modificado == 1){
+		//TODO escribir en fs
+		uint32_t valor_a_escribir = leer_espacio_usuario(direccion);
+		//send_escribir_en_bloque(valor_a_escribir, fd_filesystem);
+
+		pagina->bit_modificado = 0;
+	}
+}
+
+void realizar_reemplazo(int marco, t_pagina* pagina, int direccion, uint32_t valor){ //TODO
 	if(!strcmp(algoritmo_reemplazo, "FIFO")){
 		t_pagina* pagina_victima = list_remove(paginas_en_memoria, 0);
-
+		descargar_pagina(pagina_victima, direccion);
+		efectivizar_carga(marco, pagina, direccion, valor);
 	}
 	else if(!strcmp(algoritmo_reemplazo, "LRU")){
 		void* _paginas_menor_referencia(t_pagina* pagina1, t_pagina* pagina2) {
 		    return pagina1->instante_de_referencia <= pagina2->instante_de_referencia ? pagina1 : pagina2;
 		}
-
 		t_pagina* pagina_victima = list_get_minimum(paginas_en_memoria, (void*) _paginas_menor_referencia);
+		descargar_pagina(pagina_victima, direccion);
+		efectivizar_carga(marco, pagina, direccion, valor);
 	}
 }
 
 uint32_t leer_espacio_usuario(int direccion) {
 	uint32_t valor;
 
-	//mutex
+	pthread_mutex_lock(&mutex_memoria);
 	memcpy(&valor, espacio_usuario + direccion, sizeof(uint32_t));
+	pthread_mutex_unlock(&mutex_memoria);
 
 	return valor;
 }
 
-void escribir_espacio_usuario(int direccion, uint32_t valor) {
-	//mutex
+void escribir_espacio_usuario(int direccion, uint32_t valor, int pid, int numero_pagina) {
+	pthread_mutex_lock(&mutex_memoria);
 	memcpy(espacio_usuario + direccion, &valor, sizeof(int));
+	pthread_mutex_unlock(&mutex_memoria);
+
+	t_pagina* pagina = buscar_pagina(pid, numero_pagina);
+	pagina->bit_modificado = 1;
 
 }

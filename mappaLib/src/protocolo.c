@@ -370,8 +370,8 @@ t_pcb* recv_pcb(int socket){
 	pcb->motivo_exit = *motivo_exit;
 	free(motivo_exit);
 
-	t_list* archivos_abiertos = list_get(paquete, 8);
-	pcb->archivos_abiertos_proceso = *archivos_abiertos
+	//t_list* archivos_abiertos = list_get(paquete, 8);
+	//pcb->archivos_abiertos_proceso = *archivos_abiertos;
 	list_destroy(paquete);
 	return pcb;
 }
@@ -767,7 +767,7 @@ t_list* recv_parametros(int socket){
 
 
 //SOLICITUD DE LECTURA DE MEMORIA
-void send_solicitud_lectura(int direccion_fisica, int fd_memoria){
+void send_solicitud_lectura_memoria(int direccion_fisica, int fd_memoria){
 	t_paquete* paquete = crear_paquete(LEER_MEMORIA);
 
 	agregar_a_paquete(paquete, &direccion_fisica, sizeof(int));
@@ -776,7 +776,7 @@ void send_solicitud_lectura(int direccion_fisica, int fd_memoria){
 	eliminar_paquete(paquete);
 }
 
-int recv_solicitud_lectura(int fd_cpu){
+int recv_solicitud_lectura_memoria(int fd_cpu){
 	t_list* paquete = recibir_paquete(fd_cpu);
 	int* direccion_fisica = list_get(paquete, 0);
 
@@ -786,7 +786,7 @@ int recv_solicitud_lectura(int fd_cpu){
 
 
 // ENVIAR VALOR LEIDO
-void send_valor_leido(uint32_t valor, int fd_cpu){
+void send_valor_leido_memoria(uint32_t valor, int fd_cpu){
 	t_paquete* paquete = crear_paquete(VALOR_LEIDO);
 
 	agregar_a_paquete(paquete, &valor, sizeof(uint32_t));
@@ -795,7 +795,7 @@ void send_valor_leido(uint32_t valor, int fd_cpu){
 	eliminar_paquete(paquete);
 }
 
-uint32_t* recv_valor_leido(int fd_memoria){
+uint32_t recv_valor_leido_memoria(int fd_memoria){
 	t_list* paquete = recibir_paquete(fd_memoria);
 	uint32_t* valor = list_get(paquete, 0);
 
@@ -804,17 +804,18 @@ uint32_t* recv_valor_leido(int fd_memoria){
 }
 
 //SOLICITUD DE ESCRITURA
-void send_solicitud_escritura(int direccion_fisica, uint32_t valor, int fd_memoria){
+void send_solicitud_escritura_memoria(int direccion_fisica, uint32_t valor, pid_y_numpag* pyn, int fd_memoria){
 	t_paquete* paquete = crear_paquete(ESCRIBIR_MEMORIA);
 
 	agregar_a_paquete(paquete, &direccion_fisica, sizeof(int));
 	agregar_a_paquete(paquete, &valor, sizeof(uint32_t));
+	agregar_a_paquete(paquete, pyn, sizeof(pid_y_numpag));
 
 	enviar_paquete(paquete, fd_memoria);
 	eliminar_paquete(paquete);
 }
 
-direccion_y_valor* recv_solicitud_escritura(int fd_cpu){
+direccion_y_valor* recv_solicitud_escritura_memoria(int fd_cpu){
 	t_list* paquete = recibir_paquete(fd_cpu);
 	direccion_y_valor* ret = malloc(sizeof(direccion_y_valor));
 
@@ -822,6 +823,8 @@ direccion_y_valor* recv_solicitud_escritura(int fd_cpu){
 	ret->direccion = *direccion;
 	uint32_t* valor = list_get(paquete, 1);
 	ret->valor = *valor;
+	pid_y_numpag* pyn = list_get(paquete, 2);
+	ret->pyn = pyn;
 
 	list_destroy(paquete);
 	return ret;
