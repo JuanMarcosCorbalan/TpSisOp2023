@@ -156,7 +156,7 @@ void procesar_conexion() {
 			break;
 		case FOPEN:
 			t_list* parametros_open = recv_parametros(socket_cliente);
-			char* nombre_archivo_fopen = list_get (parametros_fopen, 0);
+			char* nombre_archivo_open = list_get (parametros_open, 0);
 			log_info(logger,"Manejando FOPEN");
 			t_operacion* op_open = crear_operacion(ABRIR_ARCHIVO_FS,nombre_archivo_open, 0, 0, 0, 0, 0, 0);
 			list_push_con_mutex(operaciones_pendientes,op_open, mutex_operaciones_pendientes);

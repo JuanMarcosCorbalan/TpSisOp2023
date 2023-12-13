@@ -317,19 +317,20 @@ void check_interrupt(){
 }
 
 
+
 // envia a kernel el nombre del archivo y el modo de apertura W, R, E
 void ejecutar_fopen(t_pcb* pcb, char* param1, char* param2){
 	t_peticion* peticion;
 	peticion->nombre_archivo = param1;
 	peticion->modo_apertura = param2;
-	send_peticion(dispatch_cliente_fd, pcb, peticion);
+	send_peticion(dispatch_cliente_fd, pcb, peticion, FOPEN);
 }
 
 // solicita el cierre del archivo con el nombre del mismo
 void ejecutar_fclose(t_pcb* pcb, char* param1){
 	t_peticion* peticion;
 	peticion->nombre_archivo = param1;
-	send_peticion(dispatch_cliente_fd, pcb, peticion);
+	send_peticion(dispatch_cliente_fd, pcb, peticion, FCLOSE);
 }
 
 // solicita al kernel actualizar el puntero del archivo a la posición pasada por parámetro
@@ -337,23 +338,23 @@ void ejecutar_fseek(t_pcb* pcb,char* param1, char* param2){
 	t_peticion* peticion;
 	peticion->nombre_archivo = param1;
 	peticion->posicion = (uint32_t)strtoul(param2, NULL, 10);
-	send_peticion(dispatch_cliente_fd, pcb, peticion);
+	send_peticion(dispatch_cliente_fd, pcb, peticion, FSEEK);
 }
 
 //  solicita al Kernel que se lea del archivo indicado y se escriba en la dirección física de Memoria la información leída.
 void ejecutar_fread(t_pcb* pcb, char* param1, char* param2){
 	t_peticion* peticion;
 	peticion->nombre_archivo = param1;
-	peticion->direccion_logica = atoi(param2);
-	send_peticion(dispatch_cliente_fd, pcb, peticion);
+	peticion->direccion_fisica = solicitar_direccion_logica(pcb, atoi(param2));
+	send_peticion(dispatch_cliente_fd, pcb, peticion, FREAD);
 }
 
 //  solicita al Kernel que se escriba en el archivo indicado la información que es obtenida a partir de la dirección física de Memoria.
 void ejecutar_fwrite(t_pcb* pcb, char* param1, char* param2){
 	t_peticion* peticion;
 	peticion->nombre_archivo = param1;
-	peticion->direccion_logica = atoi(param2);
-	send_peticion(dispatch_cliente_fd, pcb, peticion);
+	peticion->direccion_fisica = solicitar_direccion_logica(pcb, atoi(param2));
+	send_peticion(dispatch_cliente_fd, pcb, peticion, FWRITE);
 }
 
 // solicita al Kernel que se modifique el tamaño del archivo al indicado por parámetro.
@@ -361,7 +362,7 @@ void ejecutar_ftruncate(t_pcb* pcb, char* param1, char* param2){
 	t_peticion* peticion;
 	peticion->nombre_archivo = param1;
 	peticion->tamanio = (uint32_t)strtoul(param2, NULL, 10);
-	send_peticion(dispatch_cliente_fd, pcb, peticion);
+	send_peticion(dispatch_cliente_fd, pcb, peticion, FTRUNCATE);
 }
 
 t_config* iniciar_config(void)
