@@ -54,5 +54,4 @@ void ejecutar_fseek(t_pcb* pcb,char* param1, char* param2);
 void ejecutar_fread(t_pcb* pcb, char* param1, char* param2);
 void ejecutar_fwrite(t_pcb* pcb, char* param1, char* param2);
 void ejecutar_ftruncate(t_pcb* pcb, char* param1, char* param2);
-
 #endif

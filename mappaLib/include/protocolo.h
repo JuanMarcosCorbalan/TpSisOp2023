@@ -87,9 +87,9 @@ typedef struct
 
 typedef struct {
 	char* nombre_archivo;
-	char modo_apertura;
+	char* modo_apertura;
 	uint32_t posicion;
-	int direccion_logica;
+	int direccion_fisica;
 	uint32_t tamanio;
 } t_peticion;
 
@@ -128,6 +128,9 @@ t_instruccion* recv_proxima_instruccion(int fd);
 // PCB
 void send_pcb(t_pcb* pcb, int socket);
 t_pcb* recv_pcb(int socket);
+
+void empaquetar_recursos(t_paquete* paquete, t_list* lista_de_recursos);
+t_list* desempaquetar_recursos(t_list* paquete, int comienzo);
 
 // EJECUTAR_PCB
 void send_ejecutar_pcb(int fd, t_pcb* pcb);
@@ -207,21 +210,17 @@ int recv_solicitud_valor_en_bloque(int fd_memoria);
 
 void send_valor_en_bloque(int fd_memoria, uint32_t valor);
 uint32_t recv_valor_en_bloque(int fd_filesystem);
+void send_tam_pagina(int tam_pagina, int socket);
+int recv_tam_pagina(int fd);
+
+void free_recurso_asignado(void* elemento);
 
 // INFORMACION_ARCHIVO_BLOQUES
 void send_datos_archivo_bloques(int , char*,  int);
 
 // FUNCIONES PARA FS
-void send_fopen(int socket, t_pcb* pcb ,t_peticion* peticion);
-void send_fclose(int socket, t_pcb* pcb ,t_peticion* peticion);
-void send_fseek(int socket, t_pcb* pcb ,t_peticion* peticion);
-void send_ftruncate(int socket, t_pcb* pcb ,t_peticion* peticion);
-void send_fread(int socket, t_pcb* pcb ,t_peticion* peticion);
-void send_fwrite(int socket, t_pcb* pcb ,t_peticion* peticion);
+void send_peticion(int socket, t_pcb* pcb ,t_peticion* peticion, op_code codigo_operacion);
 
-
-char* recv_nombre_archivo(int socket);
-char recv_modo_apertura(int socket);
 uint32_t recv_posicion(int socket);
 uint32_t recv_tamanio(int socket);
 int recv_dir_logica(int socket);
@@ -230,9 +229,17 @@ t_peticion* recv_peticion(int socket);
 void send_bloques_reservados(int socket, uint32_t* lista_bloques_reservados, int tamanio);
 char* recv_parametros_fopen(int socket);
 t_list* recv_parametros(int socket);
-void send_solicitud_lectura(int, int);
+void send_solicitud_lectura(int direccion_fisica, int fd_memoria);
+int recv_solicitud_lectura(int fd_cpu);
 uint32_t* recv_valor_leido(int fd_memoria);
 
-
+void send_finalizo_fopen(int socket);
+void recv_finalizo_fopen(int socket);
+void send_finalizo_ftruncate(int socket);
+void recv_finalizo_ftruncate(int socket);
+void send_finalizo_fread(int socket);
+void recv_finalizo_fread(int socket);
+void send_finalizo_fwrite(int socket);
+void recv_finalizo_fwrite(int socket);
 
 #endif

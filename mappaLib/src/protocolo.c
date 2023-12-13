@@ -326,8 +326,45 @@ void send_pcb(t_pcb* pcb, int socket){
 
 	agregar_a_paquete(paquete, &(pcb->motivo_exit), sizeof(t_motivo_exit));
 
+	empaquetar_recursos(paquete, pcb->recursos_asignados);
+
 	enviar_paquete(paquete, socket);
 	eliminar_paquete(paquete);
+}
+
+void empaquetar_recursos(t_paquete* paquete, t_list* lista_de_recursos){
+	int cantidad_recursos = list_size(lista_de_recursos);
+	agregar_a_paquete(paquete, &(cantidad_recursos), sizeof(int));
+	for(int i = 0; i<cantidad_recursos; i++){
+		t_recurso_asignado* recurso_asignado = list_get(lista_de_recursos, i);
+		agregar_a_paquete(paquete, recurso_asignado->nombre_recurso, strlen(recurso_asignado->nombre_recurso) + 1);
+		agregar_a_paquete(paquete, &(recurso_asignado->instancias), sizeof(int));
+	}
+}
+
+t_list* desempaquetar_recursos(t_list* paquete, int comienzo){
+	t_list* recursos = list_create();
+	int* cantidad_recursos = list_get(paquete, comienzo);
+	int i = comienzo + 1;
+
+	while(i - comienzo - 1 < (*cantidad_recursos* 2)){
+		t_recurso_asignado* recurso_asignado = malloc(sizeof(t_recurso_asignado));
+		char* nombre = list_get(paquete, i);
+		recurso_asignado->nombre_recurso = malloc(strlen(nombre) + 1);
+		strcpy(recurso_asignado->nombre_recurso, nombre);
+		i++;
+
+		int* instancia = list_get(paquete, i);
+		recurso_asignado->instancias = *instancia;
+		free(instancia);
+		i++;
+
+		list_add(recursos, recurso_asignado);
+//		free(recurso_asignado->nombre_recurso);
+	}
+
+	free(cantidad_recursos);
+	return recursos;
 }
 
 t_pcb* recv_pcb(int socket){
@@ -370,8 +407,12 @@ t_pcb* recv_pcb(int socket){
 	pcb->motivo_exit = *motivo_exit;
 	free(motivo_exit);
 
-	//t_list* archivos_abiertos = list_get(paquete, 8);
-	//pcb->archivos_abiertos_proceso = *archivos_abiertos;
+	t_list* recursos = desempaquetar_recursos(paquete, 9);
+	pcb->recursos_asignados = recursos;
+
+	t_list* archivos_abiertos = list_get(paquete, 8);
+	pcb->archivos_abiertos_proceso = archivos_abiertos;
+
 	list_destroy(paquete);
 	return pcb;
 }
@@ -487,7 +528,6 @@ int recv_sleep(int fd_modulo){
 	list_destroy(paquete);
 	return tiempo_bloqueado;
 }
-
 //HANDSHAKE CPU MEMORIA
 void send_handshake_cpu_memoria(int fd_memoria){
 	t_paquete* paquete = crear_paquete(HANDSHAKE_CPU_MEMORIA);
@@ -526,77 +566,17 @@ int recv_solicitud_bloques_swap(int fd_memoria){
 	return *cant_paginas;
 }
 
-/*void send_bloques_reservados(int socket, uint32_t* lista_bloques_reservados, int tamanio){
-=======
 // SEND_PETICION_FS
 
-//void send_fopen(int socket, t_pcb* pcb ,t_peticion* peticion){
-//	t_paquete* paquete = crear_paquete(FOPEN);
-//	agregar_a_paquete(paquete, &pcb, sizeof(t_pcb));
-//	agregar_a_paquete(paquete, &(peticion->nombre_archivo), strlen(peticion->nombre_archivo) + 1);
-//	agregar_a_paquete(paquete, &(peticion->modo_apertura), sizeof(char));
-//	enviar_paquete(paquete, socket);
-//
-//	eliminar_paquete(paquete);
-//}
-//
-//void send_fclose(int socket, t_pcb* pcb ,t_peticion* peticion){
-//	t_paquete* paquete = crear_paquete(FCLOSE);
-//	agregar_a_paquete(paquete, &pcb, sizeof(t_pcb));
-//	agregar_a_paquete(paquete, &(peticion->nombre_archivo), strlen(peticion->nombre_archivo) + 1);
-//	enviar_paquete(paquete, socket);
-//
-//	eliminar_paquete(paquete);
-//}
-//
-//void send_fseek(int socket, t_pcb* pcb ,t_peticion* peticion){
-//	t_paquete* paquete = crear_paquete(FSEEK);
-//	agregar_a_paquete(paquete, &pcb, sizeof(t_pcb));
-//	agregar_a_paquete(paquete, &(peticion->nombre_archivo), strlen(peticion->nombre_archivo) + 1);
-//	agregar_a_paquete(paquete, &(peticion->posicion), sizeof(uint32_t));
-//	enviar_paquete(paquete, socket);
-//
-//	eliminar_paquete(paquete);
-//}
-//
-//void send_ftruncate(int socket, t_pcb* pcb ,t_peticion* peticion){
-//	t_paquete* paquete = crear_paquete(FTRUNCATE);
-//	agregar_a_paquete(paquete, &pcb, sizeof(t_pcb));
-//	agregar_a_paquete(paquete, &(peticion->nombre_archivo), strlen(peticion->nombre_archivo) + 1);
-//	agregar_a_paquete(paquete, &(peticion->tamanio), sizeof(uint32_t));
-//	enviar_paquete(paquete, socket);
-//
-//	eliminar_paquete(paquete);
-//}
-//
-//void send_fread(int socket, t_pcb* pcb ,t_peticion* peticion){
-//	t_paquete* paquete = crear_paquete(FREAD);
-//	agregar_a_paquete(paquete, &pcb, sizeof(t_pcb));
-//	agregar_a_paquete(paquete, &(peticion->nombre_archivo), strlen(peticion->nombre_archivo) + 1);
-//	agregar_a_paquete(paquete, &(peticion->direccion_logica), sizeof(int));
-//	enviar_paquete(paquete, socket);
-//
-//	eliminar_paquete(paquete);
-//}
-//
-//void send_fwrite(int socket, t_pcb* pcb ,t_peticion* peticion){
-//	t_paquete* paquete = crear_paquete(FWRITE);
-//	agregar_a_paquete(paquete, &pcb, sizeof(t_pcb));
-//	agregar_a_paquete(paquete, &(peticion->nombre_archivo), strlen(peticion->nombre_archivo) + 1);
-//	agregar_a_paquete(paquete, &(peticion->direccion_logica), sizeof(char));
-//	enviar_paquete(paquete, socket);
-//
-//	eliminar_paquete(paquete);
-//}
-
-void send_peticion(int socket, t_pcb* pcb ,t_peticion* peticion){
+void send_peticion(int socket, t_pcb* pcb ,t_peticion* peticion, op_code codigo_operacion){
 	t_paquete* paquete = crear_paquete(PETICION);
 	agregar_a_paquete(paquete, &pcb, sizeof(t_pcb));
 	agregar_a_paquete(paquete, &(peticion->nombre_archivo), strlen(peticion->nombre_archivo) + 1);
 	agregar_a_paquete(paquete, &(peticion->modo_apertura), sizeof(char));
-	agregar_a_paquete(paquete, &(peticion->direccion_logica), sizeof(char));
+	agregar_a_paquete(paquete, &(peticion->direccion_fisica), sizeof(char));
 	agregar_a_paquete(paquete, &(peticion->tamanio), sizeof(uint32_t));
 	agregar_a_paquete(paquete, &(peticion->posicion), sizeof(uint32_t));
+	agregar_a_paquete(paquete, &(codigo_operacion), sizeof(op_code));
 
 	enviar_paquete(paquete, socket);
 
@@ -612,17 +592,19 @@ t_peticion* recv_peticion(int socket){
 //	pcb->pid = *pid;
 //	free(pid);
 
-	char** nombre_archivo = list_get(paquete, 1);
-	peticion->nombre_archivo = *nombre_archivo;
+	char* nombre_archivo = list_get(paquete, 1);
+	peticion->nombre_archivo = malloc(strlen(nombre_archivo));
+	strcpy(peticion->nombre_archivo, nombre_archivo);
 	free(nombre_archivo);
 
 	char* modo_apertura = list_get(paquete, 2);
-	peticion->modo_apertura = *modo_apertura;
+	peticion->modo_apertura = malloc(strlen(modo_apertura));
+	strcpy(peticion->modo_apertura, modo_apertura);
 	free(modo_apertura);
 
-	int* direccion_logica = list_get(paquete, 3);
-	peticion->direccion_logica = *direccion_logica;
-	free(direccion_logica);
+	int* direccion_fisica = list_get(paquete, 3);
+	peticion->direccion_fisica = *direccion_fisica;
+	free(direccion_fisica);
 
 	uint32_t* tamanio = list_get(paquete, 4);
 	peticion->tamanio = *tamanio;
@@ -635,15 +617,14 @@ t_peticion* recv_peticion(int socket){
 	list_destroy(paquete);
 	return peticion;
 }
+
 void send_bloques_reservados(int socket, uint32_t* lista_bloques_reservados, int tamanio){
->>>>>>> origin/FileSystem
 	t_paquete* paquete = crear_paquete(INICIARPROCESO);
 	agregar_a_paquete(paquete, &lista_bloques_reservados, tamanio);
 	enviar_paquete(paquete, socket);
 
 	eliminar_paquete(paquete);
-<<<<<<< HEAD
-}*/
+}
 
 uint32_t* recv_lista_bloques_reservados(int socket){
 	t_list* paquete = recibir_paquete(socket);
@@ -766,6 +747,67 @@ t_list* recv_parametros(int socket){
 }
 
 
+void send_finalizo_fopen(int socket){
+	t_paquete* paquete = crear_paquete(FIN_FOPEN);
+	op_code codigo_operacion = FIN_FOPEN;
+	agregar_a_paquete(paquete, &codigo_operacion, sizeof(op_code));
+	enviar_paquete(paquete, socket);
+	eliminar_paquete(paquete);
+}
+
+void recv_finalizo_fopen(int socket){
+	t_list* paquete = recibir_paquete(socket);
+	op_code* codigo_operacion = list_get(paquete, 0);
+	free(codigo_operacion);
+	list_destroy(paquete);
+}
+
+void send_finalizo_ftruncate(int socket){
+	t_paquete* paquete = crear_paquete(FIN_FTRUNCATE);
+	op_code codigo_operacion = FIN_FTRUNCATE;
+	agregar_a_paquete(paquete, &codigo_operacion, sizeof(op_code));
+	enviar_paquete(paquete, socket);
+	eliminar_paquete(paquete);
+}
+
+void recv_finalizo_ftruncate(int socket){
+	t_list* paquete = recibir_paquete(socket);
+	op_code* codigo_operacion = list_get(paquete, 0);
+	free(codigo_operacion);
+	list_destroy(paquete);
+}
+
+void send_finalizo_fread(int socket){
+	t_paquete* paquete = crear_paquete(FIN_FREAD);
+	op_code codigo_operacion = FIN_FREAD;
+	agregar_a_paquete(paquete, &codigo_operacion, sizeof(op_code));
+	enviar_paquete(paquete, socket);
+	eliminar_paquete(paquete);
+}
+
+void recv_finalizo_fread(int socket){
+	t_list* paquete = recibir_paquete(socket);
+	op_code* codigo_operacion = list_get(paquete, 0);
+	free(codigo_operacion);
+	list_destroy(paquete);
+}
+
+void send_finalizo_fwrite(int socket){
+	t_paquete* paquete = crear_paquete(FIN_FWRITE);
+	op_code codigo_operacion = FIN_FWRITE;
+	agregar_a_paquete(paquete, &codigo_operacion, sizeof(op_code));
+	enviar_paquete(paquete, socket);
+	eliminar_paquete(paquete);
+}
+
+void recv_finalizo_fwrite(int socket){
+	t_list* paquete = recibir_paquete(socket);
+	op_code* codigo_operacion = list_get(paquete, 0);
+	free(codigo_operacion);
+	list_destroy(paquete);
+}
+
+
 //SOLICITUD DE LECTURA DE MEMORIA
 void send_solicitud_lectura_memoria(int direccion_fisica, int fd_memoria){
 	t_paquete* paquete = crear_paquete(LEER_MEMORIA);
@@ -865,3 +907,28 @@ uint32_t recv_valor_en_bloque(int fd_filesystem){
 	return *valor;
 }
 
+//SOLICITUD DE LECTURA DE MEMORIA
+void send_solicitud_lectura(int direccion_fisica, int fd_memoria){
+	t_paquete* paquete = crear_paquete(LEER_MEMORIA);
+
+	agregar_a_paquete(paquete, &direccion_fisica, sizeof(int));
+
+	enviar_paquete(paquete, fd_memoria);
+	eliminar_paquete(paquete);
+}
+
+int recv_solicitud_lectura(int fd_cpu){
+	t_list* paquete = recibir_paquete(fd_cpu);
+	int* direccion_fisica = list_get(paquete, 0);
+
+	list_destroy(paquete);
+	return *direccion_fisica;
+}
+
+uint32_t* recv_valor_leido(int fd_memoria){
+	t_list* paquete = recibir_paquete(fd_memoria);
+	uint32_t* valor = list_get(paquete, 0);
+
+	list_destroy(paquete);
+	return valor;
+}

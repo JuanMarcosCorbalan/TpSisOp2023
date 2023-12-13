@@ -40,7 +40,7 @@ typedef enum{
 
 typedef struct {
 	char* nombre_archivo;
-	uint32_t* puntero;
+	uint32_t puntero;
 }t_archivo_abierto_proceso;
 
 typedef struct {
@@ -58,10 +58,19 @@ typedef struct {
 	estado estado;
 	t_registros_generales_cpu registros_generales_cpu;
 	t_motivo_exit motivo_exit;
-//	t_archivos_abiertos archivos_abiertos;
-//	t_list recursos_asignados;
 	t_list* archivos_abiertos_proceso;
+	t_list* recursos_asignados;
 } t_pcb;
+
+typedef struct {
+	char* nombre_recurso;
+	int instancias;
+} t_recurso_asignado;
+
+//typedef struct {
+//	int pid;
+//	int instancias;
+//}t_pid_instancias_recurso;
 
 typedef enum {
 	SET,
@@ -146,17 +155,17 @@ typedef struct
 typedef struct
 {
 	char* nombre_archivo;
-	char modo_apertura_actual;
+	char* modo_apertura_actual;
 	int cantidad_accesos;
 }t_archivo_abierto_global;
 
 // Estructura para representar un lock
-typedef struct {
-    pthread_mutex_t mutex;  // Mutex para la exclusión mutua
-    pthread_cond_t cond;    // Condición para sincronizar los threads
-    int participantes;      // Número de participantes en el lock
-    int encolados;          // Número de threads encolados esperando
-} t_lock;
+//typedef struct {
+//    pthread_mutex_t mutex;  // Mutex para la exclusión mutua
+//    pthread_cond_t cond;    // Condición para sincronizar los threads
+//    int participantes;      // Número de participantes en el lock
+//    int encolados;          // Número de threads encolados esperando
+//} t_lock;
 
 
 //t_list* datos_procesos;
