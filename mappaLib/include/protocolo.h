@@ -79,7 +79,7 @@ typedef struct {
 	char* nombre_archivo;
 	char* modo_apertura;
 	uint32_t posicion;
-	int direccion_logica;
+	int direccion_fisica;
 	uint32_t tamanio;
 } t_peticion;
 
@@ -153,7 +153,7 @@ void free_recurso_asignado(void* elemento);
 void send_datos_archivo_bloques(int , char*,  int);
 
 // FUNCIONES PARA FS
-void send_peticion(int socket, t_pcb* pcb ,t_peticion* peticion);
+void send_peticion(int socket, t_pcb* pcb ,t_peticion* peticion, op_code codigo_operacion);
 
 uint32_t recv_posicion(int socket);
 uint32_t recv_tamanio(int socket);
@@ -166,6 +166,13 @@ t_list* recv_parametros(int socket);
 void send_solicitud_lectura(int, int);
 uint32_t* recv_valor_leido(int fd_memoria);
 
-
+void send_finalizo_fopen(int socket);
+void recv_finalizo_fopen(int socket);
+void send_finalizo_ftruncate(int socket);
+void recv_finalizo_ftruncate(int socket);
+void send_finalizo_fread(int socket);
+void recv_finalizo_fread(int socket);
+void send_finalizo_fwrite(int socket);
+void recv_finalizo_fwrite(int socket);
 
 #endif

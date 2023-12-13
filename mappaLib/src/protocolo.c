@@ -471,14 +471,15 @@ int recv_sleep(int fd_modulo){
 	return tiempo_bloqueado;
 }
 
-void send_peticion(int socket, t_pcb* pcb ,t_peticion* peticion){
+void send_peticion(int socket, t_pcb* pcb ,t_peticion* peticion, op_code codigo_operacion){
 	t_paquete* paquete = crear_paquete(PETICION);
 	agregar_a_paquete(paquete, &pcb, sizeof(t_pcb));
 	agregar_a_paquete(paquete, &(peticion->nombre_archivo), strlen(peticion->nombre_archivo) + 1);
 	agregar_a_paquete(paquete, &(peticion->modo_apertura), sizeof(char));
-	agregar_a_paquete(paquete, &(peticion->direccion_logica), sizeof(char));
+	agregar_a_paquete(paquete, &(peticion->direccion_fisica), sizeof(char));
 	agregar_a_paquete(paquete, &(peticion->tamanio), sizeof(uint32_t));
 	agregar_a_paquete(paquete, &(peticion->posicion), sizeof(uint32_t));
+	agregar_a_paquete(paquete, &(codigo_operacion), sizeof(op_code));
 
 	enviar_paquete(paquete, socket);
 
@@ -504,9 +505,9 @@ t_peticion* recv_peticion(int socket){
 	strcpy(peticion->modo_apertura, modo_apertura);
 	free(modo_apertura);
 
-	int* direccion_logica = list_get(paquete, 3);
-	peticion->direccion_logica = *direccion_logica;
-	free(direccion_logica);
+	int* direccion_fisica = list_get(paquete, 3);
+	peticion->direccion_fisica = *direccion_fisica;
+	free(direccion_fisica);
 
 	uint32_t* tamanio = list_get(paquete, 4);
 	peticion->tamanio = *tamanio;
@@ -547,6 +548,67 @@ t_list* recv_parametros(int socket){
 	t_list* parametros = paquete;
 
 	return parametros;
+}
+
+
+void send_finalizo_fopen(int socket){
+	t_paquete* paquete = crear_paquete(FIN_FOPEN);
+	op_code codigo_operacion = FIN_FOPEN;
+	agregar_a_paquete(paquete, &codigo_operacion, sizeof(op_code));
+	enviar_paquete(paquete, socket);
+	eliminar_paquete(paquete);
+}
+
+void recv_finalizo_fopen(int socket){
+	t_list* paquete = recibir_paquete(socket);
+	op_code* codigo_operacion = list_get(paquete, 0);
+	free(codigo_operacion);
+	list_destroy(paquete);
+}
+
+void send_finalizo_ftruncate(int socket){
+	t_paquete* paquete = crear_paquete(FIN_FTRUNCATE);
+	op_code codigo_operacion = FIN_FTRUNCATE;
+	agregar_a_paquete(paquete, &codigo_operacion, sizeof(op_code));
+	enviar_paquete(paquete, socket);
+	eliminar_paquete(paquete);
+}
+
+void recv_finalizo_ftruncate(int socket){
+	t_list* paquete = recibir_paquete(socket);
+	op_code* codigo_operacion = list_get(paquete, 0);
+	free(codigo_operacion);
+	list_destroy(paquete);
+}
+
+void send_finalizo_fread(int socket){
+	t_paquete* paquete = crear_paquete(FIN_FREAD);
+	op_code codigo_operacion = FIN_FREAD;
+	agregar_a_paquete(paquete, &codigo_operacion, sizeof(op_code));
+	enviar_paquete(paquete, socket);
+	eliminar_paquete(paquete);
+}
+
+void recv_finalizo_fread(int socket){
+	t_list* paquete = recibir_paquete(socket);
+	op_code* codigo_operacion = list_get(paquete, 0);
+	free(codigo_operacion);
+	list_destroy(paquete);
+}
+
+void send_finalizo_fwrite(int socket){
+	t_paquete* paquete = crear_paquete(FIN_FWRITE);
+	op_code codigo_operacion = FIN_FWRITE;
+	agregar_a_paquete(paquete, &codigo_operacion, sizeof(op_code));
+	enviar_paquete(paquete, socket);
+	eliminar_paquete(paquete);
+}
+
+void recv_finalizo_fwrite(int socket){
+	t_list* paquete = recibir_paquete(socket);
+	op_code* codigo_operacion = list_get(paquete, 0);
+	free(codigo_operacion);
+	list_destroy(paquete);
 }
 
 

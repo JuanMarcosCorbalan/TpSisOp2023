@@ -1,0 +1,7 @@
+[INFO] 17:36:13:955 MEMORIA/(3502:3502): MEMORIA LISTO...
+[INFO] 17:36:17:430 MEMORIA/(3502:3502): Se conecto un cliente!
+[INFO] 17:36:17:431 MEMORIA/(3502:3504): Me llego el mensaje Hola, soy el CPU!
+[INFO] 17:36:20:594 MEMORIA/(3502:3502): Se conecto un cliente!
+[INFO] 17:36:20:595 MEMORIA/(3502:3508): Me llego el mensaje Hola, soy un File System!
+[INFO] 17:36:23:987 MEMORIA/(3502:3502): Se conecto un cliente!
+[INFO] 17:36:23:988 MEMORIA/(3502:3511): Me llego el mensaje Hola, soy el Kernel!

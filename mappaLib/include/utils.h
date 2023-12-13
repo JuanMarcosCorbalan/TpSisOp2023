@@ -117,12 +117,12 @@ typedef struct
 }t_archivo_abierto_global;
 
 // Estructura para representar un lock
-typedef struct {
-    pthread_mutex_t mutex;  // Mutex para la exclusión mutua
-    pthread_cond_t cond;    // Condición para sincronizar los threads
-    int participantes;      // Número de participantes en el lock
-    int encolados;          // Número de threads encolados esperando
-} t_lock;
+//typedef struct {
+//    pthread_mutex_t mutex;  // Mutex para la exclusión mutua
+//    pthread_cond_t cond;    // Condición para sincronizar los threads
+//    int participantes;      // Número de participantes en el lock
+//    int encolados;          // Número de threads encolados esperando
+//} t_lock;
 
 
 //t_list* datos_procesos;
