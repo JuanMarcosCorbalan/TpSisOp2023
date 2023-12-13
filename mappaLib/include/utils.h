@@ -30,7 +30,8 @@ typedef enum{
 	INVALID_RESOURCE,
 	INVALID_WRITE,
 	EXIT_CONSOLA,
-	INTERRUPT
+	INTERRUPT,
+	FIN_QUANTUM
 } t_motivo_exit;
 
 typedef struct {

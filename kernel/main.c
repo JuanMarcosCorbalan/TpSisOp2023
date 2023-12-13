@@ -227,20 +227,38 @@ t_pcb* buscar_proceso_a_finalizar(int target_pid){
 	/* Busca primero en los bloqueados por recursos */
 	for(int i = 0; i<list_size(lista_recursos); i++){
 		t_recurso* recurso = list_get(lista_recursos, i);
-		t_pcb* pcb_buscado = list_get(recurso->cola_block_asignada, 0);
-		if(pcb_buscado->pid == target_pid){
-			recurso->instancias++;
-			return list_pop_con_mutex(recurso->cola_block_asignada, &recurso->mutex_asignado);
+		if(!list_is_empty(recurso->cola_block_asignada)){
+			t_pcb* pcb_buscado = list_get(recurso->cola_block_asignada, 0);
+			if(pcb_buscado->pid == target_pid){
+				recurso->instancias++;
+				return list_pop_con_mutex(recurso->cola_block_asignada, &recurso->mutex_asignado);
+			}
 		}
 	}
+
+	for(int i = 0; i<queue_size(procesos_en_exec); i++){
+		t_pcb* proceso = queue_pop(procesos_en_exec);
+//		log_warning(logger, "Proceso en exec: %d. Estado: %s", proceso->pid, estado_to_string(proceso->estado));
+		if(proceso->pid == target_pid){
+			queue_push(procesos_en_exec, proceso);
+			return proceso;
+		}
+	}
+
+	return NULL;
 }
 
 void finalizar_proceso(char *args[]){
 	int target_pid = atoi(args[1]);
 	t_pcb* pcb_a_finalizar = buscar_proceso_a_finalizar(target_pid);
-	pcb_a_finalizar->motivo_exit = EXIT_CONSOLA;
-	list_push_con_mutex(procesos_en_exit, pcb_a_finalizar, &mutex_lista_exit);
-	sem_post(&sem_procesos_exit);
+
+	if(strcmp(estado_to_string(pcb_a_finalizar->estado), "EXEC") == 0){
+		send_interrupcion(INTERRUPT, fd_cpu_interrupt);
+	} else {
+		pcb_a_finalizar->motivo_exit = EXIT_CONSOLA;
+		list_push_con_mutex(procesos_en_exit, pcb_a_finalizar, &mutex_lista_exit);
+		sem_post(&sem_procesos_exit);
+	}
 }
 
 void liberar_recursos(t_pcb* proceso){
@@ -360,6 +378,8 @@ void procesar_respuesta_cpu(){
 		switch(cod_op){
 		case PCB:
 			t_pcb* pcb_actualizado = recv_pcb(fd_cpu_dispatch);
+			t_pcb* pcb_fuera_exec = queue_pop_con_mutex(procesos_en_exec, &mutex_cola_exec);
+			pcb_destroy(pcb_fuera_exec);
 			recv(fd_cpu_dispatch, &cod_op, sizeof(op_code), 0);
 
 			switch(cod_op){
@@ -504,12 +524,17 @@ void procesar_cambio_estado(t_pcb* pcb, estado nuevo_estado){
 	switch(nuevo_estado){
 	case EXIT_ESTADO:
 		cambiar_estado(pcb, nuevo_estado);
-		if(pcb->motivo_exit == PROCESO_ACTIVO){
+		if(pcb->motivo_exit == PROCESO_ACTIVO || pcb->motivo_exit == FIN_QUANTUM){
 			pcb->motivo_exit = SUCCESS;
 		}
 		list_push_con_mutex(procesos_en_exit, pcb, &mutex_lista_exit);
 		sem_post(&sem_procesos_exit);
 	break;
+	/*Usado para RR*/
+	case READY:
+		cambiar_estado(pcb, nuevo_estado);
+		pasar_a_ready(pcb);
+		sem_post(&sem_procesos_ready);
 	}
 }
 
@@ -538,6 +563,7 @@ void planificador_corto_plazo(){
 }
 
 void planificar_proceso_exec(){
+	char* algoritmo_planificacion = config_get_string_value(config, "ALGORITMO_PLANIFICACION");
 	while(PLANIFICACION_ACTIVA){
 		sem_wait(&sem_procesos_ready);
 		sem_wait(&sem_proceso_exec);
@@ -546,7 +572,30 @@ void planificar_proceso_exec(){
 		cambiar_estado(pcb, EXEC);
 		queue_push_con_mutex(procesos_en_exec, pcb, &mutex_cola_exec);
 		send_pcb(pcb, fd_cpu_dispatch);
-//		sem_post(&sem_procesos_exit);
+		if(strcmp(algoritmo_planificacion, "RR") == 0){
+			manejar_round_robin(pcb->pid);
+		}
+	}
+}
+
+void manejar_round_robin(int pid){
+	pthread_t hilo_quantum;
+	pthread_create(&hilo_quantum, NULL, (void*) procesar_manejo_quantum, (void*)(intptr_t)pid);
+	pthread_detach(hilo_quantum);
+}
+
+void procesar_manejo_quantum(void* args){
+	int pid = (int)(intptr_t)args;
+	char* quantum_config = config_get_string_value(config, "QUANTUM");
+	int quantum = atoi(quantum_config);
+	usleep(quantum*1000);
+	if(!queue_is_empty(procesos_en_exec)){
+		pthread_mutex_lock(&mutex_cola_exec);
+		t_pcb* pcb = queue_peek(procesos_en_exec);
+		pthread_mutex_unlock(&mutex_cola_exec);
+		if(pcb->pid == pid){
+			send_interrupcion(FIN_QUANTUM, fd_cpu_interrupt);
+		}
 	}
 }
 
@@ -576,11 +625,10 @@ t_pcb* obtenerProximoAEjecutar(){
 		pcb = list_pop_con_mutex(procesos_en_ready, &mutex_ready_list);
 		return pcb;
 	}
-//	else if(!strcmp(algoritmo_planificacion, "RR")){
-//
-////		log_info(logger, "PID: %d - Estado Anterior: READY - Estado Actual: EXEC", pcb->pid); //log obligatorio
-////		return pcb;
-//	}
+	else if(!strcmp(algoritmo_planificacion, "RR")){
+		pcb = list_pop_con_mutex(procesos_en_ready, &mutex_ready_list);
+		return pcb;
+	}
 	else if(!strcmp(algoritmo_planificacion, "PRIORIDADES")){
 		list_sort(procesos_en_ready, comparar_por_prioridad);
 		pcb = list_pop_con_mutex(procesos_en_ready, &mutex_ready_list);

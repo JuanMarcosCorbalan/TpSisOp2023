@@ -68,13 +68,26 @@ void* ejecutar_interrupcion(void *arg) {
 			t_motivo_exit motivo = recv_interrupcion(interrupt_cliente_fd);
 			if(motivo == INTERRUPT) {
 				flag_hay_interrupcion = true;
+				sem_wait(&sem_interrupcion);
+				log_info(logger, "Interrupcion: Finalizar proceso.");
+				pcb->motivo_exit = INTERRUPT;
+				send_pcb(pcb, dispatch_cliente_fd);
+				send_cambiar_estado(EXIT_ESTADO, dispatch_cliente_fd);
+				sem_post(&sem_nuevo_proceso);
 			}
-			sem_wait(&sem_interrupcion);
-			log_info(logger, "Interrupcion solicitada desde Kernel.");
-			pcb->motivo_exit = INTERRUPT;
-			send_pcb(pcb, dispatch_cliente_fd);
-			send_cambiar_estado(EXIT_ESTADO, dispatch_cliente_fd);
-			sem_post(&sem_nuevo_proceso);
+			if(motivo == FIN_QUANTUM){
+				flag_hay_interrupcion = true;
+				sem_wait(&sem_interrupcion);
+				log_info(logger, "Interrupcion: Fin de Quantum.");
+				pcb->motivo_exit = FIN_QUANTUM;
+				send_pcb(pcb, dispatch_cliente_fd);
+				send_cambiar_estado(READY, dispatch_cliente_fd);
+				sem_post(&sem_nuevo_proceso);
+			}
+
+
+
+
 			break;
 		case -1:
 			log_error(logger, "El cliente se desconecto.");

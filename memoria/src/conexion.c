@@ -90,7 +90,7 @@ void procesar_pedido_instruccion(int socket_cpu, t_list* proceso_instrucciones){
 
 	t_instruccion* instruccion_a_enviar = buscar_instruccion(solicitud_instruccion->pid, solicitud_instruccion->program_counter - 1, proceso_instrucciones);
 
-	sleep(retardo_respuesta/1000);
+	usleep(retardo_respuesta*1000);
 
 	send_proxima_instruccion(socket_cpu, instruccion_a_enviar);
 }

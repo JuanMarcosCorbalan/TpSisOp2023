@@ -117,5 +117,7 @@ t_list* iniciar_recursos_en_proceso();
 void liberar_recursos(t_pcb* proceso);
 t_pcb* buscar_proceso_en_list(int pid, t_list* lista);
 t_pcb* buscar_proceso_a_finalizar(int target_pid);
+void manejar_round_robin(int pid);
+void procesar_manejo_quantum(void* args);
 
 #endif
