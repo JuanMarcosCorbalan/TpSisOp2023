@@ -50,6 +50,8 @@ typedef enum
 	FIN_FWRITE,
 	FIN_FREAD,
 	FIN_FTRUNCATE,
+	HANDSHAKE_FS_MEMORIA,
+	TAMANIO_PAGINA
 }op_code;
 
 typedef enum
@@ -242,5 +244,8 @@ void send_finalizo_fread(int socket);
 void recv_finalizo_fread(int socket);
 void send_finalizo_fwrite(int socket);
 void recv_finalizo_fwrite(int socket);
+
+void send_handshake_fs_memoria(int fd_memoria);
+int recv_handshake_fs_memoria(int fd_filesystem);
 
 #endif

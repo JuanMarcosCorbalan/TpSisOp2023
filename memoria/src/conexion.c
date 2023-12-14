@@ -36,6 +36,10 @@ static void procesar_cliente(void* void_args){
 				send_tam_pagina(cliente_fd, tam_pagina);
 				log_info(logger, "tamanio de pagina %d enviado a cpu socket %d", tam_pagina, cliente_fd);
 				break;
+			case HANDSHAKE_FS_MEMORIA:
+				int recibir_fs = recv_handshake_fs_memoria(cliente_fd);
+				fd_filesystem = cliente_fd;
+				break;
 			case DATOS_PROCESO_NEW:
 				t_datos_proceso* datos_proceso = recv_datos_proceso(cliente_fd);
 				iniciar_proceso_memoria(datos_proceso->path, datos_proceso->size, datos_proceso->pid, cliente_fd, logger);
@@ -148,14 +152,14 @@ void iniciar_proceso_memoria(char* path, int size, int pid, int socket_kernel, t
 	t_list* paginas = list_create();
 
 	int cant_paginas = size / tam_pagina;
-	//send_solicitud_bloques_swap(fd_filesystem, cant_paginas);
-	//uint32_t* bloques = recv_lista_bloques_reservados(fd_filesystem);
+	send_solicitud_bloques_swap(fd_filesystem, cant_paginas);
+	uint32_t* bloques = recv_lista_bloques_reservados(fd_filesystem);
 	for(int i = 0; i < cant_paginas; i++){
 		t_pagina* pag = malloc(sizeof(t_pagina));
 		pag->marco = -1;
 		pag->bit_presencia = 0;
 		pag->bit_modificado = 0;
-		//pag->pos_swap = bloques[i];
+		pag->pos_swap = bloques[i];
 		list_add(paginas, pag);
 		//free(pag);
 	}
@@ -287,14 +291,8 @@ char* inicializar_bitmap_marcos(void){
 void procesar_solicitud_marco(int fd_cpu){
 	pid_y_numpag* valores = recv_solicitud_marco(fd_cpu);
 
-	//buscar proceso en tdps
-	bool _encontrar_pid(void* t) {
-		return (((t_tdp*)t)->pid == valores->pid);
-	}
-	t_tdp* tdp = list_find(tablas_de_paginas, _encontrar_pid);
-
 	//buscar pagina en tdp
-	t_pagina* pagina = list_get(tdp->paginas, valores->numero_pagina);
+	t_pagina* pagina = buscar_pagina(valores->pid, valores->numero_pagina);
 
 	send_marco(fd_cpu, pagina->marco);
 

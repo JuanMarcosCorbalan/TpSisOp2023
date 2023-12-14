@@ -16,10 +16,10 @@ int main(void) {
 	sem_init(&sem_interrupcion, 0, 0);
 	fd_memoria = crear_conexion(logger, config_cpu.ip_memoria, config_cpu.puerto_memoria);
 	enviar_mensaje("Hola, soy el CPU!", fd_memoria);
-//	send_handshake_cpu_memoria(fd_memoria);
-//	log_info(logger, "handshake con memoria socket %d", fd_memoria);
-//	tam_pagina = recv_tam_pagina(fd_memoria);
-//	log_info(logger, "tamanio de pagina recibido: %d de socket %d", tam_pagina, fd_memoria);
+	send_handshake_cpu_memoria(fd_memoria);
+	log_info(logger, "handshake con memoria socket %d", fd_memoria);
+	tam_pagina = recibir_tamanio_pagina();//recv_tam_pagina(fd_memoria);
+	log_info(logger, "tamanio de pagina recibido: %d de socket %d", tam_pagina, fd_memoria);
 //	liberar_conexion(fd_memoria);
 
 	pthread_t *hilo_dispatch = malloc(sizeof(pthread_t));
@@ -510,4 +510,18 @@ void leer_config(){
 	config_cpu.puerto_memoria = config_get_string_value(config, "PUERTO_MEMORIA");
 	config_cpu.puerto_escucha_dispatch = config_get_string_value(config, "PUERTO_ESCUCHA_DISPATCH");
 	config_cpu.puerto_escucha_interrupt = config_get_string_value(config, "PUERTO_ESCUCHA_INTERRUPT");
+}
+
+int recibir_tamanio_pagina(){
+	int tamanio;
+	while (true) {
+		int cod_op = recibir_operacion(fd_memoria);
+		switch (cod_op) {
+		case TAMANIO_PAGINA:
+			tamanio = recv_tam_pagina(fd_memoria);
+			break;
+		}
+
+		return tamanio;
+	}
 }

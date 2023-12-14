@@ -453,7 +453,7 @@ t_tdp* recv_tdp(int fd){
 
 //HANDSHAKE CPU MEMORIA
 void send_tam_pagina(int fd, int tam_pag){
-	t_paquete* paquete = crear_paquete(HANDSHAKE_CPU_MEMORIA);
+	t_paquete* paquete = crear_paquete(TAMANIO_PAGINA);
 
 	agregar_a_paquete(paquete, &tam_pag, sizeof(int));
 	enviar_paquete(paquete, fd);
@@ -947,4 +947,23 @@ uint32_t* recv_valor_leido(int fd_memoria){
 
 	list_destroy(paquete);
 	return valor;
+}
+
+//handshake fs memoria
+void send_handshake_fs_memoria(int fd_memoria){
+	t_paquete* paquete = crear_paquete(HANDSHAKE_FS_MEMORIA);
+	int x = 1;
+
+	agregar_a_paquete(paquete, &x, sizeof(int));
+
+	enviar_paquete(paquete, fd_memoria);
+	eliminar_paquete(paquete);
+}
+
+int recv_handshake_fs_memoria(int fd_filesystem){
+	t_list* paquete = recibir_paquete(fd_filesystem);
+	int* x = list_get(paquete, 0);
+
+	list_destroy(paquete);
+	return *x;
 }

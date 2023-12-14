@@ -34,7 +34,7 @@ int main(void) {
 
 	fd_memoria = crear_conexion(logger, ip_memoria, puerto_memoria);
 	enviar_mensaje("Hola, soy un File System!", fd_memoria);
-
+	send_handshake_fs_memoria(fd_memoria);
 
 	server_fd = iniciar_servidor(puerto_escucha);
 	log_info(logger, "FILESYSTEM LISTO...");
