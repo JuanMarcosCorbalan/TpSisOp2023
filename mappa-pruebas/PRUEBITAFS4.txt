@@ -1,0 +1,4 @@
+SET AX 1
+F_OPEN consolas W
+SLEEP 180
+EXIT

@@ -1,0 +1,5 @@
+SET AX 1
+F_OPEN consolas W
+SLEEP 20
+F_CLOSE consolas
+EXIT

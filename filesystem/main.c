@@ -6,9 +6,7 @@ t_config* config;
 int main(void) {
 	logger = log_create("filesystem.log", "FILESYSTEM", 1, LOG_LEVEL_DEBUG);
 
-	char* ip;
-	char* puerto_escucha;
-	char* puerto_memoria;
+
 //	int fd_memoria = 0;
 //	int fd_cliente = 0;
 	FILE* archivo_bloques;
@@ -18,9 +16,10 @@ int main(void) {
 	char* path_fat = config_get_string_value(config, "PATH_FAT");
 	char* path_fcb = config_get_string_value(config, "PATH_FCB");
 	char* path_bloques = config_get_string_value(config, "PATH_BLOQUES");
-
-
-	ip = config_get_string_value(config, "IP");
+	char* ip_memoria = config_get_string_value(config, "IP_MEMORIA");
+	pthread_mutex_init(&mutex_operaciones_pendientes, NULL);
+	operaciones_pendientes = list_create();
+	sem_init(&peticion_completada, 0, 2);
 	puerto_escucha = config_get_string_value(config, "PUERTO_ESCUCHA");
 	puerto_memoria = config_get_string_value(config, "PUERTO_MEMORIA");
 	int cant_bloques_total = atoi(config_get_string_value(config, "CANT_BLOQUES_TOTAL"));
@@ -33,38 +32,22 @@ int main(void) {
 	int tamanio_archivo_bloques = tamanio_swap + tamanio_fat;
 
 
-	fd_memoria = crear_conexion(logger, ip, puerto_memoria);
+	fd_memoria = crear_conexion(logger, ip_memoria, puerto_memoria);
 	enviar_mensaje("Hola, soy un File System!", fd_memoria);
 
 
-	int server_fd = iniciar_servidor(puerto_escucha);
+	server_fd = iniciar_servidor(puerto_escucha);
 	log_info(logger, "FILESYSTEM LISTO...");
 
-	//iniciar_atencion_operaciones();
+	iniciar_atencion_operaciones();
 
 	// Conexion Kernel
 //	pthread_t conexion_escucha;
-//	pthread_create(&conexion_escucha, NULL, (void*) server_escuchar, NULL);
+//
+//	pthread_create(&conexion_escucha, NULL, (void* )server_escuchar, NULL);
 //	pthread_join(conexion_escucha, NULL);
 
-
-
-//	while(experar_clientes(logger, server_fd));
-//	log_info(logger, "KERNEL CONECTADO A FS");
-
-
-//	while(manejar_peticiones());
-
-
-	// esto deberia ir en manejar solicitudes? o antes?
-	//crear_archivo_fat(path_fat, cant_bloques_fat);
-	t_config* archivo_fcb = crear_archivo_fcb("hola");
-
-	archivo_bloques = fopen(path_bloques, "wb+");
-	if (archivo_bloques == NULL) {
-		crear_archivo_bloques(path_bloques);
-		log_info(logger, "No se encontro el archivo de bloques, se creo uno nuevo");
-	}
+	while(server_escuchar(logger, server_fd));
 
 	archivo_fat = fopen(path_fat, "wb+");
 	if (archivo_fat == NULL) {
@@ -74,9 +57,22 @@ int main(void) {
 		log_info(logger, "Archivo de fat existente");
 	}
 
-	fclose(archivo_bloques);
+	archivo_bloques = fopen(path_bloques, "wb+");
+		if (archivo_bloques == NULL) {
+			crear_archivo_bloques(path_bloques);
+			log_info(logger, "No se encontro el archivo de bloques, se creo uno nuevo");
+		}
+
+	while(experar_clientes(logger, server_fd));
+	log_info(logger, "KERNEL CONECTADO A FS");
+
+
+//	while(manejar_peticiones());
+
+
 	config_destroy(config);
-	config_destroy(archivo_fcb);
+	fclose(archivo_bloques);
+	fclose(archivo_fat);
 	return EXIT_SUCCESS;
 }
 
@@ -111,18 +107,23 @@ void atender_operaciones(){
 	while(1){
 		sem_wait(&cantidad_operaciones); // aca se queda esperando a que lleguen peticiones
 		log_info(logger, "Hay peticion pendiente");
-		t_operacion* operacion = list_pop_con_mutex(operaciones_pendientes, mutex_operaciones_pendientes);
+		t_operacion* operacion = list_pop_con_mutex(operaciones_pendientes, &mutex_operaciones_pendientes);
 		realizar_operacion(operacion);
 	}
 }
 
-void server_escuchar() {
-	socket_cliente = esperar_cliente(logger, socket_servidor);
-
-	if (socket_cliente == -1){
-		log_info(logger, "Hubo un error en la conexion del servidor");
+int server_escuchar() {
+	socket_cliente = esperar_cliente(logger, server_fd);
+	if (socket_cliente != -1){
+		//log_info(logger, "Hubo un error en la conexion del servidor");
+		pthread_t hilo_conexion;
+		pthread_create(&hilo_conexion, NULL, (void*) procesar_conexion, NULL);
+		pthread_detach(hilo_conexion);
+		return 1;
 	}
-	procesar_conexion();
+
+	//procesar_conexion();
+	return 0;
 }
 
 
@@ -146,20 +147,22 @@ void procesar_conexion() {
 	op_code cop;
 
 	while (socket_cliente != -1) {
+		//sem_wait(&peticion_completada);
         if (recv(socket_cliente, &cop, sizeof(op_code), 0) != sizeof(op_code)) {
             log_info(logger, "El cliente se desconecto");
             return;
         }
+//		int cop = recibir_operacion(socket_cliente);
 		switch (cop) {
 		case MENSAJE:
 			recibir_mensaje(logger, socket_cliente);
 			break;
 		case FOPEN:
-			t_list* parametros_fopen = recv_parametros(socket_cliente);
-			char* nombre_archivo_fopen = list_get (parametros_fopen, 0);
+			t_peticion* peticion_open = recv_peticion(socket_cliente);
+			char* nombre_archivo_open = strdup(peticion_open->nombre_archivo);
 			log_info(logger,"Manejando FOPEN");
-			t_operacion* op_open = crear_operacion(ABRIR_ARCHIVO_FS,nombre_archivo_fopen, 0, 0, 0, 0, 0, 0);
-			list_push_con_mutex(operaciones_pendientes,op_open, mutex_operaciones_pendientes);
+			t_operacion* op_open = crear_operacion(ABRIR_ARCHIVO_FS,nombre_archivo_open, 0, 0, 0, 0, 0, 0);
+			list_push_con_mutex(operaciones_pendientes,op_open, &mutex_operaciones_pendientes);
 			sem_post(&cantidad_operaciones);
 			break;
 		case FTRUNCATE:
@@ -168,7 +171,7 @@ void procesar_conexion() {
 			int* tamanio_truncate = list_get(parametros_truncate, 1);
 			log_info(logger,"Manejando FTRUNCATE");
 			t_operacion* op_truncate = crear_operacion(TRUNCAR_ARCHIVO_FS, nombre_archivo_truncate, 0, *tamanio_truncate, 0, 0, 0, 0);
-			list_push_con_mutex(operaciones_pendientes,op_truncate, mutex_operaciones_pendientes);
+			list_push_con_mutex(operaciones_pendientes,op_truncate, &mutex_operaciones_pendientes);
 			sem_post(&cantidad_operaciones);
 			break;
 		case FREAD:
@@ -180,7 +183,7 @@ void procesar_conexion() {
 
 			log_info(logger,"Manejando FREAD");
 			t_operacion* op_read = crear_operacion(LEER_ARCHIVO_FS, nombre_archivo_read, 0,  *tamanio_read, *dir_fisica_read, *puntero_read, 0 , 0); // TODO
-			list_push_con_mutex(operaciones_pendientes,op_read, mutex_operaciones_pendientes);
+			list_push_con_mutex(operaciones_pendientes,op_read, &mutex_operaciones_pendientes);
 			sem_post(&cantidad_operaciones);
 			break;
 		case FWRITE:
@@ -192,7 +195,7 @@ void procesar_conexion() {
 
 			log_info(logger,"Manejando FWRITE");
 			t_operacion* op_write = crear_operacion(ESCRIBIR_ARCHIVO_FS, nombre_archivo_write, 0, *tamanio_write, *dir_fisica_write, *puntero_write, 0, 0);
-			list_push_con_mutex(operaciones_pendientes,op_write, mutex_operaciones_pendientes);
+			list_push_con_mutex(operaciones_pendientes,op_write, &mutex_operaciones_pendientes);
 
 			sem_post(&cantidad_operaciones);
 			break;
@@ -202,7 +205,7 @@ void procesar_conexion() {
 
 			log_info(logger,"Manejando INICIARPROCESO");
 			t_operacion* op_iniciar_proceso = crear_operacion(INICIAR_PROCESO_FS, "", 0, 0, 0, 0, *cantidad_bloques_solicitados, 0);
-			list_push_con_mutex(operaciones_pendientes,op_iniciar_proceso, mutex_operaciones_pendientes);
+			list_push_con_mutex(operaciones_pendientes,op_iniciar_proceso, &mutex_operaciones_pendientes);
 			sem_post(&cantidad_operaciones);
 			break;
 		case FINALIZARPROCESO:
@@ -211,7 +214,7 @@ void procesar_conexion() {
 
 			log_info(logger,"Manejando FINALIZARPROCESO");
 			t_operacion* op_finalizar_proceso = crear_operacion(FINALIZAR_PROCESO_FS,  "", 0, 0, 0, 0, 0, bloques_ocupados_swap);
-			list_push_con_mutex(operaciones_pendientes,op_finalizar_proceso, mutex_operaciones_pendientes);
+			list_push_con_mutex(operaciones_pendientes,op_finalizar_proceso, &mutex_operaciones_pendientes);
 			sem_post(&cantidad_operaciones);
 			break;
 		default:
@@ -244,10 +247,10 @@ void realizar_operacion(t_operacion* operacion){
 		log_info(logger, "fopen con nombre_archivo: %s", operacion->nombre);
 		int resultado = abrir_archivo(operacion->nombre);
 		if(resultado == 0){
-			enviar_mensaje("Archivo no existente, se creara el archivo", socket_cliente);
 			crear_archivo_fcb(operacion->nombre);
+			send_finalizo_fopen(socket_cliente, 1);
 		} else {
-			enviar_mensaje("Archivo abierto con exito", socket_cliente);
+			send_finalizo_fopen(socket_cliente, 0);
 		}
 		break;
 	case TRUNCAR_ARCHIVO_FS:
@@ -276,6 +279,7 @@ void realizar_operacion(t_operacion* operacion){
 }
 
 char* convertir_path_fcb(char* nombre_archivo_fcb){
+	log_info(logger, "Entrando a convertir_path_fcb con nombre_archivo: %s", nombre_archivo_fcb);
 	char* path = malloc(strlen("./fcbs/") + strlen(nombre_archivo_fcb) + strlen(".fcb") + 1); // +1 para el carácter nulo al final
 	strcpy(path, "./fcbs/");
 	strcat(path, nombre_archivo_fcb);
@@ -287,19 +291,23 @@ char* convertir_path_fcb(char* nombre_archivo_fcb){
 // verificar si existe el fcb del archivo
 // si existe devolver el tamanio, si no se informa que no existe
 int abrir_archivo(char* nombre_archivo){ // o deberia revisar el path? creo q si
-	char* path = convertir_path_fcb(nombre_archivo);
-	if (path == NULL) {
-		log_info(logger, "Archivo: %s no existe", nombre_archivo);
-		//t_config* archivo_fcb = config_create(path); // ¿cuando creo el archivo?
-		//archivo_fcb = crear_archivo_fcb(nombre_archivo);
-		free(path);
-		return 0;
-	} else {
-		log_info(logger, "Abrir Archivo: %s", nombre_archivo);
-		t_config* archivo_fcb = config_create(path);
-		int tamanio_archivo = config_get_int_value(archivo_fcb,"TAMANIO_ARCHIVO");
-		return tamanio_archivo;
-	}
+//	char* path = convertir_path_fcb(nombre_archivo);
+//	char* path = "./fcbs/consolas.fcb";
+//	t_config* archivo_fcb = config_create(path);
+
+//	if (archivo_fcb == NULL) {
+//		log_info(logger, "Archivo: %s no existe", nombre_archivo);
+//		//t_config* archivo_fcb = config_create(path); // ¿cuando creo el archivo?
+//		//archivo_fcb = crear_archivo_fcb(nombre_archivo);
+//		free(path);
+//		return 0;
+//	} else {
+//		log_info(logger, "Abrir Archivo: %s", nombre_archivo);
+////		t_config* archivo_fcb = config_create(path);
+//		int tamanio_archivo = config_get_int_value(archivo_fcb,"TAMANIO_ARCHIVO");
+//		return tamanio_archivo;
+//	}
+	return 0;
 }
 
 void leer_archivo(char* nombre_archivo, int direccion_fisica, int puntero, char* path_fat){

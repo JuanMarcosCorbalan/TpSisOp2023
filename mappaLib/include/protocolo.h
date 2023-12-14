@@ -220,6 +220,7 @@ void send_datos_archivo_bloques(int , char*,  int);
 
 // FUNCIONES PARA FS
 void send_peticion(int socket, t_pcb* pcb ,t_peticion* peticion, op_code codigo_operacion);
+void send_peticion_f_close(int socket, t_pcb* pcb ,t_peticion* peticion, op_code codigo_operacion);
 
 uint32_t recv_posicion(int socket);
 uint32_t recv_tamanio(int socket);
@@ -233,8 +234,8 @@ void send_solicitud_lectura(int direccion_fisica, int fd_memoria);
 int recv_solicitud_lectura(int fd_cpu);
 uint32_t* recv_valor_leido(int fd_memoria);
 
-void send_finalizo_fopen(int socket);
-void recv_finalizo_fopen(int socket);
+void send_finalizo_fopen(int socket, int numero);
+int recv_finalizo_fopen(int socket);
 void send_finalizo_ftruncate(int socket);
 void recv_finalizo_ftruncate(int socket);
 void send_finalizo_fread(int socket);

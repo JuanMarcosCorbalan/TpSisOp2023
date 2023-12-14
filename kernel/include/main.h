@@ -59,6 +59,7 @@ pthread_mutex_t mutex_blocked_list;
 pthread_mutex_t mutex_asignacion_recursos;
 pthread_mutex_t mutex_logger;
 pthread_mutex_t mutex_lectura_escritura;
+pthread_mutex_t mutex_lectura;
 pthread_mutex_t mutex_espera_fs;
 
 t_lock* lock_lectura_escritura;
@@ -153,6 +154,7 @@ t_archivo_abierto_global* buscar_archivo_abierto(char* nombre_archivo);
 void inicializar_lock(t_lock* lock, char* modo_apertura);
 void cerrar_archivo(t_pcb* pcb , t_archivo_abierto_global* archivo_a_cerrar);
 void procesar_conexion_fs(void* void_args);
+void generar_conexion_fs();
 
 
 #endif

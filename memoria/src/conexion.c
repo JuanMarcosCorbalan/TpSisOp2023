@@ -250,12 +250,16 @@ codigo_instruccion instruccion_to_enum(char* instruccion){
 		return SLEEP;
 	} else if(strcmp(instruccion, "SIGNAL") == 0){
 		return SIGNAL;
+
 	} else if(strcmp(instruccion, "MOV_OUT") == 0){
 		return MOV_OUT;
 	} else if(strcmp(instruccion, "MOV_IN") == 0){
 		return MOV_IN;
+	} else if (strcmp(instruccion, "F_OPEN") == 0){
+		return F_OPEN;
+	} else if (strcmp(instruccion, "F_CLOSE") == 0){
+		return F_CLOSE;
 	}
-
 	return EXIT_FAILURE;
 }
 
