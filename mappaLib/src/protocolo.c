@@ -472,10 +472,10 @@ int recv_sleep(int fd_modulo){
 }
 
 void send_peticion(int socket, t_pcb* pcb ,t_peticion* peticion, op_code codigo_operacion){
-	t_paquete* paquete = crear_paquete(PETICION);
+	t_paquete* paquete = crear_paquete(FOPEN);
 	agregar_a_paquete(paquete, &pcb, sizeof(t_pcb));
-	agregar_a_paquete(paquete, &(peticion->nombre_archivo), strlen(peticion->nombre_archivo) + 1);
-	agregar_a_paquete(paquete, &(peticion->modo_apertura), sizeof(char));
+	agregar_a_paquete(paquete, peticion->nombre_archivo, strlen(peticion->nombre_archivo) + 1);
+	agregar_a_paquete(paquete, peticion->modo_apertura, strlen(peticion->modo_apertura) + 1);
 	agregar_a_paquete(paquete, &(peticion->direccion_fisica), sizeof(char));
 	agregar_a_paquete(paquete, &(peticion->tamanio), sizeof(uint32_t));
 	agregar_a_paquete(paquete, &(peticion->posicion), sizeof(uint32_t));
@@ -491,9 +491,8 @@ t_peticion* recv_peticion(int socket){
 //	t_pcb* pcb = malloc(sizeof(t_pcb));
 	t_peticion* peticion = malloc(sizeof(t_peticion));
 
-//	int* pid = list_get(paquete, 0);
-//	pcb->pid = *pid;
-//	free(pid);
+	t_pcb* pcb = list_get(paquete, 0);
+	free(pcb);
 
 	char* nombre_archivo = list_get(paquete, 1);
 	peticion->nombre_archivo = malloc(strlen(nombre_archivo));
@@ -551,19 +550,21 @@ t_list* recv_parametros(int socket){
 }
 
 
-void send_finalizo_fopen(int socket){
+void send_finalizo_fopen(int socket, int numero){
 	t_paquete* paquete = crear_paquete(FIN_FOPEN);
-	op_code codigo_operacion = FIN_FOPEN;
-	agregar_a_paquete(paquete, &codigo_operacion, sizeof(op_code));
+	agregar_a_paquete(paquete, &numero, sizeof(numero));
 	enviar_paquete(paquete, socket);
 	eliminar_paquete(paquete);
 }
 
-void recv_finalizo_fopen(int socket){
+int recv_finalizo_fopen(int socket){
 	t_list* paquete = recibir_paquete(socket);
-	op_code* codigo_operacion = list_get(paquete, 0);
-	free(codigo_operacion);
+	int* numero_recibido = list_get(paquete, 0);
+	int numero = *numero_recibido;
+
+	free(numero_recibido);
 	list_destroy(paquete);
+	return numero;
 }
 
 void send_finalizo_ftruncate(int socket){

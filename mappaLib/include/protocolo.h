@@ -166,8 +166,8 @@ t_list* recv_parametros(int socket);
 void send_solicitud_lectura(int, int);
 uint32_t* recv_valor_leido(int fd_memoria);
 
-void send_finalizo_fopen(int socket);
-void recv_finalizo_fopen(int socket);
+void send_finalizo_fopen(int socket, int numero);
+int recv_finalizo_fopen(int socket);
 void send_finalizo_ftruncate(int socket);
 void recv_finalizo_ftruncate(int socket);
 void send_finalizo_fread(int socket);

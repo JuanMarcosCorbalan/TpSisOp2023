@@ -55,6 +55,7 @@ pthread_mutex_t mutex_lista_exit;
 pthread_mutex_t mutex_asignacion_recursos;
 pthread_mutex_t mutex_logger;
 pthread_mutex_t mutex_lectura_escritura;
+pthread_mutex_t mutex_lectura;
 pthread_mutex_t mutex_espera_fs;
 
 t_lock* lock_lectura_escritura;

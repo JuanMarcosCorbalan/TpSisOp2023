@@ -160,8 +160,11 @@ codigo_instruccion instruccion_to_enum(char* instruccion){
 		return SLEEP;
 	} else if(strcmp(instruccion, "SIGNAL") == 0){
 		return SIGNAL;
+	} else if (strcmp(instruccion, "F_OPEN") == 0){
+		return F_OPEN;
+	} else if (strcmp(instruccion, "F_CLOSE") == 0){
+		return F_CLOSE;
 	}
-
 	return EXIT_FAILURE;
 }
 

@@ -112,8 +112,7 @@ typedef struct
 typedef struct
 {
 	char* nombre_archivo;
-	char* modo_apertura_actual;
-	int cantidad_accesos;
+	t_list* locks;
 }t_archivo_abierto_global;
 
 // Estructura para representar un lock

@@ -11,12 +11,18 @@
 #include "../../mappaLib/include/utils.h"
 
 // cosas para conexion
+char* ip_memoria;
+char* puerto_escucha;
+char* puerto_memoria;
+
 int fd_memoria = 0;
 int fd_cliente = 0;
 int socket_servidor;
 int socket_cliente;
+int server_fd;
 char* path_fat;
 sem_t cantidad_operaciones;
+sem_t peticion_completada;
 t_list* operaciones_pendientes;
 int RETARDO_ACCESO_BLOQUE;
 int RETARDO_ACCESO_FAT;
@@ -30,7 +36,7 @@ int tamanio_fat;
 
 int tamanio_swap;
 int tamanio_archivo_bloques;
-pthread_mutex_t* mutex_operaciones_pendientes;
+pthread_mutex_t mutex_operaciones_pendientes;
 
 typedef enum {
 	ABRIR_ARCHIVO_FS,
@@ -88,7 +94,7 @@ t_operacion* crear_operacion(codigo_operacion_fs cod_op, char* nombre_archivo, u
 void atender_operaciones();
 void iniciar_atencion_operaciones();
 void realizar_operacion(t_operacion* operacion);
-void server_escuchar();
+int server_escuchar();
 
 #endif
 
