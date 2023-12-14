@@ -154,6 +154,7 @@ void send_datos_archivo_bloques(int , char*,  int);
 
 // FUNCIONES PARA FS
 void send_peticion(int socket, t_pcb* pcb ,t_peticion* peticion, op_code codigo_operacion);
+void send_peticion_f_close(int socket, t_pcb* pcb ,t_peticion* peticion, op_code codigo_operacion);
 
 uint32_t recv_posicion(int socket);
 uint32_t recv_tamanio(int socket);

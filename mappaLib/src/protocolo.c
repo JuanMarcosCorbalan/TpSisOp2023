@@ -486,6 +486,21 @@ void send_peticion(int socket, t_pcb* pcb ,t_peticion* peticion, op_code codigo_
 	eliminar_paquete(paquete);
 }
 
+void send_peticion_f_close(int socket, t_pcb* pcb ,t_peticion* peticion, op_code codigo_operacion){
+	t_paquete* paquete = crear_paquete(FCLOSE);
+	agregar_a_paquete(paquete, &pcb, sizeof(t_pcb));
+	agregar_a_paquete(paquete, peticion->nombre_archivo, strlen(peticion->nombre_archivo) + 1);
+	agregar_a_paquete(paquete, peticion->modo_apertura, strlen(peticion->modo_apertura) + 1);
+	agregar_a_paquete(paquete, &(peticion->direccion_fisica), sizeof(char));
+	agregar_a_paquete(paquete, &(peticion->tamanio), sizeof(uint32_t));
+	agregar_a_paquete(paquete, &(peticion->posicion), sizeof(uint32_t));
+	agregar_a_paquete(paquete, &(codigo_operacion), sizeof(op_code));
+
+	enviar_paquete(paquete, socket);
+
+	eliminar_paquete(paquete);
+}
+
 t_peticion* recv_peticion(int socket){
 	t_list* paquete = recibir_paquete(socket);
 //	t_pcb* pcb = malloc(sizeof(t_pcb));

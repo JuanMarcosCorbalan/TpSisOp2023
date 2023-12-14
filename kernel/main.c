@@ -32,6 +32,8 @@ int main(void)
 
 	procesos_espera_fs = list_create();
 
+	generar_conexion_fs();
+
 	pthread_t *hilo_consola = malloc(sizeof(pthread_t));
 	pthread_create(hilo_consola, NULL, &iniciar_consola, NULL);
 	pthread_join(*hilo_consola, NULL);
@@ -388,14 +390,8 @@ void procesar_respuesta_cpu(){
 				break;
 			case FOPEN:
 				t_peticion* peticion_fopen = recv_peticion(fd_cpu_dispatch);
-				//t_pcb* pcb_actualizado_fopen = recv_pcb(fd_cpu_dispatch);
-				t_pcb* pcb_actualizado_blocked_fopen = pcb_actualizado;
-				log_info(logger, "PID: %d - Abrir Archivo: %s", pcb_actualizado->pid, peticion_fopen->nombre_archivo);
-				// necesito primero verificar si existe el archivo o no. podria simplemente decirle al fs que lo abra y este lo crea si no existe
+				log_info(logger, "Ejecutando FOPEN");
 				t_archivo_abierto_global* archivo_encontrado = buscar_archivo_abierto(peticion_fopen->nombre_archivo);
-//				t_archivo_abierto_proceso* archivo_abierto_proceso;
-//				strcpy(archivo_abierto_proceso->nombre_archivo,peticion_fopen->nombre_archivo);
-//				archivo_abierto_proceso->puntero = peticion_fopen->posicion;
 				if (list_is_empty(locks_encolados)) {
 					// si la lista esta vacia tiene que crear el lock nuevo
 					t_lock* nuevo_lock = malloc(sizeof(t_lock));
@@ -409,50 +405,62 @@ void procesar_respuesta_cpu(){
 				} else {
 					lock_lectura_escritura = list_pop_con_mutex(locks_encolados, &mutex_lectura_escritura); // agarra el lock actual
 				}
+
+
 				if (archivo_encontrado != NULL) {
 				// El archivo fue encontrado
-					if (strcmp(lock_lectura_escritura->modo_lock, "W") == 0) {
-						// lock existente en modo escritura, no se puede hacer nada, se bloquea el proceso
-						t_lock* lock_escritura = malloc(sizeof(t_lock));
-						cambiar_estado(pcb_actualizado, BLOCKED);
-						// voy a tener que agregarlo a la lista de blocked
-						pcb_actualizado_blocked_fopen->motivo_exit = INVALID_WRITE;
-						list_push_con_mutex(procesos_en_blocked, pcb_actualizado_blocked_fopen, &mutex_lista_blocked);
-						log_info(logger, "PID: %d - Bloqueado por %s", pcb_actualizado->pid, peticion_fopen->nombre_archivo);
-						// encola el lock para que se atienda despues
-						list_push_con_mutex(locks_encolados, lock_escritura, &mutex_lectura_escritura);
+					t_lock* lock_actual = list_get(archivo_encontrado->locks, 0);
+					if (strcmp(lock_actual->modo_lock, "W") == 0) {
 
-					break;
+						if(strcmp(peticion_fopen->modo_apertura, "R") == 0){
+							for(int i = 0; i<list_size(archivo_encontrado->locks); i++){
+								if(!list_is_empty(archivo_encontrado->locks)){
+									t_lock* lock_actual = list_get(archivo_encontrado->locks, i);
+									if(strcmp(lock_actual->modo_lock, "R") == 0){
+										lock_actual->cantidad_participantes ++;
+									} else {
+										t_lock* lock_nuevo = malloc(sizeof(t_lock));
+										lock_nuevo->modo_lock = "R";
+										lock_nuevo->cantidad_participantes = 1;
+										list_add(archivo_encontrado->locks, lock_nuevo);
+									}
+								}
+							}
+
+							cambiar_estado(pcb_actualizado, BLOCKED);
+							pcb_actualizado->motivo_exit = INVALID_WRITE;
+							list_push_con_mutex(procesos_en_blocked, pcb_actualizado, &mutex_lista_blocked);
+							log_info(logger, "PID: %d - Bloqueado por %s", pcb_actualizado->pid, peticion_fopen->nombre_archivo);
+							sem_post(&sem_proceso_exec);
+						} else { /* Modo de apertura W */
+							t_lock* lock_nuevo = malloc(sizeof(t_lock));
+							lock_nuevo->modo_lock = "W";
+							lock_nuevo->cantidad_participantes = 1;
+							list_add(archivo_encontrado->locks, lock_nuevo);
+
+							cambiar_estado(pcb_actualizado, BLOCKED);
+							pcb_actualizado->motivo_exit = INVALID_WRITE;
+							list_push_con_mutex(procesos_en_blocked, pcb_actualizado, &mutex_lista_blocked);
+							log_info(logger, "PID: %d - Bloqueado por %s", pcb_actualizado->pid, peticion_fopen->nombre_archivo);
+							sem_post(&sem_proceso_exec);
+						}
+
 					} else if (strcmp(peticion_fopen->modo_apertura, "R") == 0) {
 						// El archivo está abierto en modo lectura, se solicita modo lectura permitir el acceso
-						if (!lock_lectura_escritura) {
-							// hay que setear el lock en lectura
-							inicializar_lock(lock_lectura_escritura, "R");
-						}
-						//lock_lectura_escritura = list_pop_con_mutex(locks_encolados, &mutex_lectura_escritura);
-						lock_lectura_escritura->cantidad_participantes++;
+						lock_actual->cantidad_participantes ++;
 						log_info(logger, "PID: %d - Abrir Archivo: %s", pcb_actualizado->pid, peticion_fopen->nombre_archivo);
 						// Y AHORA QUE TIENE Q HACER ESTO??? NADA YA ESTA
 					} else {
-						// esta en modo lectura
-						// Se solicita abrir en modo escritura, bloquear acceso hasta que termine el modo escritura actual
-						if (lock_lectura_escritura ->cantidad_participantes != 0) {
-							// esta ocupado y hay que encolar y bloquear el proceso
-							lock_lectura_escritura->modo_lock = "W";
-							pcb_actualizado_blocked_fopen->motivo_exit = INVALID_WRITE;
-							list_push_con_mutex(procesos_en_blocked, pcb_actualizado_blocked_fopen, &mutex_lista_blocked);
-							list_push_con_mutex(locks_encolados, lock_lectura_escritura ,&mutex_lectura_escritura);
-							// SE BLOQUEA EL PROCESO Y SE ENCOLA EL LOCK
-							log_info(logger, "PID: %d - Bloqueado por %s", pcb_actualizado->pid, peticion_fopen->nombre_archivo);
-						} else {
-							// esta desocupado y se crea el lock y ejecuta
-							t_lock* nuevo_lock_escritura;
-							strcmp(nuevo_lock_escritura->modo_lock, "W");
-							nuevo_lock_escritura->cantidad_participantes = 1;
-							lock_lectura_escritura  = nuevo_lock_escritura;
-							log_info(logger, "PID: %d - Abrir Archivo: %s", pcb_actualizado->pid, peticion_fopen->nombre_archivo);
-							list_push_con_mutex(procesos_espera_fs, pcb_actualizado, &mutex_espera_fs);
-						}
+						t_lock* lock_nuevo = malloc(sizeof(t_lock));
+						lock_nuevo->modo_lock = "W";
+						lock_nuevo->cantidad_participantes = 1;
+						list_add(archivo_encontrado->locks, lock_nuevo);
+
+						cambiar_estado(pcb_actualizado, BLOCKED);
+						pcb_actualizado->motivo_exit = INVALID_WRITE;
+						list_push_con_mutex(procesos_en_blocked, pcb_actualizado, &mutex_lista_blocked);
+						log_info(logger, "PID: %d - Bloqueado por %s", pcb_actualizado->pid, peticion_fopen->nombre_archivo);
+						sem_post(&sem_proceso_exec);
 					}
 					} else {
 					// El archivo no fue encontrado
@@ -465,19 +473,31 @@ void procesar_respuesta_cpu(){
 
 					// ESTAS DOS VAN DESPUES DE QUE SE PROCESA LA CONEXION CON EL FS
 					sem_wait(&fin_fopen);
-					list_add(tabla_global_archivos_abiertos, archivo_encontrado);
+					free(archivo_encontrado);
+					t_archivo_abierto_global* archivo_nuevo = malloc(sizeof(t_archivo_abierto_global));
+					archivo_nuevo->nombre_archivo = peticion_fopen->nombre_archivo;
+					archivo_nuevo->locks = list_create();
+					t_lock* lock = malloc(sizeof(t_lock));
+					lock->modo_lock = peticion_fopen->modo_apertura;
+					lock->cantidad_participantes = 1;
+					log_warning(logger, "Paso el copy");
+					list_add(archivo_nuevo->locks, lock);
+					list_add(tabla_global_archivos_abiertos, archivo_nuevo);
 					log_info(logger, "SE AÑADIO EL ARCHIVO ABIERTO A TABLA GLOBAL");
 					//list_add(pcb_actualizado->archivos_abiertos_proceso, archivo_abierto_proceso);
 				}
 				break;
 				case FCLOSE:
 					t_peticion* peticion_fclose = recv_peticion(fd_cpu_dispatch);
-					t_pcb* pcb_actualizado_fclose = recv_pcb(fd_cpu_dispatch);
+//					t_pcb* pcb_actualizado_fclose = recv_pcb(fd_cpu_dispatch);
 					t_archivo_abierto_global* archivo_a_cerrar = buscar_archivo_abierto(peticion_fclose->nombre_archivo);
 					//desbloquear(&lock_escritura_lectura)
 
-					cerrar_archivo(pcb_actualizado_fclose,archivo_a_cerrar);
+					cerrar_archivo(pcb_actualizado,archivo_a_cerrar);
 
+					queue_push_con_mutex(procesos_en_exec, pcb_actualizado, &mutex_cola_exec);
+					send_pcb(pcb_actualizado, fd_cpu_dispatch);
+					sem_post(&sem_vuelta_blocked);
 					// entonces cerrar archivo libera una instancia de lock si es de lectura
 					break;
 				case FSEEK:
@@ -659,10 +679,12 @@ void procesar_cambio_estado(t_pcb* pcb, estado nuevo_estado){
 t_archivo_abierto_global* buscar_archivo_abierto(char* nombre_archivo){
 	// tengo que buscar el archivo en la tabla global de archivos abiertos
 	// tengo que ver como hago para que pase de ser un t_list a un t_archivo_abierto_global*
-	t_archivo_abierto_global* archivo_actual_tabla = malloc(sizeof(t_archivo_abierto_global));
+//	t_archivo_abierto_global* archivo_actual_tabla = malloc(sizeof(t_archivo_abierto_global));
 	for (int i = 0; i < list_size(tabla_global_archivos_abiertos); i++){
 		if(!list_is_empty(tabla_global_archivos_abiertos)) {
-			archivo_actual_tabla = list_get(tabla_global_archivos_abiertos, i);
+			t_archivo_abierto_global* archivo_actual_tabla = list_get(tabla_global_archivos_abiertos, i);
+			log_warning(logger, "nombre archivo actual tabla: %s.", archivo_actual_tabla->nombre_archivo);
+			log_warning(logger, "nombre archivo: %s.", nombre_archivo);
 				if (strcmp(archivo_actual_tabla->nombre_archivo, nombre_archivo) == 0) {
 					return archivo_actual_tabla;
 				}
@@ -675,22 +697,27 @@ t_archivo_abierto_global* buscar_archivo_abierto(char* nombre_archivo){
 void cerrar_archivo(t_pcb* pcb , t_archivo_abierto_global* archivo_a_cerrar){
 	t_archivo_abierto_global* archivo_actual_tabla = malloc(sizeof(t_archivo_abierto_global));
 	t_archivo_abierto_proceso* archivo_actual_proceso = malloc(sizeof(t_archivo_abierto_proceso));
-	if(strcmp(archivo_a_cerrar->modo_apertura_actual, "R")) {
+	t_lock* lock_actual = list_get(archivo_a_cerrar->locks, 0);
+	if(strcmp(lock_actual->modo_lock, "R")) {
 		// si el modo de apertura es de lectura se resta un participante al lock
-		lock_lectura_escritura->cantidad_participantes--;
+		lock_actual->cantidad_participantes--;
 	} else {
 		// archivo en modo escritura
-		lock_lectura_escritura = 0;
+//		lock_lectura_escritura = 0;
+		lock_actual->cantidad_participantes = 0;
 	}
-	if(lock_lectura_escritura->cantidad_participantes == 0) {
+	if(lock_actual->cantidad_participantes == 0) {
 		// se quedo sin participantes, se debe liberar el lock y cerrar el global
-		free(lock_lectura_escritura);
+		t_lock* lock = list_remove(archivo_a_cerrar->locks, 0);
+		free(lock);
 		int flag = 0;
 		int i = 0;
 		while (flag == 0) {
 		archivo_actual_tabla = list_get(tabla_global_archivos_abiertos, i);
 			if (strcmp(archivo_actual_tabla->nombre_archivo, archivo_a_cerrar->nombre_archivo) == 0) {
-				list_remove(tabla_global_archivos_abiertos, i);
+				t_archivo_abierto_global* archivo_abierto = list_remove(tabla_global_archivos_abiertos, i);
+				free(archivo_abierto->nombre_archivo);
+				list_destroy(archivo_abierto->locks);
 				log_info(logger, "Archivo: %s cerrado en tabla global", archivo_a_cerrar->nombre_archivo);
 				flag = 1;
 			}
@@ -698,17 +725,17 @@ void cerrar_archivo(t_pcb* pcb , t_archivo_abierto_global* archivo_a_cerrar){
 		}
 	}
 	// hago lo mismo con la tabla por proceso, esto sucede si o si y no necesito que se terminen todos los participantes para cerrarlo de la tabla
-	int flag_archivo_por_proceso = 0;
-	int j = 0;
-	while (flag_archivo_por_proceso == 0) {
-		archivo_actual_proceso = list_get(pcb->archivos_abiertos_proceso, j);
-		if (strcmp(archivo_actual_proceso->nombre_archivo, archivo_a_cerrar->nombre_archivo) == 0) {
-			list_remove(pcb->archivos_abiertos_proceso, j);
-			log_info(logger, "Archivo: %s cerrado en tabla de proceso", archivo_a_cerrar->nombre_archivo);
-			flag_archivo_por_proceso = 1;
-		}
-		j++;
-	}
+//	int flag_archivo_por_proceso = 0;
+//	int j = 0;
+//	while (flag_archivo_por_proceso == 0) {
+//		archivo_actual_proceso = list_get(pcb->archivos_abiertos_proceso, j);
+//		if (strcmp(archivo_actual_proceso->nombre_archivo, archivo_a_cerrar->nombre_archivo) == 0) {
+//			list_remove(pcb->archivos_abiertos_proceso, j);
+//			log_info(logger, "Archivo: %s cerrado en tabla de proceso", archivo_a_cerrar->nombre_archivo);
+//			flag_archivo_por_proceso = 1;
+//		}
+//		j++;
+//	}
 
 };
 
@@ -925,6 +952,9 @@ void procesar_conexion_fs(void* void_args) {
 			} else {
 				log_warning(logger, "fallo");
 			}
+
+			queue_push_con_mutex(procesos_en_exec, pcb_espera_fs, &mutex_cola_exec);
+			send_pcb(pcb_espera_fs, fd_cpu_dispatch);
 			break;
 		case FIN_FTRUNCATE:
 				recv_finalizo_ftruncate(cliente_socket);

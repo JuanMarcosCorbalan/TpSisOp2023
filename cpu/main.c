@@ -329,16 +329,22 @@ void ejecutar_fopen(t_pcb* pcb, char* param1, char* param2){
     free(peticion->nombre_archivo);
     free(peticion->modo_apertura);
     free(peticion);
+
+    sem_post(&sem_nuevo_proceso);
 }
 
 // solicita el cierre del archivo con el nombre del mismo
 void ejecutar_fclose(t_pcb* pcb, char* param1){
 	t_peticion* peticion = malloc(sizeof(t_peticion));
-	peticion->nombre_archivo = param1;
-	send_peticion(dispatch_cliente_fd, pcb, peticion, FCLOSE);
+	peticion->nombre_archivo = strdup(param1);
+	peticion->modo_apertura = "R";
+	send_pcb(pcb, dispatch_cliente_fd);
+	send_peticion_f_close(dispatch_cliente_fd, pcb, peticion, FCLOSE);
 
     free(peticion->nombre_archivo);
     free(peticion);
+
+    sem_post(&sem_nuevo_proceso);
 }
 
 // solicita al kernel actualizar el puntero del archivo a la posición pasada por parámetro
