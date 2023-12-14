@@ -40,12 +40,12 @@ int main(void) {
 	int server_fd = iniciar_servidor(puerto_escucha);
 	log_info(logger, "FILESYSTEM LISTO...");
 
-	iniciar_atencion_operaciones();
+	//iniciar_atencion_operaciones();
 
 	// Conexion Kernel
-	pthread_t conexion_escucha;
-	pthread_create(&conexion_escucha, NULL, (void*) server_escuchar, NULL);
-	pthread_join(conexion_escucha, NULL);
+//	pthread_t conexion_escucha;
+//	pthread_create(&conexion_escucha, NULL, (void*) server_escuchar, NULL);
+//	pthread_join(conexion_escucha, NULL);
 
 
 
@@ -57,7 +57,7 @@ int main(void) {
 
 
 	// esto deberia ir en manejar solicitudes? o antes?
-	crear_archivo_fat(path_fat, cant_bloques_fat);
+	//crear_archivo_fat(path_fat, cant_bloques_fat);
 	t_config* archivo_fcb = crear_archivo_fcb("hola");
 
 	archivo_bloques = fopen(path_bloques, "wb+");

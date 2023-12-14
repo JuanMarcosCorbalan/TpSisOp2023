@@ -16,12 +16,13 @@ int main(void)
 {
 	logger = iniciar_logger();
 	config = iniciar_config();
-	if(!conectar_modulos(logger, config, &fd_cpu_dispatch, &fd_cpu_interrupt, &fd_filesystem, &fd_memoria)){
+	conectar_modulos(logger, config, &fd_cpu_dispatch, &fd_cpu_interrupt, &fd_filesystem, &fd_memoria);
+	/*if(!conectar_modulos(logger, config, &fd_cpu_dispatch, &fd_cpu_interrupt, &fd_filesystem, &fd_memoria)){
 		terminar_programa(fd_cpu_dispatch, fd_cpu_interrupt, fd_filesystem, fd_memoria, logger, config);
 		return EXIT_FAILURE;
-	}
+	}*/
 
-	enviar_mensaje("Hola, soy el Kernel!", fd_filesystem);
+	//enviar_mensaje("Hola, soy el Kernel!", fd_filesystem);
 	enviar_mensaje("Hola, soy el Kernel!", fd_memoria);
 
 	recursos_asignados = list_create();
@@ -400,13 +401,16 @@ void procesar_respuesta_cpu(){
 				//recibir pcb y num de pag
 				numpag_despl* herramientas = recv_pcb_pf(fd_cpu_dispatch);
 				//pasar proceso a bloqueado
-				execute_a_bloqueado(pcb_actualizado);
+				pcb_actualizado->program_counter -= 1;
+				cambiar_estado(pcb_actualizado, BLOCKED);//execute_a_bloqueado(pcb_actualizado);
+				list_push_con_mutex(procesos_en_blocked, pcb_actualizado, &mutex_lista_blocked);
 				//enviar num de pag a memoria y cargarla
 				send_numero_pagina(pcb_actualizado->pid, herramientas->numero_pagina, herramientas->desplazamiento, fd_memoria);
 				//esperar respuesta de memoria
 				int pagina_cargada = recibir_pagina_cargada();
 				//pasar proceso a ready
-				bloqueado_a_ready(pcb_actualizado);
+				sem_post(&sem_vuelta_blocked);
+				sem_post(&sem_proceso_exec);
 				break;
 			case FOPEN:
 				t_peticion* peticion_fopen = recv_peticion(fd_cpu_dispatch);
@@ -754,7 +758,7 @@ void execute_a_bloqueado(t_pcb* pcb){
 		pthread_mutex_lock(&mutex_blocked_list);
 		list_add(procesos_en_blocked, pcb);
 		pthread_mutex_unlock(&mutex_blocked_list);
-		cambiar_estado(pcb_exec, BLOCKED);
+		cambiar_estado(pcb, BLOCKED);
 	}
 	else{
 		log_info(logger, "Error. No debería haber llegado aca (execute_a_bloqueado)");

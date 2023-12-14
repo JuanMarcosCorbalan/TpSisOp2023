@@ -168,9 +168,11 @@ void decode(t_instruccion* instruccion, t_pcb* pcb){
 		break;
 	case MOV_IN:
 		ejecutar_mov_in(pcb, instruccion->param1, instruccion->param2);
+
 		break;
 	case MOV_OUT:
 		ejecutar_mov_out(pcb, instruccion->param1, instruccion->param2);
+
 		break;
 	case F_OPEN:
 		ejecutar_fopen(pcb, instruccion->param1, instruccion->param2);
@@ -363,6 +365,7 @@ int solicitar_direccion_fisica(t_pcb* pcb, int direccion_logica){
 		//iniciar acciones page fault
 		send_pcb(pcb, dispatch_cliente_fd);
 		send_pcb_pf(numero_pagina, desplazamiento, dispatch_cliente_fd);
+		sem_post(&sem_nuevo_proceso);
 		return marco;
 	}
 	log_info(logger,  "PID: %d - OBTENER MARCO - Página: %d - Marco: %d", pcb->pid, numero_pagina, marco); //log ob
@@ -374,7 +377,7 @@ void ejecutar_mov_in(t_pcb* pcb, char* param1, char* param2){
 	int direccion_logica = atoi(param2);
 	int direccion_fisica = solicitar_direccion_fisica(pcb, direccion_logica);
 	if(direccion_fisica == -1){
-		pcb->program_counter -= 1;
+		//pcb->program_counter -= 1;
 		return;
 	}
 
@@ -389,7 +392,7 @@ void ejecutar_mov_out(t_pcb* pcb, char* param1, char* param2){
 	int direccion_logica = atoi(param1);
 	int direccion_fisica = solicitar_direccion_fisica(pcb, direccion_logica);
 	if(direccion_fisica == -1){
-		pcb->program_counter -= 1;
+		//pcb->program_counter -= 1;
 		return;
 	}
 
@@ -410,6 +413,7 @@ void ejecutar_mov_out(t_pcb* pcb, char* param1, char* param2){
 	pyn->numero_pagina = numero_pagina;
 	pyn->pid = pcb->pid;
 	send_solicitud_escritura_memoria(direccion_fisica, valor, pyn, fd_memoria);
+	check_interrupt();
 	free(pyn);
 }
 
