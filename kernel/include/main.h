@@ -155,6 +155,7 @@ void inicializar_lock(t_lock* lock, char* modo_apertura);
 void cerrar_archivo(t_pcb* pcb , t_archivo_abierto_global* archivo_a_cerrar);
 void procesar_conexion_fs(void* void_args);
 void generar_conexion_fs();
-
+void manejar_round_robin(int pid);
+void procesar_manejo_quantum(void* args);
 
 #endif
