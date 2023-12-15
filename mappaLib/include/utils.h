@@ -33,10 +33,15 @@ typedef enum{
 	INTERRUPT
 } t_motivo_exit;
 
+//typedef struct {
+//	int fd;
+//	uint32_t f_pointer;
+//} t_archivos_abiertos;
+
 typedef struct {
-	int fd;
-	uint32_t f_pointer;
-} t_archivos_abiertos;
+	char* nombre_archivo;
+	uint32_t puntero;
+}t_archivo_abierto_proceso;
 
 typedef struct {
 	uint32_t ax;
@@ -53,7 +58,7 @@ typedef struct {
 	estado estado;
 	t_registros_generales_cpu registros_generales_cpu;
 	t_motivo_exit motivo_exit;
-//	t_archivos_abiertos archivos_abiertos;
+	t_list* archivos_abiertos_proceso;
 	t_list* recursos_asignados;
 } t_pcb;
 
@@ -76,6 +81,14 @@ typedef enum {
 	WAIT,
 	SIGNAL,
 	EXIT,
+	MOV_IN,
+	MOV_OUT,
+	F_OPEN,
+	F_CLOSE,
+	F_SEEK,
+	F_WRITE,
+	F_READ,
+	F_TRUNCATE
 } codigo_instruccion;
 
 typedef struct {
@@ -90,6 +103,78 @@ typedef struct
 	char* path;
 	int size;
 }t_datos_proceso;
+
+typedef struct
+{
+	int pid;
+	t_list* paginas;
+} t_tdp;
+
+typedef struct
+{
+	int pid;
+	int numpag;
+	int marco;
+	int bit_presencia;
+	int bit_modificado;
+	int pos_swap;
+	int instante_de_referencia;
+	int direccion;
+}t_pagina;
+
+typedef struct
+{
+	int pid;
+	int numero_pagina;
+} pid_y_numpag;
+
+typedef struct
+{
+	int numero_pagina;
+	int desplazamiento;
+} numpag_despl;
+
+typedef struct
+{
+	int pid;
+	int numero_pagina;
+	int desplazamiento;
+} pid_numpag_despl;
+
+typedef struct
+{
+	pid_y_numpag* pyn;
+	int direccion;
+	uint32_t valor;
+} direccion_y_valor;
+
+typedef struct
+{
+	int pid;
+	int direccion;
+} pid_direccion;
+
+typedef struct
+{
+	char* nombre_archivo;
+	int tamanio_archivo; // en bytes
+	int bloque_inicial; // tambien en bytes
+}t_fcb;
+
+typedef struct
+{
+	char* nombre_archivo;
+	t_list* locks;
+}t_archivo_abierto_global;
+
+// Estructura para representar un lock
+//typedef struct {
+//    pthread_mutex_t mutex;  // Mutex para la exclusión mutua
+//    pthread_cond_t cond;    // Condición para sincronizar los threads
+//    int participantes;      // Número de participantes en el lock
+//    int encolados;          // Número de threads encolados esperando
+//} t_lock;
+
 
 //t_list* datos_procesos;
 void imprimirPrueba();

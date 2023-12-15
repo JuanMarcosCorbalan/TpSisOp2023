@@ -4,6 +4,7 @@ int fd_memoria = 0;
 int dispatch_cliente_fd = 0;
 int interrupt_cliente_fd = 0;
 bool flag_hay_interrupcion = false;
+int tam_pagina = 16;
 t_log* logger;
 t_pcb* pcb;
 
@@ -15,6 +16,11 @@ int main(void) {
 	sem_init(&sem_interrupcion, 0, 0);
 	fd_memoria = crear_conexion(logger, config_cpu.ip_memoria, config_cpu.puerto_memoria);
 	enviar_mensaje("Hola, soy el CPU!", fd_memoria);
+	send_handshake_cpu_memoria(fd_memoria);
+	log_info(logger, "handshake con memoria socket %d", fd_memoria);
+	tam_pagina = recibir_tamanio_pagina();//recv_tam_pagina(fd_memoria);
+	log_info(logger, "tamanio de pagina recibido: %d de socket %d", tam_pagina, fd_memoria);
+//	liberar_conexion(fd_memoria);
 
 	pthread_t *hilo_dispatch = malloc(sizeof(pthread_t));
 	pthread_t *hilo_interrupt = malloc(sizeof(pthread_t));
@@ -23,7 +29,6 @@ int main(void) {
 	pthread_create(hilo_dispatch, NULL, &ejecutar_pcb, NULL);
 	pthread_create(hilo_interrupt, NULL, &ejecutar_interrupcion, NULL);
 	pthread_create(hilo_cilo_instruccion, NULL, &ciclo_de_intruccion, NULL);
-
 	pthread_join(*hilo_dispatch, NULL);
 	pthread_join(*hilo_interrupt, NULL);
 	pthread_join(*hilo_cilo_instruccion, NULL);
@@ -161,6 +166,44 @@ void decode(t_instruccion* instruccion, t_pcb* pcb){
 	case EXIT:
 		ejecutar_exit(pcb);
 		break;
+	case MOV_IN:
+		ejecutar_mov_in(pcb, instruccion->param1, instruccion->param2);
+
+		break;
+	case MOV_OUT:
+		ejecutar_mov_out(pcb, instruccion->param1, instruccion->param2);
+
+		break;
+	case F_OPEN:
+		ejecutar_fopen(pcb, instruccion->param1, instruccion->param2);
+		break;
+	case F_CLOSE:
+		ejecutar_fclose(pcb, instruccion->param1);
+		break;
+	case F_SEEK:
+		ejecutar_fseek(pcb, instruccion->param1, instruccion->param2);
+		break;
+	case F_WRITE:
+		ejecutar_fwrite(pcb, instruccion->param1, instruccion->param2);
+		break;
+	case F_READ:
+		ejecutar_fread(pcb, instruccion->param1, instruccion->param2);
+		break;
+	case F_TRUNCATE:
+		ejecutar_ftruncate(pcb, instruccion->param1, instruccion->param2);
+		break;
+	}
+}
+
+void cambiar_valor_registro(t_pcb* pcb, char* registro, uint32_t nuevo_valor){
+	if(strcmp(registro, "AX") == 0){
+		pcb->registros_generales_cpu.ax = nuevo_valor;
+	} else if(strcmp(registro, "BX") == 0){
+		pcb->registros_generales_cpu.bx = nuevo_valor;
+	} else if(strcmp(registro, "CX") == 0){
+		pcb->registros_generales_cpu.cx = nuevo_valor;
+	} else if(strcmp(registro, "DX") == 0){
+		pcb->registros_generales_cpu.dx = nuevo_valor;
 	}
 }
 
@@ -215,10 +258,30 @@ void ejecutar_sum(t_pcb* pcb, char* param1, char* param2){
 }
 
 void ejecutar_sub(t_pcb* pcb, char* param1, char* param2){
-	uint32_t parametroARestar1 = (uint32_t)strtoul(param1, NULL, 10);
-	uint32_t parametroARestar2 = (uint32_t)strtoul(param2, NULL, 10);
+	uint32_t parametroARestar1 = 0;
+	uint32_t parametroARestar2 = 0;
 
 	log_info(logger, "PID: %d - Ejecutando: %s - [%s, %s]", pcb->pid, "SUB", param1, param2);
+
+	if(strcmp(param1, "AX") == 0){
+			parametroARestar1 = pcb->registros_generales_cpu.ax;
+		} else if(strcmp(param1, "BX") == 0){
+			parametroARestar1 = pcb->registros_generales_cpu.bx;
+		} else if(strcmp(param1, "CX") == 0){
+			parametroARestar1 = pcb->registros_generales_cpu.cx;
+		} else if(strcmp(param1, "DX") == 0){
+			parametroARestar1 = pcb->registros_generales_cpu.dx;
+	}
+
+	if(strcmp(param2, "AX") == 0){
+			parametroARestar2 = pcb->registros_generales_cpu.ax;
+		} else if(strcmp(param2, "BX") == 0){
+			parametroARestar2 = pcb->registros_generales_cpu.bx;
+		} else if(strcmp(param2, "CX") == 0){
+			parametroARestar2 = pcb->registros_generales_cpu.cx;
+		} else if(strcmp(param2, "DX") == 0){
+			parametroARestar2 = pcb->registros_generales_cpu.dx;
+	}
 
 	if(strcmp(param1, "AX") == 0){
 			pcb->registros_generales_cpu.ax = parametroARestar1 - parametroARestar2;
@@ -298,6 +361,173 @@ void check_interrupt(){
 	}
 }
 
+int recibir_marco(){
+	int marco;
+	while (true) {
+		int cod_op = recibir_operacion(fd_memoria);
+		switch (cod_op) {
+		case MARCO:
+			marco = recv_marco(fd_memoria);
+			break;
+		}
+
+		return marco;
+	}
+}
+
+int solicitar_direccion_fisica(t_pcb* pcb, int direccion_logica){
+	int numero_pagina = floor(direccion_logica / tam_pagina);
+	int desplazamiento =  direccion_logica - numero_pagina * tam_pagina;
+	send_solicitud_marco(fd_memoria, pcb->pid, numero_pagina);
+	int marco = recibir_marco();
+	if(marco == -1){
+		log_info(logger, "Page Fault PID: %d - Pagina: %d", pcb->pid, numero_pagina); //log ob
+		//iniciar acciones page fault
+		send_pcb(pcb, dispatch_cliente_fd);
+		send_pcb_pf(numero_pagina, desplazamiento, dispatch_cliente_fd);
+		sem_post(&sem_nuevo_proceso);
+		return marco;
+	}
+	log_info(logger,  "PID: %d - OBTENER MARCO - Página: %d - Marco: %d", pcb->pid, numero_pagina, marco); //log ob
+	int direccion_fisica = marco*tam_pagina + desplazamiento;
+	return direccion_fisica;
+}
+
+uint32_t recibir_valor_leido(){
+	uint32_t valor;
+	while (true) {
+		int cod_op = recibir_operacion(fd_memoria);
+		switch (cod_op) {
+		case VALOR_LEIDO:
+			valor = recv_valor_leido_memoria(fd_memoria);
+			break;
+		}
+
+		return valor;
+	}
+}
+
+void ejecutar_mov_in(t_pcb* pcb, char* param1, char* param2){
+	log_info(logger, "PID: %d - Ejecutando: %s - [%s, %s]", pcb->pid, "MOV IN", param1, param2);
+	int direccion_logica = atoi(param2);
+	int direccion_fisica = solicitar_direccion_fisica(pcb, direccion_logica);
+	if(direccion_fisica == -1){
+		//pcb->program_counter -= 1;
+		return;
+	}
+
+	send_solicitud_lectura_memoria(direccion_fisica, pcb->pid, fd_memoria);
+	uint32_t valor = recibir_valor_leido();
+	log_info(logger, "PID: %d - Accion: LEER - Direccion Fisica: %d - Valor: %d", pcb->pid, direccion_fisica, valor);
+	cambiar_valor_registro(pcb, param1, valor);
+	check_interrupt();
+}
+
+void ejecutar_mov_out(t_pcb* pcb, char* param1, char* param2){
+	log_info(logger, "PID: %d - Ejecutando: %s - [%s, %s]", pcb->pid, "MOV OUT", param1, param2);
+	char* registro = param2;
+	int direccion_logica = atoi(param1);
+	int direccion_fisica = solicitar_direccion_fisica(pcb, direccion_logica);
+	if(direccion_fisica == -1){
+		//pcb->program_counter -= 1;
+		return;
+	}
+
+	uint32_t valor;
+
+	if(strcmp(registro, "AX") == 0){
+		valor = pcb->registros_generales_cpu.ax;
+	} else if(strcmp(registro, "BX") == 0){
+		valor = pcb->registros_generales_cpu.bx;
+	} else if(strcmp(registro, "CX") == 0){
+		valor = pcb->registros_generales_cpu.cx;
+	} else if(strcmp(registro, "DX") == 0){
+		valor = pcb->registros_generales_cpu.dx;
+	}
+
+	int numero_pagina = floor(direccion_logica / tam_pagina);
+	pid_y_numpag* pyn = malloc(sizeof(pid_y_numpag));
+	pyn->numero_pagina = numero_pagina;
+	pyn->pid = pcb->pid;
+	send_solicitud_escritura_memoria(direccion_fisica, valor, pyn, fd_memoria);
+	log_info(logger, "PID: %d - Accion: ESCRIBIR - Direccion Fisica: %d - Valor: %d", pcb->pid, direccion_fisica, valor);
+	check_interrupt();
+	free(pyn);
+}
+
+// envia a kernel el nombre del archivo y el modo de apertura W, R
+void ejecutar_fopen(t_pcb* pcb, char* param1, char* param2){
+	t_peticion* peticion = malloc(sizeof(t_peticion));
+	peticion->nombre_archivo = strdup(param1);
+	peticion->modo_apertura = strdup(param2);
+	send_pcb(pcb, dispatch_cliente_fd);
+	send_peticion(dispatch_cliente_fd, pcb, peticion, FOPEN);
+
+    free(peticion->nombre_archivo);
+    free(peticion->modo_apertura);
+    free(peticion);
+
+    sem_post(&sem_nuevo_proceso);
+}
+
+// solicita el cierre del archivo con el nombre del mismo
+void ejecutar_fclose(t_pcb* pcb, char* param1){
+	t_peticion* peticion = malloc(sizeof(t_peticion));
+	peticion->nombre_archivo = strdup(param1);
+	peticion->modo_apertura = "R";
+	send_pcb(pcb, dispatch_cliente_fd);
+	send_peticion_f_close(dispatch_cliente_fd, pcb, peticion, FCLOSE);
+
+    free(peticion->nombre_archivo);
+    free(peticion);
+
+    sem_post(&sem_nuevo_proceso);
+}
+
+// solicita al kernel actualizar el puntero del archivo a la posición pasada por parámetro
+void ejecutar_fseek(t_pcb* pcb,char* param1, char* param2){
+	t_peticion* peticion = malloc(sizeof(t_peticion));
+	peticion->nombre_archivo = param1;
+	peticion->posicion = (uint32_t)strtoul(param2, NULL, 10);
+	send_peticion(dispatch_cliente_fd, pcb, peticion, FSEEK);
+
+    free(peticion->nombre_archivo);
+    free(peticion);
+}
+
+//  solicita al Kernel que se lea del archivo indicado y se escriba en la dirección física de Memoria la información leída.
+void ejecutar_fread(t_pcb* pcb, char* param1, char* param2){
+	t_peticion* peticion = malloc(sizeof(t_peticion));
+	peticion->nombre_archivo = param1;
+//	peticion->direccion_fisica = solicitar_direccion_fisica(pcb, atoi(param2));
+	send_peticion(dispatch_cliente_fd, pcb, peticion, FREAD);
+
+	free(peticion->nombre_archivo);
+    free(peticion);
+}
+
+//  solicita al Kernel que se escriba en el archivo indicado la información que es obtenida a partir de la dirección física de Memoria.
+void ejecutar_fwrite(t_pcb* pcb, char* param1, char* param2){
+	t_peticion* peticion = malloc(sizeof(t_peticion));
+	peticion->nombre_archivo = param1;
+//	peticion->direccion_fisica = solicitar_direccion_fisica(pcb, atoi(param2));
+	send_peticion(dispatch_cliente_fd, pcb, peticion, FWRITE);
+
+	free(peticion->nombre_archivo);
+    free(peticion);
+}
+
+// solicita al Kernel que se modifique el tamaño del archivo al indicado por parámetro.
+void ejecutar_ftruncate(t_pcb* pcb, char* param1, char* param2){
+	t_peticion* peticion = malloc(sizeof(t_peticion));
+	peticion->nombre_archivo = param1;
+	peticion->tamanio = (uint32_t)strtoul(param2, NULL, 10);
+	send_peticion(dispatch_cliente_fd, pcb, peticion, FTRUNCATE);
+
+	free(peticion->nombre_archivo);
+    free(peticion);
+}
+
 t_config* iniciar_config(void)
 {
 	t_config* nuevo_config = config_create("./cpu.config");
@@ -318,4 +548,18 @@ void leer_config(){
 	config_cpu.puerto_memoria = config_get_string_value(config, "PUERTO_MEMORIA");
 	config_cpu.puerto_escucha_dispatch = config_get_string_value(config, "PUERTO_ESCUCHA_DISPATCH");
 	config_cpu.puerto_escucha_interrupt = config_get_string_value(config, "PUERTO_ESCUCHA_INTERRUPT");
+}
+
+int recibir_tamanio_pagina(){
+	int tamanio;
+	while (true) {
+		int cod_op = recibir_operacion(fd_memoria);
+		switch (cod_op) {
+		case TAMANIO_PAGINA:
+			tamanio = recv_tam_pagina(fd_memoria);
+			break;
+		}
+
+		return tamanio;
+	}
 }

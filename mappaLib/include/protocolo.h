@@ -24,7 +24,36 @@ typedef enum
 	ATENDER_SIGNAL,
 	CAMBIAR_ESTADO,
 	ATENDER_SLEEP,
-	HANDSHAKE_CPU_MEMORIA
+	TDP,
+	HANDSHAKE_CPU_MEMORIA,
+	RECURSO_WAIT,
+	LEER_MEMORIA,
+	ESCRIBIR_MEMORIA,
+	SOLICITUD_MARCO,
+	MARCO,
+	PCB_PF,
+	CARGAR_PAGINA,
+	PAGINA_CARGADA,
+	VALOR_LEIDO,
+	SOLICITUD_BLOQUES_SWAP,
+	VALOR_EN_BLOQUE_IDA,
+	VALOR_EN_BLOQUE_VUELTA,
+	PETICION,
+	FOPEN,
+	FCLOSE,
+	FSEEK,
+	FTRUNCATE,
+	FREAD,
+	FWRITE,
+	INICIARPROCESO,
+	FINALIZARPROCESO,
+	FIN_FOPEN,
+	FIN_FWRITE,
+	FIN_FREAD,
+	FIN_FTRUNCATE,
+	HANDSHAKE_FS_MEMORIA,
+	TAMANIO_PAGINA,
+	FINALIZAR_PROCESO_MEMORIA
 }op_code;
 
 typedef enum
@@ -60,6 +89,14 @@ typedef struct
 	int program_counter;
 } t_solicitud_instruccion;
 
+typedef struct {
+	char* nombre_archivo;
+	char* modo_apertura;
+	uint32_t posicion;
+	int direccion_fisica;
+	uint32_t tamanio;
+} t_peticion;
+
 t_paquete* crear_paquete(op_code codigo_operacion);
 void* serializar_paquete(t_paquete* paquete, int bytes);
 //t_paquete* crear_paquete(void);
@@ -76,6 +113,7 @@ t_motivo_exit recv_interrupcion(int fd);
 void enviar_mensaje(char* mensaje, int socket_cliente);
 void recibir_mensaje(t_log* logger, int socket_cliente);
 
+void enviar_operacion(op_code codigo_operacion, int socket_cliente);
 int recibir_operacion(int socket_cliente);
 
 void crear_buffer(t_paquete* paquete);
@@ -106,6 +144,24 @@ t_pcb* recv_ejecutar_pcb(int fd);
 void send_pcb_actualizado(int fd, t_pcb* pcb);
 t_pcb* recv_pcb_actualizado(int fd);
 
+//TDP
+void send_tdp(int fd, t_tdp* tdp);
+t_tdp* recv_tdp(int fd);
+
+//HANDSHAKE CPU MEMORIA
+void send_handshake_cpu_memoria(int fd_memoria);
+int recv_handshake_cpu_memoria(int fd_cpu);
+
+void send_tam_pagina(int fd, int tam_pag);
+int recv_tam_pagina(int fd);
+
+//SOLICITAR BLOQUES SWAP
+void send_solicitud_bloques_swap(int fd_filesystem, int cant_paginas);
+int recv_solicitud_bloques_swap(int fd_memoria);
+
+uint32_t* recv_lista_bloques_reservados(int socket);
+
+
 // RECURSO_WAIT
 void send_recurso_wait(char* recurso, int dispatch_cliente_fd);
 char* recv_recurso(int dispatch_cliente_fd);
@@ -121,9 +177,80 @@ estado recv_cambiar_estado(int fd_modulo);
 void send_sleep(int tiempo_bloqueado, int fd_modulo);
 int recv_sleep(int fd_modulo);
 
+//SOLICITUD DE MARCO
+void send_solicitud_marco(int dispatch_cliente_fd, int pid, int numero_pagina);// cpu
+pid_y_numpag* recv_solicitud_marco(int dispatch_cliente_fd); //memoria
+
+void send_marco (int dispatch_cliente_fd, int marco); //MEMORIA
+int recv_marco (int dispatch_cliente_fd); //cpu
+
+//PAGE FAULT CPU A KERNEL
+void send_pcb_pf(int numero_pagina, int desplazamiento, int dispatch_cliente_fd);
+numpag_despl* recv_pcb_pf(int fd_cpu_dispatch);
+
+//NUMERO DE PAGINA
+void send_numero_pagina(int pid, int numero_pagina, int desplazamiento, int fd_memoria);
+pid_numpag_despl* recv_numero_pagina(int fd_kernel);
+
+//PAGINA CARGADA
+void send_pagina_cargada(int fd_kernel);
+int recv_pagina_cargada(int fd_memoria);
+
+//SOLICITUD DE LECTURA
+void send_solicitud_lectura_memoria(int direccion_fisica, int pid, int fd_memoria);
+pid_direccion* recv_solicitud_lectura_memoria(int fd_cpu);
+
+//ENVIAR VALOR LEIDO
+void send_valor_leido_memoria(uint32_t valor, int fd_cpu);
+uint32_t recv_valor_leido_memoria(int fd_memoria);
+
+//SOLICITUD DE ESCRITURA
+void send_solicitud_escritura_memoria(int direccion_fisica, uint32_t valor, pid_y_numpag*, int fd_memoria);
+direccion_y_valor* recv_solicitud_escritura_memoria(int fd_cpu);
+
+//SOLICITUD DE VALOR EN BLOQUE
+void send_solicitud_valor_en_bloque(int fd_filesystem, int direccion_bloque);
+int recv_solicitud_valor_en_bloque(int fd_memoria);
+
+void send_valor_en_bloque(int fd_memoria, uint32_t valor);
+uint32_t recv_valor_en_bloque(int fd_filesystem);
 void send_tam_pagina(int tam_pagina, int socket);
 int recv_tam_pagina(int fd);
 
 void free_recurso_asignado(void* elemento);
+
+// INFORMACION_ARCHIVO_BLOQUES
+void send_datos_archivo_bloques(int , char*,  int);
+
+// FUNCIONES PARA FS
+void send_peticion(int socket, t_pcb* pcb ,t_peticion* peticion, op_code codigo_operacion);
+void send_peticion_f_close(int socket, t_pcb* pcb ,t_peticion* peticion, op_code codigo_operacion);
+
+uint32_t recv_posicion(int socket);
+uint32_t recv_tamanio(int socket);
+int recv_dir_logica(int socket);
+t_peticion* recv_peticion(int socket);
+
+void send_bloques_reservados(int socket, uint32_t* lista_bloques_reservados, int tamanio);
+char* recv_parametros_fopen(int socket);
+t_list* recv_parametros(int socket);
+void send_solicitud_lectura(int direccion_fisica, int fd_memoria);
+int recv_solicitud_lectura(int fd_cpu);
+uint32_t* recv_valor_leido(int fd_memoria);
+
+void send_finalizo_fopen(int socket, int numero);
+int recv_finalizo_fopen(int socket);
+void send_finalizo_ftruncate(int socket);
+void recv_finalizo_ftruncate(int socket);
+void send_finalizo_fread(int socket);
+void recv_finalizo_fread(int socket);
+void send_finalizo_fwrite(int socket);
+void recv_finalizo_fwrite(int socket);
+
+void send_handshake_fs_memoria(int fd_memoria);
+int recv_handshake_fs_memoria(int fd_filesystem);
+
+void send_finalizar_proceso_memoria(t_pcb* pcb, int fd_memoria);
+t_pcb* recv_finalizar_proceso_memoria (int fd_kernel);
 
 #endif
