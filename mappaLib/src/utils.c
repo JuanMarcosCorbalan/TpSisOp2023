@@ -108,6 +108,10 @@ char* motivo_to_string(t_motivo_exit estado_exit){
 		case INTERRUPT:
 			return "INTERRUPT";
 			break;
+		case BLOCKED_READ:
+			return "BLOCKED_READ";
+		case BLOCKED_WRITE:
+			return "BLOCKED_WRITE";
 		default:
 			return "DESCONOCIDO";
 	}

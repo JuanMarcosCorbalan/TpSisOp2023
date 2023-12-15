@@ -30,7 +30,9 @@ typedef enum{
 	INVALID_RESOURCE,
 	INVALID_WRITE,
 	EXIT_CONSOLA,
-	INTERRUPT
+	INTERRUPT,
+	BLOCKED_WRITE,
+	BLOCKED_READ
 } t_motivo_exit;
 
 //typedef struct {
@@ -113,6 +115,8 @@ typedef struct
 {
 	char* nombre_archivo;
 	t_list* locks;
+	t_list* lista_bloqueados;
+	pthread_mutex_t mutex_cola_bloqueados;
 }t_archivo_abierto_global;
 
 // Estructura para representar un lock

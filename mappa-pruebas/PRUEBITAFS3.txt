@@ -1,3 +1,5 @@
 SET AX 1
 F_OPEN consolas R
+SLEEP 15
+F_CLOSE consolas
 EXIT

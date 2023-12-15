@@ -247,9 +247,11 @@ void realizar_operacion(t_operacion* operacion){
 		log_info(logger, "fopen con nombre_archivo: %s", operacion->nombre);
 		int resultado = abrir_archivo(operacion->nombre);
 		if(resultado == 0){
+			log_warning(logger, "Resultado igual a %d.", resultado);
 			crear_archivo_fcb(operacion->nombre);
 			send_finalizo_fopen(socket_cliente, 1);
 		} else {
+			log_warning(logger, "Resultado igual a %d.", resultado);
 			send_finalizo_fopen(socket_cliente, 0);
 		}
 		break;
@@ -291,23 +293,22 @@ char* convertir_path_fcb(char* nombre_archivo_fcb){
 // verificar si existe el fcb del archivo
 // si existe devolver el tamanio, si no se informa que no existe
 int abrir_archivo(char* nombre_archivo){ // o deberia revisar el path? creo q si
-//	char* path = convertir_path_fcb(nombre_archivo);
-//	char* path = "./fcbs/consolas.fcb";
-//	t_config* archivo_fcb = config_create(path);
+	char* path = convertir_path_fcb(nombre_archivo);
+	t_config* archivo_fcb = config_create(path);
 
-//	if (archivo_fcb == NULL) {
-//		log_info(logger, "Archivo: %s no existe", nombre_archivo);
-//		//t_config* archivo_fcb = config_create(path); // ¿cuando creo el archivo?
-//		//archivo_fcb = crear_archivo_fcb(nombre_archivo);
-//		free(path);
-//		return 0;
-//	} else {
-//		log_info(logger, "Abrir Archivo: %s", nombre_archivo);
-////		t_config* archivo_fcb = config_create(path);
-//		int tamanio_archivo = config_get_int_value(archivo_fcb,"TAMANIO_ARCHIVO");
-//		return tamanio_archivo;
-//	}
-	return 0;
+	if (archivo_fcb == NULL) {
+		log_info(logger, "Archivo: %s no existe", nombre_archivo);
+		//t_config* archivo_fcb = config_create(path); // ¿cuando creo el archivo?
+		//archivo_fcb = crear_archivo_fcb(nombre_archivo);
+		free(path);
+		return 0;
+	} else {
+		log_info(logger, "Abrir Archivo: %s", nombre_archivo);
+//		t_config* archivo_fcb = config_create(path);
+		int tamanio_archivo = config_get_int_value(archivo_fcb,"TAMANIO_ARCHIVO");
+		return tamanio_archivo;
+	}
+	return -1;
 }
 
 void leer_archivo(char* nombre_archivo, int direccion_fisica, int puntero, char* path_fat){
