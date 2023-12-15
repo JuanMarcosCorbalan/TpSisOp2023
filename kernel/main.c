@@ -354,9 +354,9 @@ void procesar_exit(){
 		log_info(logger, "Finaliza el proceso %d - Motivo: %s", pcb->pid, motivo);
 		sem_post(&sem_multiprogramacion);
 		liberar_recursos(pcb);
-
+		send_finalizar_proceso_memoria(pcb, fd_memoria);
 		pcb_destroy(pcb);
-//		TODO Terminar proceso en memoria
+
 	}
 }
 
@@ -413,7 +413,7 @@ void procesar_respuesta_cpu(){
 				//enviar num de pag a memoria y cargarla
 				send_numero_pagina(pcb_actualizado->pid, herramientas->numero_pagina, herramientas->desplazamiento, fd_memoria);
 				//esperar respuesta de memoria
-				int pagina_cargada = recibir_pagina_cargada();
+				recibir_pagina_cargada();
 				//pasar proceso a ready
 				sem_post(&sem_vuelta_blocked);
 				sem_post(&sem_proceso_exec);

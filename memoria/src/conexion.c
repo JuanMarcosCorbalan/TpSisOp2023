@@ -2,11 +2,10 @@
 
 t_list* proceso_instrucciones;
 t_list* tablas_de_paginas;
-int tam_pagina;
-int tam_memoria;
-int retardo_respuesta;
-int cant_marcos;
-int contador_marcos;
+int tam_pagina = 0;
+int tam_memoria = 0;
+int retardo_respuesta = 0;
+int cant_marcos = 0;
 char* bitmap_marcos;
 void* espacio_usuario;
 char* algoritmo_reemplazo;
@@ -62,8 +61,8 @@ static void procesar_cliente(void* void_args){
 				break;
 			case LEER_MEMORIA:
 				//recibir direccion
-				int direccion_fisica = recv_solicitud_lectura_memoria(cliente_fd);
-				uint32_t dato = leer_espacio_usuario(direccion_fisica);
+				pid_direccion* direccion_fisica = recv_solicitud_lectura_memoria(cliente_fd);
+				uint32_t dato = leer_espacio_usuario(direccion_fisica->direccion, direccion_fisica->pid);
 				//mandar dato
 				send_valor_leido_memoria(dato, cliente_fd);
 				break;
@@ -71,6 +70,10 @@ static void procesar_cliente(void* void_args){
 				//recibir direccion y valor
 				direccion_y_valor* dyv = recv_solicitud_escritura_memoria(cliente_fd);
 				escribir_espacio_usuario(dyv->direccion, dyv->valor, dyv->pyn->pid, dyv->pyn->numero_pagina);
+				break;
+			case FINALIZAR_PROCESO_MEMORIA:
+				t_pcb* pcb = recv_finalizar_proceso_memoria(cliente_fd);
+				finalizar_proceso(pcb);
 				break;
 			case -1:
 				log_error(logger, "El cliente se desconecto.");
@@ -298,7 +301,7 @@ t_config* iniciar_config(void)
 char* inicializar_bitmap_marcos(void){
 	char* bitmap = malloc(cant_marcos);
 
-	for(int i = 0; i < cant_marcos-1; i++){
+	for(int i = 0; i < cant_marcos; i++){
 		bitmap[i] = '0';
 	}
 	return bitmap;
@@ -345,7 +348,7 @@ void cargar_pagina(int pid, int numero_pagina, int desplazamiento){
 	//ver si la memoria esta llena (bitmap de marcos)
 	bool flag_memoria_llena = true;
 	int marco = 0;
-	for(marco = 0; marco < cant_marcos -1; marco++){
+	for(marco = 0; marco < cant_marcos; marco++){
 		if(bitmap_marcos[marco] == '0'){
 			flag_memoria_llena = false;
 			break;
@@ -384,7 +387,7 @@ void descargar_pagina(t_pagina* pagina, int direccion){
 	pagina->bit_presencia = 0;
 	if(pagina->bit_modificado == 1){
 		//TODO escribir en fs
-		uint32_t valor_a_escribir = leer_espacio_usuario(direccion);
+		//uint32_t valor_a_escribir = leer_espacio_usuario(direccion, pagina->pid);
 		//send_escribir_en_bloque(valor_a_escribir, fd_filesystem);
 
 		pagina->bit_modificado = 0;
@@ -412,9 +415,9 @@ void realizar_reemplazo(t_pagina* pagina, int direccion, uint32_t valor){ //TODO
 	}
 }
 
-uint32_t leer_espacio_usuario(int direccion) {
+uint32_t leer_espacio_usuario(int direccion, int pid) {
 	uint32_t valor;
-	log_info(logger, "PID: <PID> - Accion: LEER - Direccion fisica: %d", direccion);
+	log_info(logger, "PID: %d - Accion: LEER - Direccion fisica: %d", direccion, pid);
 	pthread_mutex_lock(&mutex_memoria);
 	memcpy(&valor, espacio_usuario + direccion, sizeof(uint32_t));
 	pthread_mutex_unlock(&mutex_memoria);
@@ -448,7 +451,7 @@ void finalizar_proceso(t_pcb* pcb){
 	}
 
 	list_iterate(tdp->paginas, (void*)pagina_iterate);
-	//DESTRUIR!
+	//DESTRUIR! tdp
 	void pagina_destroy(t_pagina *self) {
 	    free(self);
 	}
@@ -456,6 +459,18 @@ void finalizar_proceso(t_pcb* pcb){
 	list_destroy_and_destroy_elements(tdp->paginas, (void*)pagina_destroy);
 	free(tdp);
 
+	//destruir instrucciones
+	bool _encontrar_pid_instrucciones(void* t) {
+		return (((t_proceso_instrucciones*)t)->pid == pcb->pid);
+	}
 
+	t_proceso_instrucciones* pi = list_find(proceso_instrucciones, _encontrar_pid_instrucciones);
+	void instrucciones_destroy(t_instruccion *self) {
+//		free(self->param1);
+//		free(self->param2);
+		free(self);
+	}
+	list_destroy_and_destroy_elements(pi->instrucciones, (void*)instrucciones_destroy);
+	free(pi);
 }
 

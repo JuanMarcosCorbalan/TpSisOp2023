@@ -825,21 +825,27 @@ void recv_finalizo_fwrite(int socket){
 
 
 //SOLICITUD DE LECTURA DE MEMORIA
-void send_solicitud_lectura_memoria(int direccion_fisica, int fd_memoria){
+void send_solicitud_lectura_memoria(int direccion_fisica, int pid, int fd_memoria){
 	t_paquete* paquete = crear_paquete(LEER_MEMORIA);
 
 	agregar_a_paquete(paquete, &direccion_fisica, sizeof(int));
+	agregar_a_paquete(paquete, &pid, sizeof(int));
 
 	enviar_paquete(paquete, fd_memoria);
 	eliminar_paquete(paquete);
 }
 
-int recv_solicitud_lectura_memoria(int fd_cpu){
+pid_direccion* recv_solicitud_lectura_memoria(int fd_cpu){
 	t_list* paquete = recibir_paquete(fd_cpu);
-	int* direccion_fisica = list_get(paquete, 0);
+	pid_direccion* ret = malloc(sizeof(pid_direccion));
+
+	int* pid = list_get(paquete, 0);
+	ret->pid= *pid;
+	int* direccion = list_get(paquete, 1);
+	ret->direccion = *direccion;
 
 	list_destroy(paquete);
-	return *direccion_fisica;
+	return ret;
 }
 
 
@@ -966,4 +972,20 @@ int recv_handshake_fs_memoria(int fd_filesystem){
 
 	list_destroy(paquete);
 	return *x;
+}
+
+void send_finalizar_proceso_memoria(t_pcb* pcb, int fd_memoria){
+	t_paquete* paquete = crear_paquete(FINALIZAR_PROCESO_MEMORIA);
+
+	agregar_a_paquete(paquete, pcb, sizeof(t_pcb));
+
+	enviar_paquete(paquete, fd_memoria);
+	eliminar_paquete(paquete);
+}
+t_pcb* recv_finalizar_proceso_memoria (int fd_kernel){
+	t_list* paquete = recibir_paquete(fd_kernel);
+	t_pcb* pcb = list_get(paquete, 0);
+
+	list_destroy(paquete);
+	return pcb;
 }

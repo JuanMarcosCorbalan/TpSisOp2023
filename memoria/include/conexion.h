@@ -46,8 +46,10 @@ void realizar_reemplazo(t_pagina* pagina, int direccion, uint32_t valor);
 void efectivizar_carga(int marco, t_pagina* pagina, int direccion, uint32_t valor);
 void descargar_pagina(t_pagina* pagina, int direccion);
 
-uint32_t leer_espacio_usuario(int direccion);
+uint32_t leer_espacio_usuario(int direccion, int pid);
 void escribir_espacio_usuario(int direccion, uint32_t valor, int pid, int numero_pagina);
 uint32_t recibir_valor_bloque();
 uint32_t* recibir_bloques_reservados();
+
+void finalizar_proceso(t_pcb* pcb);
 #endif

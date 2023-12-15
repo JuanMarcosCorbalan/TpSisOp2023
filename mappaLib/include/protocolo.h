@@ -52,7 +52,8 @@ typedef enum
 	FIN_FREAD,
 	FIN_FTRUNCATE,
 	HANDSHAKE_FS_MEMORIA,
-	TAMANIO_PAGINA
+	TAMANIO_PAGINA,
+	FINALIZAR_PROCESO_MEMORIA
 }op_code;
 
 typedef enum
@@ -196,8 +197,8 @@ void send_pagina_cargada(int fd_kernel);
 int recv_pagina_cargada(int fd_memoria);
 
 //SOLICITUD DE LECTURA
-void send_solicitud_lectura_memoria(int direccion_fisica, int fd_memoria);
-int recv_solicitud_lectura_memoria(int fd_cpu);
+void send_solicitud_lectura_memoria(int direccion_fisica, int pid, int fd_memoria);
+pid_direccion* recv_solicitud_lectura_memoria(int fd_cpu);
 
 //ENVIAR VALOR LEIDO
 void send_valor_leido_memoria(uint32_t valor, int fd_cpu);
@@ -248,5 +249,8 @@ void recv_finalizo_fwrite(int socket);
 
 void send_handshake_fs_memoria(int fd_memoria);
 int recv_handshake_fs_memoria(int fd_filesystem);
+
+void send_finalizar_proceso_memoria(t_pcb* pcb, int fd_memoria);
+t_pcb* recv_finalizar_proceso_memoria (int fd_kernel);
 
 #endif

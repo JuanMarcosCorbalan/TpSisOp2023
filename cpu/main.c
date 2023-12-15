@@ -396,7 +396,7 @@ void ejecutar_mov_in(t_pcb* pcb, char* param1, char* param2){
 		return;
 	}
 
-	send_solicitud_lectura_memoria(direccion_fisica, fd_memoria);
+	send_solicitud_lectura_memoria(direccion_fisica, pcb->pid, fd_memoria);
 	uint32_t valor = recibir_valor_leido();
 	log_info(logger, "PID: %d - Accion: LEER - Direccion Fisica: %d - Valor: %d", pcb->pid, direccion_fisica, valor);
 	cambiar_valor_registro(pcb, param1, valor);

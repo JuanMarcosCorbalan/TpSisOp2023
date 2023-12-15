@@ -150,6 +150,12 @@ typedef struct
 
 typedef struct
 {
+	int pid;
+	int direccion;
+} pid_direccion;
+
+typedef struct
+{
 	char* nombre_archivo;
 	int tamanio_archivo; // en bytes
 	int bloque_inicial; // tambien en bytes
