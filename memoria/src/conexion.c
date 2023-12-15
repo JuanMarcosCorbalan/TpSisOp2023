@@ -328,7 +328,7 @@ t_pagina* buscar_pagina(int pid, int numero_pagina){
 }
 
 uint32_t recibir_valor_bloque(){
-	uint32_t valor;
+	uint32_t valor = 0;
 	while (true) {
 		int cod_op = recibir_operacion(fd_filesystem);
 		switch (cod_op) {
@@ -344,8 +344,8 @@ uint32_t recibir_valor_bloque(){
 void cargar_pagina(int pid, int numero_pagina, int desplazamiento){
 	//ver si la memoria esta llena (bitmap de marcos)
 	bool flag_memoria_llena = true;
-	int marco;
-	for(marco = 0; marco < cant_marcos; marco++){
+	int marco = 0;
+	for(marco = 0; marco < cant_marcos -1; marco++){
 		if(bitmap_marcos[marco] == '0'){
 			flag_memoria_llena = false;
 			break;
@@ -360,7 +360,7 @@ void cargar_pagina(int pid, int numero_pagina, int desplazamiento){
 	//en ese caso, ejecutar algoritmo de reemplazo
 	if(flag_memoria_llena){
 		//algoritmo de reemplazo
-		realizar_reemplazo(marco, pagina, direccion, valor);
+		realizar_reemplazo(pagina, direccion, valor);
 	}else{
 		//sino - cargar pagina (asignarle un marco si no tiene y cambiarle el bit de presencia a 1)
 		efectivizar_carga(marco, pagina, direccion, valor);
@@ -373,6 +373,7 @@ void efectivizar_carga(int marco, t_pagina* pagina, int direccion, uint32_t valo
 	pagina->marco = marco;
 	pagina->bit_presencia = 1;
 	pagina->instante_de_referencia = contador_instante;
+	pagina->direccion = direccion;
 	bitmap_marcos[marco] = '1';
 	list_add(paginas_en_memoria, pagina);
 }
@@ -388,11 +389,13 @@ void descargar_pagina(t_pagina* pagina, int direccion){
 
 		pagina->bit_modificado = 0;
 	}
+	list_remove_element(paginas_en_memoria, pagina);
 }
 
-void realizar_reemplazo(int marco, t_pagina* pagina, int direccion, uint32_t valor){ //TODO
+void realizar_reemplazo(t_pagina* pagina, int direccion, uint32_t valor){ //TODO
 	if(!strcmp(algoritmo_reemplazo, "FIFO")){
 		t_pagina* pagina_victima = list_remove(paginas_en_memoria, 0);
+		int marco = pagina_victima->marco;
 		descargar_pagina(pagina_victima, direccion);
 		efectivizar_carga(marco, pagina, direccion, valor);
 		log_info(logger, "REEMPLAZO - Marco: %d - Page Out: %d - %d - Page In: %d - %d", pagina->marco, pagina_victima->pid, pagina_victima->numpag, pagina->pid, pagina->numpag);
@@ -402,6 +405,7 @@ void realizar_reemplazo(int marco, t_pagina* pagina, int direccion, uint32_t val
 		    return pagina1->instante_de_referencia <= pagina2->instante_de_referencia ? pagina1 : pagina2;
 		}
 		t_pagina* pagina_victima = list_get_minimum(paginas_en_memoria, (void*) _paginas_menor_referencia);
+		int marco = pagina_victima->marco;
 		descargar_pagina(pagina_victima, direccion);
 		efectivizar_carga(marco, pagina, direccion, valor);
 		log_info(logger, "REEMPLAZO - Marco: %d - Page Out: %d - %d - Page In: %d - %d", pagina->marco, pagina_victima->pid, pagina_victima->numpag, pagina->pid, pagina->numpag);
@@ -429,3 +433,29 @@ void escribir_espacio_usuario(int direccion, uint32_t valor, int pid, int numero
 	pagina->bit_modificado = 1;
 
 }
+
+void finalizar_proceso(t_pcb* pcb){
+	//tabla de paginas
+	bool _encontrar_pid(void* t) {
+		return (((t_tdp*)t)->pid == pcb->pid);
+	}
+
+	t_tdp* tdp = list_find(tablas_de_paginas, _encontrar_pid);
+
+	//borrarla de espacio usuario
+	void pagina_iterate(t_pagina *p) {
+		descargar_pagina(p, p->direccion);
+	}
+
+	list_iterate(tdp->paginas, (void*)pagina_iterate);
+	//DESTRUIR!
+	void pagina_destroy(t_pagina *self) {
+	    free(self);
+	}
+
+	list_destroy_and_destroy_elements(tdp->paginas, (void*)pagina_destroy);
+	free(tdp);
+
+
+}
+

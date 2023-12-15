@@ -119,6 +119,7 @@ typedef struct
 	int bit_modificado;
 	int pos_swap;
 	int instante_de_referencia;
+	int direccion;
 }t_pagina;
 
 typedef struct
