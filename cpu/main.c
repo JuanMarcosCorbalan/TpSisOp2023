@@ -258,10 +258,30 @@ void ejecutar_sum(t_pcb* pcb, char* param1, char* param2){
 }
 
 void ejecutar_sub(t_pcb* pcb, char* param1, char* param2){
-	uint32_t parametroARestar1 = (uint32_t)strtoul(param1, NULL, 10);
-	uint32_t parametroARestar2 = (uint32_t)strtoul(param2, NULL, 10);
+	uint32_t parametroARestar1 = 0;
+	uint32_t parametroARestar2 = 0;
 
 	log_info(logger, "PID: %d - Ejecutando: %s - [%s, %s]", pcb->pid, "SUB", param1, param2);
+
+	if(strcmp(param1, "AX") == 0){
+			parametroARestar1 = pcb->registros_generales_cpu.ax;
+		} else if(strcmp(param1, "BX") == 0){
+			parametroARestar1 = pcb->registros_generales_cpu.bx;
+		} else if(strcmp(param1, "CX") == 0){
+			parametroARestar1 = pcb->registros_generales_cpu.cx;
+		} else if(strcmp(param1, "DX") == 0){
+			parametroARestar1 = pcb->registros_generales_cpu.dx;
+	}
+
+	if(strcmp(param2, "AX") == 0){
+			parametroARestar2 = pcb->registros_generales_cpu.ax;
+		} else if(strcmp(param2, "BX") == 0){
+			parametroARestar2 = pcb->registros_generales_cpu.bx;
+		} else if(strcmp(param2, "CX") == 0){
+			parametroARestar2 = pcb->registros_generales_cpu.cx;
+		} else if(strcmp(param2, "DX") == 0){
+			parametroARestar2 = pcb->registros_generales_cpu.dx;
+	}
 
 	if(strcmp(param1, "AX") == 0){
 			pcb->registros_generales_cpu.ax = parametroARestar1 - parametroARestar2;
