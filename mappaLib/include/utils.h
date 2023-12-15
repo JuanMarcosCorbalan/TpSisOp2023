@@ -112,6 +112,8 @@ typedef struct
 
 typedef struct
 {
+	int pid;
+	int numpag;
 	int marco;
 	int bit_presencia;
 	int bit_modificado;

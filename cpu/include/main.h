@@ -55,4 +55,5 @@ void ejecutar_fread(t_pcb* pcb, char* param1, char* param2);
 void ejecutar_fwrite(t_pcb* pcb, char* param1, char* param2);
 void ejecutar_ftruncate(t_pcb* pcb, char* param1, char* param2);
 int recibir_tamanio_pagina();
+uint32_t recibir_valor_leido();
 #endif

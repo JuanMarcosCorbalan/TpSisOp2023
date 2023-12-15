@@ -890,7 +890,7 @@ direccion_y_valor* recv_solicitud_escritura_memoria(int fd_cpu){
 
 //SOLICITUD DE VALOR EN BLOQUE
 void send_solicitud_valor_en_bloque(int fd_filesystem, int direccion_bloque){
-	t_paquete* paquete = crear_paquete(VALOR_EN_BLOQUE);
+	t_paquete* paquete = crear_paquete(VALOR_EN_BLOQUE_IDA);
 
 	agregar_a_paquete(paquete, &direccion_bloque, sizeof(int));
 
@@ -907,7 +907,7 @@ int recv_solicitud_valor_en_bloque(int fd_memoria){
 }
 
 void send_valor_en_bloque(int fd_memoria, uint32_t valor){
-	t_paquete* paquete = crear_paquete(VALOR_EN_BLOQUE);
+	t_paquete* paquete = crear_paquete(VALOR_EN_BLOQUE_VUELTA);
 
 	agregar_a_paquete(paquete, &valor, sizeof(uint32_t));
 

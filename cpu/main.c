@@ -373,7 +373,22 @@ int solicitar_direccion_fisica(t_pcb* pcb, int direccion_logica){
 	return direccion_fisica;
 }
 
+uint32_t recibir_valor_leido(){
+	uint32_t valor;
+	while (true) {
+		int cod_op = recibir_operacion(fd_memoria);
+		switch (cod_op) {
+		case VALOR_LEIDO:
+			valor = recv_valor_leido_memoria(fd_memoria);
+			break;
+		}
+
+		return valor;
+	}
+}
+
 void ejecutar_mov_in(t_pcb* pcb, char* param1, char* param2){
+	log_info(logger, "PID: %d - Ejecutando: %s - [%s, %s]", pcb->pid, "MOV IN", param1, param2);
 	int direccion_logica = atoi(param2);
 	int direccion_fisica = solicitar_direccion_fisica(pcb, direccion_logica);
 	if(direccion_fisica == -1){
@@ -382,12 +397,14 @@ void ejecutar_mov_in(t_pcb* pcb, char* param1, char* param2){
 	}
 
 	send_solicitud_lectura_memoria(direccion_fisica, fd_memoria);
-	uint32_t valor = recv_valor_leido_memoria(fd_memoria);
-
+	uint32_t valor = recibir_valor_leido();
+	log_info(logger, "PID: %d - Accion: LEER - Direccion Fisica: %d - Valor: %d", pcb->pid, direccion_fisica, valor);
 	cambiar_valor_registro(pcb, param1, valor);
+	check_interrupt();
 }
 
 void ejecutar_mov_out(t_pcb* pcb, char* param1, char* param2){
+	log_info(logger, "PID: %d - Ejecutando: %s - [%s, %s]", pcb->pid, "MOV OUT", param1, param2);
 	char* registro = param2;
 	int direccion_logica = atoi(param1);
 	int direccion_fisica = solicitar_direccion_fisica(pcb, direccion_logica);
@@ -413,6 +430,7 @@ void ejecutar_mov_out(t_pcb* pcb, char* param1, char* param2){
 	pyn->numero_pagina = numero_pagina;
 	pyn->pid = pcb->pid;
 	send_solicitud_escritura_memoria(direccion_fisica, valor, pyn, fd_memoria);
+	log_info(logger, "PID: %d - Accion: ESCRIBIR - Direccion Fisica: %d - Valor: %d", pcb->pid, direccion_fisica, valor);
 	check_interrupt();
 	free(pyn);
 }

@@ -15,13 +15,14 @@ int contador_instante = 0;
 int inicializado = 0;
 int fd_filesystem = 0;
 t_config* config;
+t_log* logger;
 pthread_mutex_t mutex_memoria;
 
 
 static void procesar_cliente(void* void_args){
 	t_procesar_cliente_args* args = (t_procesar_cliente_args*) void_args;
 	int cliente_fd = args -> fd_cliente;
-	t_log* logger = args ->logger;
+	logger = args ->logger;
 	free(args);
 
 	while(cliente_fd != -1){
@@ -42,7 +43,7 @@ static void procesar_cliente(void* void_args){
 				break;
 			case DATOS_PROCESO_NEW:
 				t_datos_proceso* datos_proceso = recv_datos_proceso(cliente_fd);
-				iniciar_proceso_memoria(datos_proceso->path, datos_proceso->size, datos_proceso->pid, cliente_fd, logger);
+				iniciar_proceso_memoria(datos_proceso->path, datos_proceso->size, datos_proceso->pid, cliente_fd);
 				break;
 			case SOLICITAR_INSTRUCCION:
 				//t_proceso_instrucciones* pruebita = list_get(proceso_instrucciones, 0);
@@ -128,7 +129,20 @@ void inicializar_variables(t_log* logger, t_config* config){
 	inicializado = 1;
 }
 
-void iniciar_proceso_memoria(char* path, int size, int pid, int socket_kernel, t_log* logger){
+uint32_t* recibir_bloques_reservados(){
+	uint32_t* valor;
+	while (true) {
+		int cod_op = recibir_operacion(fd_filesystem);
+		switch (cod_op) {
+		case INICIARPROCESO:
+			valor = recv_lista_bloques_reservados(fd_filesystem);
+			break;
+		}
+		return valor;
+	}
+}
+
+void iniciar_proceso_memoria(char* path, int size, int pid, int socket_kernel){
 	//INSTRUCCIONES
 	t_proceso_instrucciones* proceso_instr = malloc(sizeof(t_proceso_instrucciones));
 	char* prefijoRutaProceso = "/home/utnso/tp-2023-2c-Sisop-Five/mappa-pruebas/";
@@ -152,14 +166,16 @@ void iniciar_proceso_memoria(char* path, int size, int pid, int socket_kernel, t
 	t_list* paginas = list_create();
 
 	int cant_paginas = size / tam_pagina;
-	send_solicitud_bloques_swap(fd_filesystem, cant_paginas);
-	uint32_t* bloques = recv_lista_bloques_reservados(fd_filesystem);
+	//send_solicitud_bloques_swap(fd_filesystem, cant_paginas);
+	//uint32_t* bloques = recibir_bloques_reservados();//recv_lista_bloques_reservados(fd_filesystem);
 	for(int i = 0; i < cant_paginas; i++){
 		t_pagina* pag = malloc(sizeof(t_pagina));
+		pag->pid = pid;
+		pag->numpag = i;
 		pag->marco = -1;
 		pag->bit_presencia = 0;
 		pag->bit_modificado = 0;
-		pag->pos_swap = bloques[i];
+		//pag->pos_swap = bloques[i];
 		list_add(paginas, pag);
 		//free(pag);
 	}
@@ -307,8 +323,22 @@ t_pagina* buscar_pagina(int pid, int numero_pagina){
 
 	//buscar pagina en tdp
 	t_pagina* pagina = list_get(tdp->paginas, numero_pagina);
-
+	log_info(logger, "PID: %d - Pagina: %d - Marco: %d", pid, numero_pagina, pagina->marco);
 	return pagina;
+}
+
+uint32_t recibir_valor_bloque(){
+	uint32_t valor;
+	while (true) {
+		int cod_op = recibir_operacion(fd_filesystem);
+		switch (cod_op) {
+		case VALOR_EN_BLOQUE_VUELTA:
+			valor = recv_valor_en_bloque(fd_filesystem);
+			break;
+		}
+
+		return valor;
+	}
 }
 
 void cargar_pagina(int pid, int numero_pagina, int desplazamiento){
@@ -324,8 +354,8 @@ void cargar_pagina(int pid, int numero_pagina, int desplazamiento){
 	t_pagina* pagina = buscar_pagina(pid, numero_pagina);
 
 	//decirle a fs que me traiga lo que esta en el bloque
-	send_solicitud_valor_en_bloque(fd_filesystem, pagina->pos_swap);
-	uint32_t valor = recv_valor_en_bloque(fd_filesystem);
+//	send_solicitud_valor_en_bloque(fd_filesystem, pagina->pos_swap);
+	uint32_t valor = 1;//recibir_valor_bloque();
 	int direccion = marco * tam_pagina + desplazamiento;
 	//en ese caso, ejecutar algoritmo de reemplazo
 	if(flag_memoria_llena){
@@ -365,6 +395,7 @@ void realizar_reemplazo(int marco, t_pagina* pagina, int direccion, uint32_t val
 		t_pagina* pagina_victima = list_remove(paginas_en_memoria, 0);
 		descargar_pagina(pagina_victima, direccion);
 		efectivizar_carga(marco, pagina, direccion, valor);
+		log_info(logger, "REEMPLAZO - Marco: %d - Page Out: %d - %d - Page In: %d - %d", pagina->marco, pagina_victima->pid, pagina_victima->numpag, pagina->pid, pagina->numpag);
 	}
 	else if(!strcmp(algoritmo_reemplazo, "LRU")){
 		void* _paginas_menor_referencia(t_pagina* pagina1, t_pagina* pagina2) {
@@ -373,12 +404,13 @@ void realizar_reemplazo(int marco, t_pagina* pagina, int direccion, uint32_t val
 		t_pagina* pagina_victima = list_get_minimum(paginas_en_memoria, (void*) _paginas_menor_referencia);
 		descargar_pagina(pagina_victima, direccion);
 		efectivizar_carga(marco, pagina, direccion, valor);
+		log_info(logger, "REEMPLAZO - Marco: %d - Page Out: %d - %d - Page In: %d - %d", pagina->marco, pagina_victima->pid, pagina_victima->numpag, pagina->pid, pagina->numpag);
 	}
 }
 
 uint32_t leer_espacio_usuario(int direccion) {
 	uint32_t valor;
-
+	log_info(logger, "PID: <PID> - Accion: LEER - Direccion fisica: %d", direccion);
 	pthread_mutex_lock(&mutex_memoria);
 	memcpy(&valor, espacio_usuario + direccion, sizeof(uint32_t));
 	pthread_mutex_unlock(&mutex_memoria);
@@ -387,6 +419,8 @@ uint32_t leer_espacio_usuario(int direccion) {
 }
 
 void escribir_espacio_usuario(int direccion, uint32_t valor, int pid, int numero_pagina) {
+	log_info(logger, "PID: %d - Accion: ESCRIBIR - Direccion fisica: %d", pid, direccion);
+
 	pthread_mutex_lock(&mutex_memoria);
 	memcpy(espacio_usuario + direccion, &valor, sizeof(int));
 	pthread_mutex_unlock(&mutex_memoria);

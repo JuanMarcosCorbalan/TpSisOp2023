@@ -1,9 +1,8 @@
 #include "include/main.h"
 
-t_log* logger;
-
 
 int main() {
+	t_log* logger;
 	logger = log_create("memoria.log", "MEMORIA", true, LOG_LEVEL_INFO);
 	t_config* config = iniciar_config();
 
