@@ -2,47 +2,46 @@
 
 int iniciar_servidor(char* puerto)
 {
-	int socket_servidor;
+    int socket_servidor;
 
-	struct addrinfo hints, *servinfo, *p;
+    struct addrinfo hints, *servinfo, *p;
 
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags = AI_PASSIVE;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE;
 
-	getaddrinfo(NULL, puerto, &hints, &servinfo);
+    if (getaddrinfo(NULL, puerto, &hints, &servinfo) != 0) {
+        perror("getaddrinfo");
+        exit(EXIT_FAILURE);
+    }
 
-	if (getaddrinfo(NULL, puerto, &hints, &servinfo) != 0) {
-	    perror("getaddrinfo");
-	    exit(EXIT_FAILURE);
-	}
+    // Creamos el socket de escucha del servidor
 
-	// Creamos el socket de escucha del servidor
+    for (p = servinfo; p != NULL; p = p->ai_next) {
+        socket_servidor = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+        if (socket_servidor == -1) {
+            continue;
+        }
 
-	for(p = servinfo; p != NULL; p = p->ai_next){
-		socket_servidor = socket(p -> ai_family, p -> ai_socktype, p -> ai_protocol);
-		if(socket_servidor == -1){
-			continue;
-		}
+        // Asociamos el socket a un puerto
+        if (bind(socket_servidor, p->ai_addr, p->ai_addrlen) == -1) {
+            close(socket_servidor);
+            continue;
+        }
+        break;
+    }
 
-		// Asociamos el socket a un puerto
-		if(bind(socket_servidor, p->ai_addr, p->ai_addrlen) == -1){
-			close(socket_servidor);
-			continue;
-		}
-		break;
-	}
-	// Escuchamos las conexiones entrantes
-	if (listen(socket_servidor, SOMAXCONN) == -1) {
-	    perror("listen");
-	    exit(EXIT_FAILURE);
-	}
+    // Escuchamos las conexiones entrantes
+    if (listen(socket_servidor, SOMAXCONN) == -1) {
+        perror("listen");
+        exit(EXIT_FAILURE);
+    }
 
-	freeaddrinfo(servinfo);
-//	log_trace(logger, "Listo para escuchar a mi cliente");
+    freeaddrinfo(servinfo);
+    // log_trace(logger, "Listo para escuchar a mi cliente");
 
-	return socket_servidor;
+    return socket_servidor;
 }
 
 int esperar_cliente(t_log* logger, int socket_servidor)

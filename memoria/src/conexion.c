@@ -43,6 +43,8 @@ static void procesar_cliente(void* void_args){
 			case DATOS_PROCESO_NEW:
 				t_datos_proceso* datos_proceso = recv_datos_proceso(cliente_fd);
 				iniciar_proceso_memoria(datos_proceso->path, datos_proceso->size, datos_proceso->pid, cliente_fd);
+				free(datos_proceso->path);
+				free(datos_proceso);
 				break;
 			case SOLICITAR_INSTRUCCION:
 				//t_proceso_instrucciones* pruebita = list_get(proceso_instrucciones, 0);
@@ -56,6 +58,7 @@ static void procesar_cliente(void* void_args){
 			case CARGAR_PAGINA:
 				pid_numpag_despl* pnd = recv_numero_pagina(cliente_fd);
 				cargar_pagina(pnd->pid, pnd->numero_pagina, pnd->desplazamiento);
+				free(pnd);
 				//mandar respuesta a kernel
 				send_pagina_cargada(cliente_fd);
 				break;
@@ -63,6 +66,7 @@ static void procesar_cliente(void* void_args){
 				//recibir direccion
 				pid_direccion* direccion_fisica = recv_solicitud_lectura_memoria(cliente_fd);
 				uint32_t dato = leer_espacio_usuario(direccion_fisica->direccion, direccion_fisica->pid);
+				free(direccion_fisica);
 				//mandar dato
 				send_valor_leido_memoria(dato, cliente_fd);
 				break;
@@ -70,6 +74,7 @@ static void procesar_cliente(void* void_args){
 				//recibir direccion y valor
 				direccion_y_valor* dyv = recv_solicitud_escritura_memoria(cliente_fd);
 				escribir_espacio_usuario(dyv->direccion, dyv->valor, dyv->pyn->pid, dyv->pyn->numero_pagina);
+				free(dyv);
 				break;
 			case FINALIZAR_PROCESO_MEMORIA:
 				t_pcb* pcb = recv_finalizar_proceso_memoria(cliente_fd);
@@ -86,8 +91,9 @@ static void procesar_cliente(void* void_args){
 }
 
 int experar_clientes(t_log* logger, int server_socket){
-	config = iniciar_config();
+//	config = iniciar_config();
 	if(inicializado != 1){
+		config = iniciar_config();
 		inicializar_variables(logger, config);
 	}
 
@@ -145,64 +151,53 @@ uint32_t* recibir_bloques_reservados(){
 	}
 }
 
-void iniciar_proceso_memoria(char* path, int size, int pid, int socket_kernel){
-	//INSTRUCCIONES
-	t_proceso_instrucciones* proceso_instr = malloc(sizeof(t_proceso_instrucciones));
-	char* prefijoRutaProceso = "/home/utnso/tp-2023-2c-Sisop-Five/mappa-pruebas/";
-	char* extensionProceso = ".txt";
-	char* rutaCompleta = string_new();
+void iniciar_proceso_memoria(char* path, int size, int pid, int socket_kernel) {
+    // Construir la ruta completa del archivo
+    char* rutaCompleta = string_from_format("/home/utnso/tp-2023-2c-Sisop-Five/mappa-pruebas/%s.txt", path);
 
-	string_append(&rutaCompleta, prefijoRutaProceso);
-	string_append(&rutaCompleta, path);
-	string_append(&rutaCompleta, extensionProceso);
+    // Generar instrucciones
+    t_list* instrucciones = generar_instrucciones(rutaCompleta);
+    free(rutaCompleta);
 
-	proceso_instr->instrucciones = list_create();
+    // Crear el objeto de proceso_instrucciones
+    t_proceso_instrucciones* proceso_instr = malloc(sizeof(t_proceso_instrucciones));
+    proceso_instr->pid = pid;
+    proceso_instr->instrucciones = instrucciones;
 
-	proceso_instr->pid = pid;
-	proceso_instr->instrucciones = generar_instrucciones(rutaCompleta);
+    list_add(proceso_instrucciones, proceso_instr);
 
-	list_add(proceso_instrucciones, proceso_instr);
-	//free(proceso_instr);
-	//TABLA DE PAGINAS
+    // Crear la tabla de páginas
+    t_tdp* tdp = malloc(sizeof(t_tdp));
+    tdp->pid = pid;
 
-	t_tdp* tdp = malloc(sizeof(t_tdp));
-	t_list* paginas = list_create();
+    int cant_paginas = size / tam_pagina;
+    t_list* paginas = list_create();
 
-	int cant_paginas = size / tam_pagina;
-	//send_solicitud_bloques_swap(fd_filesystem, cant_paginas);
-	//uint32_t* bloques = recibir_bloques_reservados();//recv_lista_bloques_reservados(fd_filesystem);
-	for(int i = 0; i < cant_paginas; i++){
-		t_pagina* pag = malloc(sizeof(t_pagina));
-		pag->pid = pid;
-		pag->numpag = i;
-		pag->marco = -1;
-		pag->bit_presencia = 0;
-		pag->bit_modificado = 0;
-		//pag->pos_swap = bloques[i];
-		list_add(paginas, pag);
-		//free(pag);
-	}
-	tdp->pid = pid;
-	tdp->paginas = paginas;
+    for (int i = 0; i < cant_paginas; i++) {
+        t_pagina* pag = malloc(sizeof(t_pagina));
+        pag->pid = pid;
+        pag->numpag = i;
+        pag->marco = -1;
+        pag->bit_presencia = 0;
+        pag->bit_modificado = 0;
+        list_add(paginas, pag);
+    }
 
-	list_add(tablas_de_paginas, tdp);
-	log_info(logger, "Tabla de paginas creada. PID: %d - Tamaño: %d\n", pid, cant_paginas); //log obligatorio
-	//free(tdp);
-	//list_destroy(paginas);
-	//t_proceso_instrucciones* pruebita = list_get(proceso_instrucciones, 0);
-	//t_instruccion* pruebita2 = list_get(pruebita->instrucciones, 0);
-	//free(proceso_instr);
+    tdp->paginas = paginas;
+
+    list_add(tablas_de_paginas, tdp);
+    log_info(logger, "Tabla de paginas creada. PID: %d - Tamaño: %d\n", pid, cant_paginas);
 }
 
 void procesar_pedido_instruccion(int socket_cpu, t_list* proceso_instrucciones){
-	t_config* config = iniciar_config();
+//	t_config* config = iniciar_config();
 	int retardo_respuesta = config_get_long_value(config, "RETARDO_RESPUESTA");
 	t_solicitud_instruccion* solicitud_instruccion = recv_solicitar_instruccion(socket_cpu);
 	t_proceso_instrucciones* pruebita = list_get(proceso_instrucciones, 0);
 //	t_instruccion* pruebita2 = list_get(pruebita->instrucciones, 0);
 
 	t_instruccion* instruccion_a_enviar = buscar_instruccion(solicitud_instruccion->pid, solicitud_instruccion->program_counter - 1, proceso_instrucciones);
-
+	free(solicitud_instruccion);
 	usleep(retardo_respuesta*1000);
 	send_proxima_instruccion(socket_cpu, instruccion_a_enviar);
 }
@@ -313,7 +308,7 @@ void procesar_solicitud_marco(int fd_cpu){
 	t_pagina* pagina = buscar_pagina(valores->pid, valores->numero_pagina);
 
 	send_marco(fd_cpu, pagina->marco);
-
+	free(valores);
 }
 
 t_pagina* buscar_pagina(int pid, int numero_pagina){

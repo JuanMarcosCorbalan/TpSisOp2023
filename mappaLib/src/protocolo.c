@@ -290,6 +290,8 @@ t_datos_proceso* recv_datos_proceso(int fd){
 	int* pid = list_get(paquete, 2);
 	datos->pid = *pid;
 	free(pid);
+
+	list_destroy(paquete);
 	return datos;
 }
 
@@ -541,10 +543,12 @@ int recv_handshake_cpu_memoria(int fd_cpu){
 	t_list* paquete = recibir_paquete(fd_cpu);
 
 	int* ok = list_get(paquete, 0);
+	int ret = *ok;
+	free(ok);
 
 	list_destroy(paquete);
 
-	return *ok;
+	return ret;
 }
 
 //SOLICITAR BLOQUES SWAP
@@ -720,12 +724,18 @@ pid_numpag_despl* recv_numero_pagina(int fd_kernel){
 	t_list* paquete = recibir_paquete(fd_kernel);
 	pid_numpag_despl* ret = malloc(sizeof(pid_numpag_despl));
 
-	int* pid = list_get(paquete, 0);
-	ret->pid = *pid;
+	int* pid2 = list_get(paquete, 0);
+	ret->pid = *pid2;
+	free(pid2);
+
 	int* numpag = list_get(paquete, 1);
 	ret->numero_pagina = *numpag;
+	free(numpag);
+
 	int* despl = list_get(paquete, 2);
 	ret->desplazamiento = *despl;
+	free(despl);
+
 	list_destroy(paquete);
 	return ret;
 }
@@ -839,10 +849,13 @@ pid_direccion* recv_solicitud_lectura_memoria(int fd_cpu){
 	t_list* paquete = recibir_paquete(fd_cpu);
 	pid_direccion* ret = malloc(sizeof(pid_direccion));
 
-	int* pid = list_get(paquete, 0);
-	ret->pid= *pid;
-	int* direccion = list_get(paquete, 1);
-	ret->direccion = *direccion;
+	int* pid2 = list_get(paquete, 0);
+	ret->pid= *pid2;
+	free(pid2);
+
+	int* direccion2 = list_get(paquete, 1);
+	ret->direccion = *direccion2;
+	free(direccion2);
 
 	list_destroy(paquete);
 	return ret;
@@ -885,10 +898,15 @@ direccion_y_valor* recv_solicitud_escritura_memoria(int fd_cpu){
 
 	int* direccion = list_get(paquete, 0);
 	ret->direccion = *direccion;
+	free(direccion);
+
 	uint32_t* valor = list_get(paquete, 1);
 	ret->valor = *valor;
+	free(valor);
+
 	pid_y_numpag* pyn = list_get(paquete, 2);
 	ret->pyn = pyn;
+	free(pyn);
 
 	list_destroy(paquete);
 	return ret;
@@ -969,9 +987,11 @@ void send_handshake_fs_memoria(int fd_memoria){
 int recv_handshake_fs_memoria(int fd_filesystem){
 	t_list* paquete = recibir_paquete(fd_filesystem);
 	int* x = list_get(paquete, 0);
+	int ret = *x;
+	free(x);
 
 	list_destroy(paquete);
-	return *x;
+	return ret;
 }
 
 void send_finalizar_proceso_memoria(t_pcb* pcb, int fd_memoria){
