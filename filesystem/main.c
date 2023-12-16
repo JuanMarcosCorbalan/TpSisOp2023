@@ -189,11 +189,10 @@ void procesar_conexion() {
 			sem_post(&cantidad_operaciones);
 			break;
 		case SOLICITUD_BLOQUES_SWAP:
-			t_list* parametros_iniciar_proceso = recv_parametros(socket_cliente);
-			int* cantidad_bloques_solicitados = list_get(parametros_iniciar_proceso,0);
+			int cantidad_bloques_solicitados = recv_peticion_iniciar_proceso(socket_cliente);
 
 			log_info(logger,"Manejando INICIARPROCESO");
-			t_operacion* op_iniciar_proceso = crear_operacion(INICIAR_PROCESO_FS,"", 0, 0, 0, 0, *cantidad_bloques_solicitados, 0);
+			t_operacion* op_iniciar_proceso = crear_operacion(INICIAR_PROCESO_FS,"", 0, 0, 0, 0, cantidad_bloques_solicitados, 0);
 			list_push_con_mutex(operaciones_pendientes,op_iniciar_proceso, &mutex_operaciones_pendientes);
 			sem_post(&cantidad_operaciones);
 			break;
@@ -209,9 +208,8 @@ void procesar_conexion() {
 		case VALOR_EN_BLOQUE:
 			int bloque_a_buscar = recv_valor_en_bloque(socket_cliente);
 
-			log_info(logger,"Manejando FINALIZARPROCESO");
-			t_operacion* op_valor_bloque = crear_operacion(FINALIZAR_PROCESO_FS, "", 0, bloque_a_buscar, 0, 0, 0, 0);
-
+			log_info(logger,"Manejando VALOR_EN_BLOQUE");
+			t_operacion* op_valor_bloque = crear_operacion(BUSCAR_VALOR_EN_BLOQUE, "", 0, bloque_a_buscar, 0, 0, 0, 0);
 			list_push_con_mutex(operaciones_pendientes,op_valor_bloque, &mutex_operaciones_pendientes);
 			sem_post(&cantidad_operaciones);
 			break;
@@ -281,6 +279,11 @@ void realizar_operacion(t_operacion* operacion){
 		log_info(logger, "finalizar_proceso con cantidad de bloques a liberar: %d", list_size(operacion->bloques_ocupados_swap));
 		liberar_bloques_swap(operacion->bloques_ocupados_swap);
 		break;
+	case BUSCAR_VALOR_EN_BLOQUE:
+		log_info(logger, "buscar valor en bloque %d para memoria", operacion->tamanio);
+		uint32_t valor = leer_datos_bloque_archivo(operacion->tamanio);
+		send_valor_en_bloque(socket_cliente, valor);
+		break;
 	}
 }
 
@@ -332,8 +335,9 @@ char* leer_archivo(char* nombre_archivo, int direccion_fisica, int puntero){
 	int bloque_correspondiente = buscar_bloque_en_fat(archivo_fcb, puntero);
 
 //	int bloque_real = buscar_bloque_en_fat(bloque_correspondiente, archivo_bloques);
+	int bloque_posta = cant_bloques_swap + bloque_correspondiente;
 
-	strcpy(buffer_leido,leer_datos_bloque_archivo(archivo_fcb, bloque_correspondiente));
+	uint32_t datos_leidos = leer_datos_bloque_archivo(bloque_posta);
 	log_info(logger,"Acceso Bloque - Archivo: %s - Bloque Archivo: %d - Bloque FS: %d",nombre_archivo,bloque_puntero_archivo,(cant_bloques_swap + bloque_correspondiente));
 
 	return buffer_leido;
@@ -345,16 +349,26 @@ char* leer_archivo(char* nombre_archivo, int direccion_fisica, int puntero){
 	// luego se envia un mensajito a kernel diciendo que el traspaso de info fue exitoso
 }
 
+//uint32_t buscar_valor_en_bloque(int numero_bloque_swap) {
+//	FILE* archivo_bloques = fopen(path_bloques, "rb");
+//	uint32_t valor_encontrado = 0;
+//
+//	fseek(archivo_bloques, numero_bloque_swap * tam_bloque, SEEK_SET);
+//	usleep(RETARDO_ACCESO_BLOQUE * 1000);
+//	fread(&valor_encontrado, tam_bloque, 1, archivo_bloques);
+//
+//	return valor_encontrado;
+//}
 
-
-char* leer_datos_bloque_archivo(t_config* archivo_fcb, int bloque_a_leer){
-	char* datos_leidos_bloque = malloc(tam_bloque);
+uint32_t leer_datos_bloque_archivo(int bloque_a_leer){
+	uint32_t datos_leidos_bloque = 0;
 	FILE* archivo_bloques = fopen(path_bloques, "rb+");
 
 
 	if (archivo_bloques){
+		fseek(archivo_bloques, bloque_a_leer * tam_bloque, SEEK_SET);
 		usleep(RETARDO_ACCESO_BLOQUE * 1000);
-	    fread(datos_leidos_bloque, tam_bloque, 1, archivo_bloques);
+	    fread(&datos_leidos_bloque, tam_bloque, 1, archivo_bloques);
 	}
 	else{
 	    puts("Something wrong reading from File.\n");
@@ -984,6 +998,7 @@ uint32_t buscar_primer_bloque_libre_swap(FILE* archivo_bloques) {
     // No se encontraron bloques libres
     return -1; // Otra forma de indicar que no hay bloques libres
 }
+
 
 
 

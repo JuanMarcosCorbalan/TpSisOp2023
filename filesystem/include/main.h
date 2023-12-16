@@ -51,6 +51,7 @@ typedef enum {
 	ESCRIBIR_ARCHIVO_FS,
 	INICIAR_PROCESO_FS,
 	FINALIZAR_PROCESO_FS,
+	BUSCAR_VALOR_EN_BLOQUE
 }codigo_operacion_fs;
 
 typedef struct {
@@ -94,7 +95,7 @@ bool archivo_sin_bloques(t_config*);
 void desasignar_bloques_a_archivo( t_config* , int );
 void asignar_bloques_a_archivo(t_config* ,  int );
 t_list* obtener_bloques_asignados(t_config* , FILE*);
-char* leer_datos_bloque_archivo(t_config* , int );
+uint32_t leer_datos_bloque_archivo( int );
 void escribir_archivo(char* , int , int ,uint32_t, int);
 void escribir_datos_bloque_archivo(t_config* archivo_fcb, uint32_t bloque_a_escribir, uint32_t buffer_escritura);
 uint32_t buscar_primer_bloque_libre_fat(FILE*);

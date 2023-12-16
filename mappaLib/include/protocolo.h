@@ -117,6 +117,10 @@ typedef struct {
 	uint32_t puntero;
 }t_peticion_fread_fs;
 
+typedef struct {
+	int cantidad_bloques_solicitados;
+}t_peticion_iniciar_proceso;
+
 
 t_paquete* crear_paquete(op_code codigo_operacion);
 void* serializar_paquete(t_paquete* paquete, int bytes);
@@ -208,7 +212,7 @@ t_peticion_fwrite_fs* recv_peticion_f_write_fs(int socket);
 t_peticion_fread* recv_peticion_f_read(int socket);
 t_peticion_fread_fs* recv_peticion_f_read_fs(int socket);
 
-
+int recv_peticion_iniciar_proceso(int socket);
 
 uint32_t recv_posicion(int socket);
 uint32_t recv_tamanio(int socket);

@@ -832,6 +832,20 @@ int recv_finalizo_fwrite(int socket){
 
 
 //SOLICITUD DE LECTURA DE MEMORIA
+
+int recv_peticion_iniciar_proceso(int socket) {
+	t_list* paquete = recibir_paquete(socket);
+	int* cantidad_bloques = list_get(paquete, 0);
+
+	int cantidad_bloques_solicitados = *cantidad_bloques;
+
+	free(cantidad_bloques);
+	list_destroy(paquete);
+	return cantidad_bloques_solicitados;
+
+}
+
+
 void send_solicitud_lectura(int direccion_fisica, int fd_memoria){
 	t_paquete* paquete = crear_paquete(LEER_MEMORIA);
 
