@@ -1,4 +1,3 @@
 SET AX 1
 F_OPEN consolas W
-F_TRUNCATE consolas 64
-EXIT
+F_SEEK consolas 32

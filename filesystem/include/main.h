@@ -20,7 +20,12 @@ int fd_cliente = 0;
 int socket_servidor;
 int socket_cliente;
 int server_fd;
+
 char* path_fat;
+char* path_fcb;
+char* path_bloques;
+char* ip_memoria;
+
 sem_t cantidad_operaciones;
 sem_t peticion_completada;
 t_list* operaciones_pendientes;
@@ -28,14 +33,15 @@ int RETARDO_ACCESO_BLOQUE;
 int RETARDO_ACCESO_FAT;
 t_config* config;
 
-int CANT_BLOQUES_TOTAL;
-int CANT_BLOQUES_SWAP;
+int cant_bloques_total;
+int cant_bloques_swap;
 int cant_bloques_fat;
-int TAM_BLOQUE;
+int tam_bloque;
 int tamanio_fat;
-
 int tamanio_swap;
 int tamanio_archivo_bloques;
+
+
 pthread_mutex_t mutex_operaciones_pendientes;
 
 typedef enum {
@@ -55,7 +61,7 @@ typedef struct {
 typedef struct{
 	codigo_operacion_fs cod_op;
 	char* nombre;
-	uint32_t* buffer_escritura;
+	uint32_t buffer_escritura;
 	int tamanio;
 	int dir_fisica;
 	int puntero;
@@ -63,38 +69,46 @@ typedef struct{
 	t_bloques_swap* bloques_ocupados_swap;
 }t_operacion;
 
+typedef struct {
+	uint32_t bloque_actual;
+}t_basta;
+
 t_config* iniciar_config(void);
 
 void manejar_peticiones();
 t_config* crear_archivo_fcb(char*);
-void crear_archivo_fat(const char* , int );
+//void crear_archivo_fat(char* , int );
+void inicializar_archivo_fat(char* path_fat, int cantidad_bloques_fat);
+void inicializar_archivo_bloques(char* path_bloques);
+
 void crear_fcb(char* ,int ,int);
 void crear_archivo_en_fat(char*);
 void inicializar_fcb(t_fcb*);
-void crear_archivo_bloques(char*);
+//void crear_archivo_bloques(char*);
 int abrir_archivo(char*);
-void leer_archivo(char* , int , int , char*);
-void truncar_archivo(char* , int ,const char* );
-void agrandar_archivo(t_config* , int ,const char* );
-void reducir_archivo(t_config* , int ,const char* );
+char* leer_archivo(char* , int , int);
+void truncar_archivo(char* , int);
+void agrandar_archivo(t_config* , int);
+void reducir_archivo(t_config* , int);
 bool archivo_sin_bloques(t_config*);
-void desasignar_bloques_a_archivo(const char* , t_config* , int , int);
-void asignar_bloques_a_archivo(const char* , t_config* ,  int , int);
-uint32_t* obtener_bloques_asignados(const char* , t_config* );
+void desasignar_bloques_a_archivo( t_config* , int );
+void asignar_bloques_a_archivo(t_config* ,  int );
+t_list* obtener_bloques_asignados(t_config* , FILE*);
 char* leer_datos_bloque_archivo(t_config* , int );
-void escribir_archivo(char* , int , int ,uint32_t*, int ,const char* );
-void escribir_datos_bloque_archivo(t_config* archivo_fcb, int bloque_a_escribir, uint32_t* buffer_escritura);
+void escribir_archivo(char* , int , int ,uint32_t, int);
+void escribir_datos_bloque_archivo(t_config* archivo_fcb, uint32_t bloque_a_escribir, uint32_t buffer_escritura);
 uint32_t buscar_primer_bloque_libre_fat(FILE*);
-uint32_t  buscar_bloque_en_fat (t_config* , int ,const char* );
+uint32_t  buscar_bloque_en_fat (t_config* , int);
 void procesar_conexion();
 uint32_t* reservar_bloques_swap(int );
 void liberar_bloques_swap(t_bloques_swap* );
 uint32_t buscar_primer_bloque_libre_swap(FILE* );
-t_operacion* crear_operacion(codigo_operacion_fs cod_op, char* nombre_archivo, uint32_t* buffer_escritura, int tamanio, int dir_fisica, int puntero, int cantidad_bloques_solicitados_swap, t_bloques_swap* bloques_ocupados_swap);
+t_operacion* crear_operacion(codigo_operacion_fs cod_op, char* nombre_archivo, uint32_t buffer_escritura, int tamanio, int dir_fisica, int puntero, int cantidad_bloques_solicitados_swap, t_bloques_swap* bloques_ocupados_swap);
 void atender_operaciones();
 void iniciar_atencion_operaciones();
 void realizar_operacion(t_operacion* operacion);
 int server_escuchar();
+uint32_t obtener_bloque_puntero_en_fat(t_config* archivo_fcb,FILE* archivo_fat, int bloque_puntero_archivo);
 
 #endif
 

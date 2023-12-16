@@ -287,6 +287,8 @@ t_pcb* crear_pcb(int prioridad){
 	pcb->motivo_exit = PROCESO_ACTIVO;
 
 	pcb->recursos_asignados = iniciar_recursos_en_proceso();
+
+	pcb->archivos_abiertos_proceso = list_create();
 	return pcb;
 }
 
@@ -366,6 +368,8 @@ void procesar_respuesta_cpu(){
 		switch(cod_op){
 		case PCB:
 			t_pcb* pcb_actualizado = recv_pcb(fd_cpu_dispatch);
+			t_pcb* pcb_fuera_exec = queue_pop_con_mutex(procesos_en_exec, &mutex_cola_exec);
+			pcb_destroy(pcb_fuera_exec);
 			recv(fd_cpu_dispatch, &cod_op, sizeof(op_code), 0);
 
 			switch(cod_op){
@@ -477,6 +481,10 @@ void procesar_respuesta_cpu(){
 					t_archivo_abierto_global* archivo_nuevo = malloc(sizeof(t_archivo_abierto_global));
 					archivo_nuevo->nombre_archivo = peticion_fopen->nombre_archivo;
 					archivo_nuevo->locks = list_create();
+					t_archivo_abierto_proceso* archivo_abierto_proceso = malloc(sizeof(t_archivo_abierto_proceso));
+					archivo_abierto_proceso -> nombre_archivo = peticion_fopen->nombre_archivo;
+					archivo_abierto_proceso -> puntero = 0;
+
 					t_lock* lock = malloc(sizeof(t_lock));
 					lock->modo_lock = peticion_fopen->modo_apertura;
 					lock->cantidad_participantes = 1;
@@ -484,7 +492,7 @@ void procesar_respuesta_cpu(){
 					list_add(archivo_nuevo->locks, lock);
 					list_add(tabla_global_archivos_abiertos, archivo_nuevo);
 					log_info(logger, "SE AÑADIO EL ARCHIVO ABIERTO A TABLA GLOBAL");
-					//list_add(pcb_actualizado->archivos_abiertos_proceso, archivo_abierto_proceso);
+//					list_add(pcb_actualizado->archivos_abiertos_proceso, archivo_abierto_proceso);
 				}
 				break;
 				case FCLOSE:
@@ -501,46 +509,71 @@ void procesar_respuesta_cpu(){
 					// entonces cerrar archivo libera una instancia de lock si es de lectura
 					break;
 				case FSEEK:
-					t_peticion* peticion_fseek = recv_peticion(fd_cpu_dispatch);
-					t_pcb* pcb_actualizado_fseek = recv_pcb(fd_cpu_dispatch);
-					char* nombre_archivo_fseek = peticion_fseek -> nombre_archivo;
-					uint32_t nuevo_puntero = peticion_fseek->posicion;
+					log_warning(logger, "Entro a fseek ");
+					t_peticion_fseek* peticion_fseek = recv_peticion_f_seek(fd_cpu_dispatch);
+
+					//char* nombre_archivo_fseek = strdup(peticion_fseek -> nombre_archivo);
+					// uint32_t nuevo_puntero = peticion_fseek->posicion;
 					// tengo que ubicar el puntero en base a la peticion
-					t_archivo_abierto_proceso* archivo;
-					strcpy(archivo->nombre_archivo, peticion_fseek->nombre_archivo);
-					archivo->puntero = nuevo_puntero;
+
+					t_archivo_abierto_proceso* archivo = malloc(sizeof(t_archivo_abierto_proceso));
+					archivo->nombre_archivo = strdup(peticion_fseek->nombre_archivo);
+
+					//strcpy(archivo->nombre_archivo, peticion_fseek->nombre_archivo);
+					archivo->puntero = peticion_fseek->posicion;
+					log_info(logger, "SE EJECUTO FSEEK Y EL PUNTERO DEL ARCHIVO: %s ESTA UBICADO EN %d", archivo->nombre_archivo, archivo->puntero);
+
+					queue_push_con_mutex(procesos_en_exec, pcb_actualizado, &mutex_cola_exec);
+					send_pcb(pcb_actualizado, fd_cpu_dispatch);
+					free(archivo);
 					// despues tengo que mandar el contexto de ejecucion a cpu
 				break;
 				case FTRUNCATE:
-					t_peticion* peticion_ftruncate = recv_peticion(fd_cpu_dispatch);
-					t_pcb* pcb_actualizado_ftruncate = recv_pcb(fd_cpu_dispatch);
-					t_archivo_abierto_global* archivo_a_truncar = buscar_archivo_abierto(peticion_ftruncate->nombre_archivo);
+					log_warning(logger, "Entro a ftruncate ");
+					t_peticion_ftruncate* peticion_ftruncate = recv_peticion_f_truncate(fd_cpu_dispatch);
+					//t_archivo_abierto_global* archivo_a_truncar = buscar_archivo_abierto("consolas");
+//					t_peticion* peticion_trucha = malloc(sizeof(t_peticion));
 
+					log_info(logger, "se enviara la peticion de truncate a FS");
+//					peticion_ftruncate->nombre_archivo = strdup("consolas");
+//					peticion_ftruncate->tamanio = 64;
 					// tengo que hacer el send de todo junto
-					send_peticion(fd_filesystem, pcb_actualizado_ftruncate ,peticion_ftruncate, FTRUNCATE);
-					list_push_con_mutex(procesos_en_blocked, pcb_actualizado_ftruncate, &mutex_lista_blocked);
+
+					send_peticion_f_truncate(fd_filesystem,peticion_ftruncate);
+					cambiar_estado(pcb_actualizado, BLOCKED);
+
+					list_push_con_mutex(procesos_en_blocked, pcb_actualizado, &mutex_lista_blocked);
+
+					log_info(logger, "PID: %d - Bloqueado por %s", pcb_actualizado->pid, peticion_fopen->nombre_archivo);
+					sem_post(&sem_proceso_exec);
 				break;
 				case FREAD:
 					// si entra aca es porque ya pudo pasar el lock
-					t_peticion* peticion_fread = recv_peticion(fd_cpu_dispatch);
-					t_pcb* pcb_actualizado_fread = recv_pcb(fd_cpu_dispatch);
+					t_peticion_fread* peticion_fread = recv_peticion_f_read(fd_cpu_dispatch);
+					uint32_t puntero_actual_fread = 0;
 
-					send_peticion(fd_filesystem, pcb_actualizado_fread ,peticion_fread, FREAD);
-					list_push_con_mutex(procesos_en_blocked, pcb_actualizado_fread, &mutex_lista_blocked);
+					send_peticion_f_read_fs(fd_filesystem,peticion_fread, puntero_actual_fread);
+//					list_push_con_mutex(procesos_en_blocked, pcb_actualizado_fread, &mutex_lista_blocked);
 				break;
 				case FWRITE:
-					t_peticion* peticion_fwrite = recv_peticion(fd_cpu_dispatch);
-					t_pcb* pcb_actualizado_fwrite = recv_pcb(fd_cpu_dispatch);
-					if (strcmp(peticion_fwrite->modo_apertura, "R") == 0) {
+					t_peticion_fwrite* peticion_fwrite = recv_peticion_f_write(fd_cpu_dispatch);
+					t_archivo_abierto_global* archivo_a_escribir = buscar_archivo_abierto(peticion_fwrite->nombre_archivo);
+
+					/////////////////////// ESTE SE TIENE QUE OBTENER DEL ARCHIVO ABIERTO POR EL PROCESO /////////////////////
+					uint32_t puntero_actual_fwrite = 0; ////////////////////////////////// HARDCODEADO //////////////////////////////////////////
+
+					t_lock* lock_actual = list_get(archivo_a_escribir->locks, 0);
+					if (strcmp(lock_actual->modo_lock, "R") == 0) {
 						// SI SE SOLICITO EN MODO LECTURA Y SE QUIERE ESCRIBIR, FINALIZA EL PROCESO
-						pcb_actualizado_fwrite->motivo_exit = INVALID_WRITE;
-						cambiar_estado(pcb_actualizado_fwrite, EXIT);
+						log_error(logger, "write invalido");
+						pcb_actualizado->motivo_exit = INVALID_WRITE;
+						cambiar_estado(pcb_actualizado, EXIT);
 						break;
 					}
 					// se bloquea hasta que fs informe que finalizo la operacion
-					cambiar_estado(pcb_actualizado_fwrite, BLOCKED);
-					send_peticion(fd_filesystem, pcb_actualizado_fwrite ,peticion_fwrite, FWRITE);
-					list_push_con_mutex(procesos_en_blocked, pcb_actualizado_fwrite, &mutex_lista_blocked);
+					send_peticion_f_write_fs(fd_filesystem, peticion_fwrite, puntero_actual_fwrite);
+					cambiar_estado(pcb_actualizado, BLOCKED);
+					list_push_con_mutex(procesos_en_blocked, pcb_actualizado, &mutex_lista_blocked);
 				break;
 			}
 		}
@@ -708,8 +741,7 @@ void cerrar_archivo(t_pcb* pcb , t_archivo_abierto_global* archivo_a_cerrar){
 	}
 	if(lock_actual->cantidad_participantes == 0) {
 		// se quedo sin participantes, se debe liberar el lock y cerrar el global
-		t_lock* lock = list_remove(archivo_a_cerrar->locks, 0);
-		free(lock);
+
 		int flag = 0;
 		int i = 0;
 		while (flag == 0) {
@@ -723,6 +755,8 @@ void cerrar_archivo(t_pcb* pcb , t_archivo_abierto_global* archivo_a_cerrar){
 			}
 			i++;
 		}
+		t_lock* lock = list_remove(archivo_a_cerrar->locks, 0);
+		free(lock);
 	}
 	// hago lo mismo con la tabla por proceso, esto sucede si o si y no necesito que se terminen todos los participantes para cerrarlo de la tabla
 //	int flag_archivo_por_proceso = 0;
@@ -957,8 +991,10 @@ void procesar_conexion_fs(void* void_args) {
 			send_pcb(pcb_espera_fs, fd_cpu_dispatch);
 			break;
 		case FIN_FTRUNCATE:
-				recv_finalizo_ftruncate(cliente_socket);
+
+				int numero = recv_finalizo_ftruncate(cliente_socket);
 				log_info(logger, "el fs termino de truncar un archivo del proceso %d", pcb_espera_fs->pid);
+				sem_post(&sem_vuelta_blocked);
 				break;
 		case FIN_FREAD:
 			recv_finalizo_fread(cliente_socket);

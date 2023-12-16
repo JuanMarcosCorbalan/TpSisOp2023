@@ -1,0 +1,4 @@
+SET AX 1
+F_OPEN consolas R
+F_READ consolas 0
+EXIT

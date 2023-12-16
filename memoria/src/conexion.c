@@ -164,6 +164,14 @@ codigo_instruccion instruccion_to_enum(char* instruccion){
 		return F_OPEN;
 	} else if (strcmp(instruccion, "F_CLOSE") == 0){
 		return F_CLOSE;
+	} else if (strcmp(instruccion, "F_SEEK") == 0) {
+		return F_SEEK;
+	} else if (strcmp(instruccion, "F_TRUNCATE" )== 0) {
+		return F_TRUNCATE;
+	} else if (strcmp(instruccion, "F_WRITE") == 0) {
+		return F_WRITE;
+	} else if (strcmp(instruccion, "F_READ") == 0) {
+		return F_READ;
 	}
 	return EXIT_FAILURE;
 }

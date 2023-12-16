@@ -83,6 +83,40 @@ typedef struct {
 	uint32_t tamanio;
 } t_peticion;
 
+
+typedef struct {
+	char* nombre_archivo;
+	uint32_t tamanio;
+} t_peticion_ftruncate;
+
+typedef struct {
+	char* nombre_archivo;
+	uint32_t posicion;
+} t_peticion_fseek;
+
+typedef struct {
+	char* nombre_archivo;
+	int direccion_fisica;
+} t_peticion_fwrite;
+
+typedef struct {
+	char* nombre_archivo;
+	int direccion_fisica;
+	uint32_t puntero;
+}t_peticion_fwrite_fs;
+
+typedef struct {
+	char* nombre_archivo;
+	int direccion_fisica;
+} t_peticion_fread;
+
+typedef struct {
+	char* nombre_archivo;
+	int direccion_fisica;
+	uint32_t puntero;
+}t_peticion_fread_fs;
+
+
 t_paquete* crear_paquete(op_code codigo_operacion);
 void* serializar_paquete(t_paquete* paquete, int bytes);
 //t_paquete* crear_paquete(void);
@@ -121,6 +155,10 @@ t_pcb* recv_pcb(int socket);
 void empaquetar_recursos(t_paquete* paquete, t_list* lista_de_recursos);
 t_list* desempaquetar_recursos(t_list* paquete, int comienzo);
 
+void empaquetar_archivos_abiertos_proceso(t_paquete* paquete, t_list* lista_archivos_abiertos_proceso);
+t_list* desempaquetar_archivos_abiertos_proceso(t_list* paquete, int comienzo);
+
+
 // EJECUTAR_PCB
 void send_ejecutar_pcb(int fd, t_pcb* pcb);
 t_pcb* recv_ejecutar_pcb(int fd);
@@ -155,6 +193,21 @@ void send_datos_archivo_bloques(int , char*,  int);
 // FUNCIONES PARA FS
 void send_peticion(int socket, t_pcb* pcb ,t_peticion* peticion, op_code codigo_operacion);
 void send_peticion_f_close(int socket, t_pcb* pcb ,t_peticion* peticion, op_code codigo_operacion);
+void send_peticion_f_truncate(int socket,t_peticion_ftruncate* peticion);
+void send_peticion_f_seek(int socket,t_peticion_fseek* peticion);
+void send_peticion_f_write(int socket,t_peticion_fwrite* peticion);
+void send_peticion_f_write_fs(int socket,t_peticion_fwrite* peticion, uint32_t puntero);
+void send_peticion_f_read(int socket,t_peticion_fread* peticion);
+void send_peticion_f_read_fs(int socket,t_peticion_fread* peticion, uint32_t puntero);
+
+t_peticion_ftruncate* recv_peticion_f_truncate(int socket);
+t_peticion_fseek* recv_peticion_f_seek(int socket);
+t_peticion_fwrite* recv_peticion_f_write(int socket);
+t_peticion_fwrite_fs* recv_peticion_f_write_fs(int socket);
+t_peticion_fread* recv_peticion_f_read(int socket);
+t_peticion_fread_fs* recv_peticion_f_read_fs(int socket);
+
+
 
 uint32_t recv_posicion(int socket);
 uint32_t recv_tamanio(int socket);
@@ -169,11 +222,11 @@ uint32_t* recv_valor_leido(int fd_memoria);
 
 void send_finalizo_fopen(int socket, int numero);
 int recv_finalizo_fopen(int socket);
-void send_finalizo_ftruncate(int socket);
-void recv_finalizo_ftruncate(int socket);
-void send_finalizo_fread(int socket);
-void recv_finalizo_fread(int socket);
-void send_finalizo_fwrite(int socket);
-void recv_finalizo_fwrite(int socket);
+void send_finalizo_ftruncate(int socket, int numero);
+int recv_finalizo_ftruncate(int socket);
+void send_finalizo_fread(int socket, int numero);
+int recv_finalizo_fread(int socket);
+void send_finalizo_fwrite(int socket, int numero);
+int recv_finalizo_fwrite(int socket);
 
 #endif

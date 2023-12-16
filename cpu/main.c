@@ -320,6 +320,7 @@ void check_interrupt(){
 
 // envia a kernel el nombre del archivo y el modo de apertura W, R
 void ejecutar_fopen(t_pcb* pcb, char* param1, char* param2){
+	log_info(logger, "PID: %d - Ejecutando: %s - [%s, %s]", pcb->pid, "FOPEN", param1, param2);
 	t_peticion* peticion = malloc(sizeof(t_peticion));
 	peticion->nombre_archivo = strdup(param1);
 	peticion->modo_apertura = strdup(param2);
@@ -335,6 +336,7 @@ void ejecutar_fopen(t_pcb* pcb, char* param1, char* param2){
 
 // solicita el cierre del archivo con el nombre del mismo
 void ejecutar_fclose(t_pcb* pcb, char* param1){
+	log_info(logger, "PID: %d - Ejecutando: %s - [%s]", pcb->pid, "FCLSOE", param1);
 	t_peticion* peticion = malloc(sizeof(t_peticion));
 	peticion->nombre_archivo = strdup(param1);
 	peticion->modo_apertura = "R";
@@ -349,21 +351,30 @@ void ejecutar_fclose(t_pcb* pcb, char* param1){
 
 // solicita al kernel actualizar el puntero del archivo a la posición pasada por parámetro
 void ejecutar_fseek(t_pcb* pcb,char* param1, char* param2){
-	t_peticion* peticion = malloc(sizeof(t_peticion));
-	peticion->nombre_archivo = param1;
-	peticion->posicion = (uint32_t)strtoul(param2, NULL, 10);
-	send_peticion(dispatch_cliente_fd, pcb, peticion, FSEEK);
+	log_info(logger, "PID: %d - Ejecutando: %s - [%s, %s]", pcb->pid, "FSEEK", param1, param2);
+	t_peticion_fseek* peticion = malloc(sizeof(t_peticion_fseek));
+
+	peticion->nombre_archivo = strdup(param1);
+	peticion->posicion = atoi(param2);
+
+	send_pcb(pcb, dispatch_cliente_fd);
+	send_peticion_f_seek(dispatch_cliente_fd,peticion);
 
     free(peticion->nombre_archivo);
     free(peticion);
+
+    sem_post(&sem_nuevo_proceso);
 }
 
 //  solicita al Kernel que se lea del archivo indicado y se escriba en la dirección física de Memoria la información leída.
 void ejecutar_fread(t_pcb* pcb, char* param1, char* param2){
-	t_peticion* peticion = malloc(sizeof(t_peticion));
+	log_info(logger, "PID: %d - Ejecutando: %s - [%s, %s]", pcb->pid, "FREAD", param1, param2);
+	t_peticion_fread* peticion = malloc(sizeof(t_peticion_fread));
 	peticion->nombre_archivo = param1;
 //	peticion->direccion_fisica = solicitar_direccion_fisica(pcb, atoi(param2));
-	send_peticion(dispatch_cliente_fd, pcb, peticion, FREAD);
+	peticion->direccion_fisica = 0;
+	send_pcb(pcb, dispatch_cliente_fd);
+	send_peticion_f_read(dispatch_cliente_fd,peticion);
 
 	free(peticion->nombre_archivo);
     free(peticion);
@@ -371,24 +382,32 @@ void ejecutar_fread(t_pcb* pcb, char* param1, char* param2){
 
 //  solicita al Kernel que se escriba en el archivo indicado la información que es obtenida a partir de la dirección física de Memoria.
 void ejecutar_fwrite(t_pcb* pcb, char* param1, char* param2){
-	t_peticion* peticion = malloc(sizeof(t_peticion));
-	peticion->nombre_archivo = param1;
+	log_info(logger, "PID: %d - Ejecutando: %s - [%s, %s]", pcb->pid, "FWRITE", param1, param2);
+	t_peticion_fwrite* peticion = malloc(sizeof(t_peticion_fwrite));
+	peticion->nombre_archivo = strdup(param1);
 //	peticion->direccion_fisica = solicitar_direccion_fisica(pcb, atoi(param2));
-	send_peticion(dispatch_cliente_fd, pcb, peticion, FWRITE);
-
+	peticion->direccion_fisica = 0;
+	send_pcb(pcb, dispatch_cliente_fd);
+	send_peticion_f_write(dispatch_cliente_fd,peticion);
 	free(peticion->nombre_archivo);
     free(peticion);
 }
 
 // solicita al Kernel que se modifique el tamaño del archivo al indicado por parámetro.
 void ejecutar_ftruncate(t_pcb* pcb, char* param1, char* param2){
-	t_peticion* peticion = malloc(sizeof(t_peticion));
-	peticion->nombre_archivo = param1;
-	peticion->tamanio = (uint32_t)strtoul(param2, NULL, 10);
-	send_peticion(dispatch_cliente_fd, pcb, peticion, FTRUNCATE);
+	log_info(logger, "PID: %d - Ejecutando: %s - [%s, %s]", pcb->pid, "FTRUNCATE", param1, param2);
+	t_peticion_ftruncate* peticion = malloc(sizeof(t_peticion_ftruncate));
+	peticion->nombre_archivo = strdup(param1);
+	//peticion->tamanio = (uint32_t)strtoul(param2, NULL, 10);
+	// TODO HARDCODEADO //
+	peticion->tamanio = 64;
+	send_pcb(pcb, dispatch_cliente_fd);
+	send_peticion_f_truncate(dispatch_cliente_fd, peticion);
 
 	free(peticion->nombre_archivo);
     free(peticion);
+
+    sem_post(&sem_nuevo_proceso);
 }
 
 t_config* iniciar_config(void)
