@@ -34,7 +34,7 @@ static void procesar_cliente(void* void_args){
 			case HANDSHAKE_CPU_MEMORIA:
 				int recibir_cpu = recv_handshake_cpu_memoria(cliente_fd);
 				send_tam_pagina(cliente_fd, tam_pagina);
-				log_info(logger, "tamanio de pagina %d enviado a cpu socket %d", tam_pagina, cliente_fd);
+				log_info(logger, "tamanio de pagina %d enviado", tam_pagina);
 				break;
 			case HANDSHAKE_FS_MEMORIA:
 				int recibir_fs = recv_handshake_fs_memoria(cliente_fd);
@@ -86,8 +86,9 @@ static void procesar_cliente(void* void_args){
 }
 
 int experar_clientes(t_log* logger, int server_socket){
-	config = iniciar_config();
+//	config = iniciar_config();
 	if(inicializado != 1){
+		config = iniciar_config();
 		inicializar_variables(logger, config);
 	}
 
@@ -195,7 +196,7 @@ void iniciar_proceso_memoria(char* path, int size, int pid, int socket_kernel){
 }
 
 void procesar_pedido_instruccion(int socket_cpu, t_list* proceso_instrucciones){
-	t_config* config = iniciar_config();
+//	t_config* config = iniciar_config();
 	int retardo_respuesta = config_get_long_value(config, "RETARDO_RESPUESTA");
 	t_solicitud_instruccion* solicitud_instruccion = recv_solicitar_instruccion(socket_cpu);
 	t_proceso_instrucciones* pruebita = list_get(proceso_instrucciones, 0);

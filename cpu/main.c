@@ -19,7 +19,7 @@ int main(void) {
 	send_handshake_cpu_memoria(fd_memoria);
 	log_info(logger, "handshake con memoria socket %d", fd_memoria);
 	tam_pagina = recibir_tamanio_pagina();//recv_tam_pagina(fd_memoria);
-	log_info(logger, "tamanio de pagina recibido: %d de socket %d", tam_pagina, fd_memoria);
+	log_info(logger, "tamanio de pagina recibido: %d", tam_pagina);
 //	liberar_conexion(fd_memoria);
 
 	pthread_t *hilo_dispatch = malloc(sizeof(pthread_t));
