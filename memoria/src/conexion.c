@@ -314,7 +314,8 @@ void procesar_solicitud_marco(int fd_cpu){
 	t_pagina* pagina = buscar_pagina(valores->pid, valores->numero_pagina);
 
 	send_marco(fd_cpu, pagina->marco);
-
+	pagina->instante_de_referencia = contador_instante;
+	contador_instante++;
 }
 
 t_pagina* buscar_pagina(int pid, int numero_pagina){
@@ -369,13 +370,11 @@ void cargar_pagina(int pid, int numero_pagina, int desplazamiento){
 		efectivizar_carga(marco, pagina, direccion, valor);
 	}
 	escribir_espacio_usuario(direccion, valor, pid, numero_pagina);
-	contador_instante++;
 }
 
 void efectivizar_carga(int marco, t_pagina* pagina, int direccion, uint32_t valor){
 	pagina->marco = marco;
 	pagina->bit_presencia = 1;
-	pagina->instante_de_referencia = contador_instante;
 	pagina->direccion = direccion;
 	bitmap_marcos[marco] = '1';
 	list_add(paginas_en_memoria, pagina);
