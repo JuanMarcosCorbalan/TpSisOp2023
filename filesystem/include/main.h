@@ -66,7 +66,7 @@ typedef struct{
 	int dir_fisica;
 	int puntero;
 	int cantidad_bloques_swap;
-	t_bloques_swap* bloques_ocupados_swap;
+	t_list* bloques_ocupados_swap;
 }t_operacion;
 
 typedef struct {
@@ -100,10 +100,10 @@ void escribir_datos_bloque_archivo(t_config* archivo_fcb, uint32_t bloque_a_escr
 uint32_t buscar_primer_bloque_libre_fat(FILE*);
 uint32_t  buscar_bloque_en_fat (t_config* , int);
 void procesar_conexion();
-uint32_t* reservar_bloques_swap(int );
-void liberar_bloques_swap(t_bloques_swap* );
+t_list* reservar_bloques_swap(int );
+void liberar_bloques_swap(t_list* );
 uint32_t buscar_primer_bloque_libre_swap(FILE* );
-t_operacion* crear_operacion(codigo_operacion_fs cod_op, char* nombre_archivo, uint32_t buffer_escritura, int tamanio, int dir_fisica, int puntero, int cantidad_bloques_solicitados_swap, t_bloques_swap* bloques_ocupados_swap);
+t_operacion* crear_operacion(codigo_operacion_fs cod_op, char* nombre_archivo, uint32_t buffer_escritura, int tamanio, int dir_fisica, int puntero, int cantidad_bloques_solicitados_swap, t_list* bloques_ocupados_swap);
 void atender_operaciones();
 void iniciar_atencion_operaciones();
 void realizar_operacion(t_operacion* operacion);

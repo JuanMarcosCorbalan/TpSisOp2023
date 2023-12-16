@@ -33,13 +33,14 @@ typedef enum
 	FTRUNCATE,
 	FREAD,
 	FWRITE,
-	INICIARPROCESO,
+	SOLICITUD_BLOQUES_SWAP,
 	FINALIZARPROCESO,
 	LEER_MEMORIA,
 	FIN_FOPEN,
 	FIN_FWRITE,
 	FIN_FREAD,
 	FIN_FTRUNCATE,
+	VALOR_EN_BLOQUE
 }op_code;
 
 typedef enum
@@ -214,7 +215,7 @@ uint32_t recv_tamanio(int socket);
 int recv_dir_logica(int socket);
 t_peticion* recv_peticion(int socket);
 
-void send_bloques_reservados(int socket, uint32_t* lista_bloques_reservados, int tamanio);
+void send_bloques_reservados(int socket, t_list* lista_bloques_reservados, int tamanio);
 char* recv_parametros_fopen(int socket);
 t_list* recv_parametros(int socket);
 void send_solicitud_lectura(int, int);
@@ -228,5 +229,10 @@ void send_finalizo_fread(int socket, int numero);
 int recv_finalizo_fread(int socket);
 void send_finalizo_fwrite(int socket, int numero);
 int recv_finalizo_fwrite(int socket);
+
+void send_solicitud_valor_en_bloque(int fd_filesystem, int direccion_bloque);
+int recv_solicitud_valor_en_bloque(int fd_memoria);
+void send_valor_en_bloque(int fd_memoria, uint32_t valor);
+uint32_t recv_valor_en_bloque(int fd_filesystem);
 
 #endif

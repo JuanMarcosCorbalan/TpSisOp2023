@@ -123,7 +123,7 @@ int server_escuchar() {
 }
 
 
-t_operacion* crear_operacion(codigo_operacion_fs cod_op, char* nombre_archivo, uint32_t buffer_escritura, int tamanio, int dir_fisica, int puntero, int cantidad_bloques_solicitados_swap, t_bloques_swap* bloques_ocupados_swap){
+t_operacion* crear_operacion(codigo_operacion_fs cod_op, char* nombre_archivo, uint32_t buffer_escritura, int tamanio, int dir_fisica, int puntero, int cantidad_bloques_solicitados_swap, t_list* bloques_ocupados_swap){
 	t_operacion* operacion = malloc(sizeof(t_operacion));
 	operacion->cod_op  = cod_op;
 	operacion->nombre = nombre_archivo;
@@ -167,7 +167,6 @@ void procesar_conexion() {
 //			int* tamanio_truncate = list_get(parametros_truncate, 1);
 			t_peticion_ftruncate* peticion_ftruncate = recv_peticion_f_truncate(socket_cliente);
 
-
 			log_info(logger,"Manejando FTRUNCATE");
 			t_operacion* op_truncate = crear_operacion(TRUNCAR_ARCHIVO_FS, peticion_ftruncate->nombre_archivo, 0,peticion_ftruncate->tamanio, 0, 0, 0, 0);
 			list_push_con_mutex(operaciones_pendientes,op_truncate, &mutex_operaciones_pendientes);
@@ -183,30 +182,37 @@ void procesar_conexion() {
 			break;
 		case FWRITE:
 			t_peticion_fwrite_fs* peticion_fwrite = recv_peticion_f_write_fs(socket_cliente);
-
-
 			log_info(logger,"Manejando FWRITE");
 			t_operacion* op_write = crear_operacion(ESCRIBIR_ARCHIVO_FS, peticion_fwrite->nombre_archivo, 0, 0, peticion_fwrite->direccion_fisica, peticion_fwrite->puntero, 0, 0);
 			list_push_con_mutex(operaciones_pendientes,op_write, &mutex_operaciones_pendientes);
 
 			sem_post(&cantidad_operaciones);
 			break;
-		case INICIARPROCESO:
+		case SOLICITUD_BLOQUES_SWAP:
 			t_list* parametros_iniciar_proceso = recv_parametros(socket_cliente);
 			int* cantidad_bloques_solicitados = list_get(parametros_iniciar_proceso,0);
 
 			log_info(logger,"Manejando INICIARPROCESO");
-			t_operacion* op_iniciar_proceso = crear_operacion(INICIAR_PROCESO_FS, "", 0, 0, 0, 0, *cantidad_bloques_solicitados, 0);
+			t_operacion* op_iniciar_proceso = crear_operacion(INICIAR_PROCESO_FS,"", 0, 0, 0, 0, *cantidad_bloques_solicitados, 0);
 			list_push_con_mutex(operaciones_pendientes,op_iniciar_proceso, &mutex_operaciones_pendientes);
 			sem_post(&cantidad_operaciones);
 			break;
 		case FINALIZARPROCESO:
 			t_list* parametros_finalizar_proceso = recv_parametros(socket_cliente);
-			t_bloques_swap* bloques_ocupados_swap = list_get(parametros_finalizar_proceso,0);
+			t_list* bloques_ocupados_swap = list_get(parametros_finalizar_proceso,0);
 
 			log_info(logger,"Manejando FINALIZARPROCESO");
-			t_operacion* op_finalizar_proceso = crear_operacion(FINALIZAR_PROCESO_FS,  "", 0, 0, 0, 0, 0, bloques_ocupados_swap);
+			t_operacion* op_finalizar_proceso = crear_operacion(FINALIZAR_PROCESO_FS, "", 0, 0, 0, 0, 0, bloques_ocupados_swap);
 			list_push_con_mutex(operaciones_pendientes,op_finalizar_proceso, &mutex_operaciones_pendientes);
+			sem_post(&cantidad_operaciones);
+			break;
+		case VALOR_EN_BLOQUE:
+			int bloque_a_buscar = recv_valor_en_bloque(socket_cliente);
+
+			log_info(logger,"Manejando FINALIZARPROCESO");
+			t_operacion* op_valor_bloque = crear_operacion(FINALIZAR_PROCESO_FS, "", 0, bloque_a_buscar, 0, 0, 0, 0);
+
+			list_push_con_mutex(operaciones_pendientes,op_valor_bloque, &mutex_operaciones_pendientes);
 			sem_post(&cantidad_operaciones);
 			break;
 		default:
@@ -267,12 +273,12 @@ void realizar_operacion(t_operacion* operacion){
 		break;
 	case INICIAR_PROCESO_FS:
 		log_info(logger, "iniciar_proceso con cantidad_bloques_swap: %d", operacion->cantidad_bloques_swap);
-		uint32_t* lista_bloques_reservados = reservar_bloques_swap(operacion->cantidad_bloques_swap);
+		t_list* lista_bloques_reservados = reservar_bloques_swap(operacion->cantidad_bloques_swap);
 		int tamanio_lista = sizeof(uint32_t) * operacion->cantidad_bloques_swap;
 		send_bloques_reservados(socket_cliente, lista_bloques_reservados, tamanio_lista);
 		break;
 	case FINALIZAR_PROCESO_FS:
-		log_info(logger, "finalizar_proceso con cantidad de bloques a liberar: %ld", operacion->bloques_ocupados_swap->cantidad_bloques_a_liberar);
+		log_info(logger, "finalizar_proceso con cantidad de bloques a liberar: %d", list_size(operacion->bloques_ocupados_swap));
 		liberar_bloques_swap(operacion->bloques_ocupados_swap);
 		break;
 	}
@@ -280,11 +286,13 @@ void realizar_operacion(t_operacion* operacion){
 
 char* convertir_path_fcb(char* nombre_archivo_fcb){
 	log_info(logger, "Entrando a convertir_path_fcb con nombre_archivo: %s", nombre_archivo_fcb);
-	char* path = malloc(strlen("./fcbs/") + strlen(nombre_archivo_fcb) + strlen(".fcb") + 1); // +1 para el carácter nulo al final
-	strcpy(path, "./fcbs/");
+	char* path = malloc(strlen(path_fcb) + strlen(nombre_archivo_fcb) + strlen(".fcb") + 1); // +1 para el carácter nulo al final
+	strcpy(path, path_fcb);
+	strcat(path, "/");
 	strcat(path, nombre_archivo_fcb);
 	strcat(path, ".fcb");
 	return path;
+
 }
 
 
@@ -906,42 +914,46 @@ void inicializar_archivo_bloques(char* path){
 	fclose(archivo_bloques);
 };
 
-uint32_t* reservar_bloques_swap(int cantidad_bloques_solicitados){
-	uint32_t* bloques_reservados = malloc(cantidad_bloques_solicitados * sizeof(uint32_t));
-	char* path_archivo_bloques = config_get_string_value(config, "PATH_BLOQUES");
-	int tamanio_bloque = config_get_int_value(config, "TAM_BLOQUE");
-	FILE* archivo_bloques = fopen(path_archivo_bloques, "wb+") ;
+t_list* reservar_bloques_swap(int cantidad_bloques_solicitados){
+	t_list* bloques_reservados = list_create();
+	//int tamanio_bloque = config_get_int_value(config, "TAM_BLOQUE");
+	FILE* archivo_bloques = fopen(path_bloques, "wb+") ;
 	uint32_t bloque_actual = 0;
 	uint32_t i = 0;
 	while(cantidad_bloques_solicitados != 0) {
 		bloque_actual = buscar_primer_bloque_libre_swap(archivo_bloques);
-		fwrite("\0", sizeof(uint32_t), tamanio_bloque, archivo_bloques);
-		bloques_reservados[i] = bloque_actual;
+		fseek(archivo_bloques, bloque_actual*tam_bloque, SEEK_SET);
+		//fwrite("\0", sizeof(uint32_t), tam_bloque, archivo_bloques);
+		fwrite("\0", 1, tam_bloque, archivo_bloques);
+		list_add(bloques_reservados, &bloque_actual);
+		//bloques_reservados[i] = bloque_actual;
 		cantidad_bloques_solicitados--;
 	}
 	fclose(archivo_bloques);
 	return bloques_reservados;
 }
-void liberar_bloques_swap(t_bloques_swap* lista_bloques_a_liberar){
-	size_t longitud_lista = lista_bloques_a_liberar->cantidad_bloques_a_liberar;
-	char* path_archivo_bloques = config_get_string_value(config, "PATH_BLOQUES");
-	int tamanio_bloque = config_get_int_value(config, "TAM_BLOQUE");
+void liberar_bloques_swap(t_list* lista_bloques_a_liberar){
+	int longitud_lista = list_size(lista_bloques_a_liberar);
+	//char* path_archivo_bloques = config_get_string_value(config, "PATH_BLOQUES");
+	//int tamanio_bloque = config_get_int_value(config, "TAM_BLOQUE");
 
-	FILE* archivo_bloques = fopen(path_archivo_bloques, "wb+") ;
+	FILE* archivo_bloques = fopen(path_bloques, "wb+") ;
 	int i = 0;
 	// comienza al principio de swap
-	uint32_t bloque_a_liberar = 0;
+	uint32_t* bloque_a_liberar = 0;
 	while(longitud_lista != 0) {
-		bloque_a_liberar = lista_bloques_a_liberar->array_bloques[i];
+		bloque_a_liberar = list_get(lista_bloques_a_liberar, i);
 		// liberar_bloque
 		// tengo que ubicar el puntero al principio del bloque que se quiere liberar
-		fseek(archivo_bloques, bloque_a_liberar * sizeof(uint32_t), SEEK_SET);
+		fseek(archivo_bloques, *bloque_a_liberar * tam_bloque, SEEK_SET);
 		usleep(RETARDO_ACCESO_BLOQUE * 1000);
-		fwrite("0", sizeof(uint32_t), tamanio_bloque, archivo_bloques);
+		//fwrite("0", sizeof(uint32_t), tam_bloque, archivo_bloques);
+		fwrite("\0", 1, tam_bloque, archivo_bloques);
 		i++;
 		longitud_lista--;
+		//list_remove();
 	}
-	free(lista_bloques_a_liberar->array_bloques);
+	free(lista_bloques_a_liberar);
 
 	fclose(archivo_bloques);
 }

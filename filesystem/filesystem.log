@@ -1,0 +1,26 @@
+[INFO] 09:23:51:008 FILESYSTEM/(24736:24736): SE CREO E INICIALIZO EL ARCHIVO FAT
+[INFO] 09:23:53:516 FILESYSTEM/(24736:24736): SE CREO E INICIALIZO EL ARCHIVO DE BLOQUES
+[INFO] 09:23:53:516 FILESYSTEM/(24736:24736): Conectado correctamente.
+[INFO] 09:23:53:516 FILESYSTEM/(24736:24736): FILESYSTEM LISTO...
+[INFO] 09:23:53:516 FILESYSTEM/(24736:24736): Inicio atencion de operaciones
+[INFO] 09:23:58:874 FILESYSTEM/(24736:24736): Se conecto un cliente!
+[INFO] 09:23:58:874 FILESYSTEM/(24736:24740): Me llego el mensaje Hola, soy el Kernel!
+[INFO] 09:27:03:272 FILESYSTEM/(24736:24740): Manejando FOPEN
+[INFO] 09:27:03:272 FILESYSTEM/(24736:24738): Hay peticion pendiente
+[INFO] 09:27:03:272 FILESYSTEM/(24736:24738): fopen con nombre_archivo: consolas
+[INFO] 09:27:03:272 FILESYSTEM/(24736:24738): Entrando a convertir_path_fcb con nombre_archivo: consolas
+[INFO] 09:27:03:272 FILESYSTEM/(24736:24738): Archivo: consolas no existe
+[INFO] 09:27:03:272 FILESYSTEM/(24736:24738): Entrando a convertir_path_fcb con nombre_archivo: consolas
+[INFO] 09:27:03:272 FILESYSTEM/(24736:24738): Crear Archivo: consolas 
+[INFO] 09:27:04:313 FILESYSTEM/(24736:24740): Manejando FWRITE
+[INFO] 09:27:04:314 FILESYSTEM/(24736:24738): Hay peticion pendiente
+[INFO] 09:27:04:314 FILESYSTEM/(24736:24738): Entrando a convertir_path_fcb con nombre_archivo: consolas
+[INFO] 09:27:04:314 FILESYSTEM/(24736:24738): Entrando a convertir_path_fcb con nombre_archivo: consolas
+[INFO] 09:27:05:320 FILESYSTEM/(24736:24738): Acceso FAT - Entrada: 1
+[INFO] 09:27:07:325 FILESYSTEM/(24736:24738): Acceso FAT - Entrada: 1 - Valor: 2
+[INFO] 09:27:09:840 FILESYSTEM/(24736:24738): Acceso FAT - Entrada: 2 - Valor: 3
+[INFO] 09:27:12:851 FILESYSTEM/(24736:24738): Acceso FAT - Entrada: 3 - Valor: 4
+[INFO] 09:27:12:851 FILESYSTEM/(24736:24738): Truncar archivo: consolas - Tamanio: 64
+[INFO] 09:27:12:851 FILESYSTEM/(24736:24738): Escribir Archivo : consolas - Puntero: 0 - Memoria: 0
+[INFO] 09:27:15:354 FILESYSTEM/(24736:24738): Acceso Bloque - Archivo: consolas - Bloque Archivo: 0 - Bloque FS: 1025
+[INFO] 09:27:15:561 FILESYSTEM/(24736:24740): El cliente se desconecto

@@ -505,7 +505,8 @@ void procesar_respuesta_cpu(){
 
 					queue_push_con_mutex(procesos_en_exec, pcb_actualizado, &mutex_cola_exec);
 					send_pcb(pcb_actualizado, fd_cpu_dispatch);
-					sem_post(&sem_vuelta_blocked);
+
+
 					// entonces cerrar archivo libera una instancia de lock si es de lectura
 					break;
 				case FSEEK:
@@ -542,7 +543,7 @@ void procesar_respuesta_cpu(){
 					send_peticion_f_truncate(fd_filesystem,peticion_ftruncate);
 					cambiar_estado(pcb_actualizado, BLOCKED);
 
-					list_push_con_mutex(procesos_en_blocked, pcb_actualizado, &mutex_lista_blocked);
+					list_push_con_mutex(procesos_espera_fs, pcb_actualizado, &mutex_espera_fs);
 
 					log_info(logger, "PID: %d - Bloqueado por %s", pcb_actualizado->pid, peticion_fopen->nombre_archivo);
 					sem_post(&sem_proceso_exec);

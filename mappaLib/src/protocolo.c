@@ -731,8 +731,8 @@ t_peticion* recv_peticion(int socket){
 	list_destroy(paquete);
 	return peticion;
 }
-void send_bloques_reservados(int socket, uint32_t* lista_bloques_reservados, int tamanio){
-	t_paquete* paquete = crear_paquete(INICIARPROCESO);
+void send_bloques_reservados(int socket, t_list* lista_bloques_reservados, int tamanio){
+	t_paquete* paquete = crear_paquete(SOLICITUD_BLOQUES_SWAP);
 	agregar_a_paquete(paquete, &lista_bloques_reservados, tamanio);
 	enviar_paquete(paquete, socket);
 
@@ -855,4 +855,38 @@ uint32_t* recv_valor_leido(int fd_memoria){
 
 	list_destroy(paquete);
 	return valor;
+}
+
+void send_solicitud_valor_en_bloque(int fd_filesystem, int direccion_bloque){
+	t_paquete* paquete = crear_paquete(VALOR_EN_BLOQUE);
+
+	agregar_a_paquete(paquete, &direccion_bloque, sizeof(int));
+
+	enviar_paquete(paquete, fd_filesystem);
+	eliminar_paquete(paquete);
+}
+
+int recv_solicitud_valor_en_bloque(int fd_memoria){
+	t_list* paquete = recibir_paquete(fd_memoria);
+	int* direccion_bloque = list_get(paquete, 0);
+
+	list_destroy(paquete);
+	return *direccion_bloque;
+}
+
+void send_valor_en_bloque(int fd_memoria, uint32_t valor){
+	t_paquete* paquete = crear_paquete(VALOR_EN_BLOQUE);
+
+	agregar_a_paquete(paquete, &valor, sizeof(uint32_t));
+
+	enviar_paquete(paquete, fd_memoria);
+	eliminar_paquete(paquete);
+}
+
+uint32_t recv_valor_en_bloque(int fd_filesystem){
+	t_list* paquete = recibir_paquete(fd_filesystem);
+	uint32_t* valor = list_get(paquete, 0);
+
+	list_destroy(paquete);
+	return *valor;
 }
