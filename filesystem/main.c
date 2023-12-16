@@ -411,7 +411,7 @@ void escribir_archivo(char* nombre_archivo, int direccion_fisica, int puntero, u
 	t_config* archivo_fcb = config_create(path);
 //	int tamanio_actual_archivo = config_get_int_value(archivo_fcb, "TAMANIO_ARCHIVO");
 //	int tamanio_a_cambiar= tamanio_actual_archivo + tamanio_a_escribir;
-	truncar_archivo(nombre_archivo,64); // ACA ESTOY TRUNCANDO PORQ NO LO HICE ANTES EN EL ARCHIVO PARA LA PRUEBA, NO FUNCA PARA SEGUIR EN KERNEL, POR ESO TRUNCO, PERO YA DEBERIA ESTAR
+//	truncar_archivo(nombre_archivo,64); // ACA ESTOY TRUNCANDO PORQ NO LO HICE ANTES EN EL ARCHIVO PARA LA PRUEBA, NO FUNCA PARA SEGUIR EN KERNEL, POR ESO TRUNCO, PERO YA DEBERIA ESTAR
 
 	// aca entra con el archivo ya truncado y busca el bloque del archivo al que apunta el puntero
 	archivo_fcb = config_create(path);

@@ -552,14 +552,14 @@ void procesar_respuesta_cpu(){
 					// si entra aca es porque ya pudo pasar el lock
 					t_peticion_fread* peticion_fread = recv_peticion_f_read(fd_cpu_dispatch);
 					uint32_t puntero_actual_fread = 0;
-
+					list_push_con_mutex(procesos_espera_fs, pcb_actualizado, &mutex_espera_fs);
 					send_peticion_f_read_fs(fd_filesystem,peticion_fread, puntero_actual_fread);
 //					list_push_con_mutex(procesos_en_blocked, pcb_actualizado_fread, &mutex_lista_blocked);
 				break;
 				case FWRITE:
 					t_peticion_fwrite* peticion_fwrite = recv_peticion_f_write(fd_cpu_dispatch);
 					t_archivo_abierto_global* archivo_a_escribir = buscar_archivo_abierto(peticion_fwrite->nombre_archivo);
-
+					list_push_con_mutex(procesos_espera_fs, pcb_actualizado, &mutex_espera_fs);
 					/////////////////////// ESTE SE TIENE QUE OBTENER DEL ARCHIVO ABIERTO POR EL PROCESO /////////////////////
 					uint32_t puntero_actual_fwrite = 0; ////////////////////////////////// HARDCODEADO //////////////////////////////////////////
 
@@ -995,17 +995,21 @@ void procesar_conexion_fs(void* void_args) {
 
 				int numero = recv_finalizo_ftruncate(cliente_socket);
 				log_info(logger, "el fs termino de truncar un archivo del proceso %d", pcb_espera_fs->pid);
+				list_push_con_mutex(procesos_en_blocked, pcb_espera_fs, &mutex_lista_blocked);
 				sem_post(&sem_vuelta_blocked);
 				break;
 		case FIN_FREAD:
 			recv_finalizo_fread(cliente_socket);
 			log_info(logger, "el fs termino de leer un archivo del proceso %d", pcb_espera_fs->pid);
-
+			list_push_con_mutex(procesos_en_blocked, pcb_espera_fs, &mutex_lista_blocked);
+			sem_post(&sem_vuelta_blocked);
 			break;
 		case FIN_FWRITE:
 			recv_finalizo_fwrite(cliente_socket);
 
 			log_info(logger, "el fs termino de escribir un archivo del proceso %d", pcb_espera_fs->pid);
+			list_push_con_mutex(procesos_en_blocked, pcb_espera_fs, &mutex_lista_blocked);
+			sem_post(&sem_vuelta_blocked);
 			break;
 
 		default:
